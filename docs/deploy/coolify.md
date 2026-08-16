@@ -83,7 +83,7 @@ Geradas pelo Coolify e visíveis em `GET /api/v1/services/{uuid}/envs`. **Nunca 
 | Branch | `develop` — ver decisão D7 do roadmap |
 | Build | Dockerfile, base `/backend`, porta `3333` |
 | Domínio | `https://api.ganza.bmjtech.duckdns.org` — para **aplicações** a API aceita `domains`, ao contrário de serviços |
-| Healthcheck | `/health`, que consulta o banco de verdade |
+| Healthcheck | `/health`, que consulta o banco de verdade. A imagem `node:22-alpine` traz o `wget` do busybox (não traz `curl`) — é o que o Coolify usa para sondar. |
 | **`watch_paths`** | **`backend/**`** |
 
 **Sobre o `watch_paths`:** sem ele o auto-deploy dispara a cada push na branch, e mexer no app Flutter rebuildaria o backend à toa. Num servidor de 2 vCPU compartilhado com driva e love-secret, isso não é detalhe. **Todo deployável novo nasce com `watch_paths` configurado.**

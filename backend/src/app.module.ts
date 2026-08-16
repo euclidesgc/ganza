@@ -1,22 +1,10 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
 
-import { Env, validateEnv } from './config/env';
+import { EnvModule } from './config/env.module';
 import { DatabaseModule } from './database/database.module';
 import { HealthModule } from './health/health.module';
 
 @Module({
-  imports: [
-    ConfigModule.forRoot({ isGlobal: true, validate: validateEnv }),
-    DatabaseModule,
-    HealthModule,
-  ],
-  providers: [
-    {
-      provide: 'ENV',
-      useFactory: (): Env => validateEnv(process.env),
-    },
-  ],
-  exports: ['ENV'],
+  imports: [EnvModule, DatabaseModule, HealthModule],
 })
 export class AppModule {}
