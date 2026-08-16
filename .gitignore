@@ -7,6 +7,11 @@
 google-services.json
 key.properties
 
+# Config de build: o `.example` é versionado, o real fica local (carrega a
+# anon key, e chave em repositório é hábito que uma hora erra o arquivo).
+app/config/*.json
+!app/config/*.json.example
+
 # Dart / Flutter
 .dart_tool/
 .packages

@@ -1,0 +1,32 @@
+name: ganza
+description: "Ganza - assistente pessoal de registro"
+publish_to: "none"
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.10.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  bloc: ^9.0.1
+  dio: ^5.9.0
+  equatable: ^2.0.7
+  flutter_bloc: ^9.1.1
+  fpdart: ^1.1.1
+  get_it: ^8.2.0
+  go_router: ^16.2.4
+  intl: ^0.20.2
+  supabase_flutter: ^2.10.1
+  zard: ^0.0.16
+
+dev_dependencies:
+  bloc_test: ^10.0.0
+  flutter_lints: ^6.0.0
+  flutter_test:
+    sdk: flutter
+  mocktail: ^1.0.4
+
+flutter:
+  uses-material-design: true

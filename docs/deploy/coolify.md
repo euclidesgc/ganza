@@ -30,6 +30,14 @@ Sete contêineres, todos `healthy`, **~840 MB de RAM somados** — bem abaixo do
 | `supabase-meta` | `supabase/postgres-meta:v0.95.2` | ~83 MB |
 | `supabase-studio` | `supabase/studio:2026.03.16` | ~173 MB |
 
+> ### O painel mostra "Degraded" — e isso é esperado
+>
+> O Coolify guardou no banco dele os cards dos 15 serviços do template original. Os 8 que removemos do compose aparecem como **Exited**, e o cabeçalho do serviço fica **Degraded** por causa deles. **Não é falha:** "Exited" ali significa "não faz parte da stack".
+>
+> O `Supabase Rest` aparece como *Running (unknown, excluded)* — a imagem do PostgREST não traz healthcheck. Ele responde 200 normalmente.
+>
+> Limpar os órfãos exigiria editar o banco do próprio Coolify (que serve driva e love-secret) ou recriar o serviço. Nenhum dos dois vale o risco por um rótulo. **Confira a saúde pelos 7 contêineres da tabela acima, não pelo cabeçalho.**
+
 ### O que foi deliberadamente deixado de fora
 
 O template oficial do Coolify sobe **15** serviços. Removidos, com o motivo:
@@ -48,22 +56,16 @@ Ajustes que a remoção exigiu, e que **precisam ser refeitos se a stack for rec
 ### Endpoint
 
 ```
-http://supabasekong-lqsjrqqs6r8rnggbvwpi4nuf.64.181.165.16.sslip.io
+https://supabase.ganza.bmjtech.duckdns.org
 ```
 
-Verificado funcionando: `/auth/v1/health` devolve GoTrue v2.186.0, `/rest/v1/` e `/storage/v1/bucket` devolvem 200 com a `apikey`.
+TLS por Let's Encrypt (`CN = supabase.ganza.bmjtech.duckdns.org`, emitido em 16/08/2026, válido até 14/11/2026, renovação automática pelo Traefik). Verificado com a `apikey`: `/auth/v1/health`, `/rest/v1/` e `/storage/v1/bucket` devolvem **200**.
 
-> ### ⚠️ O domínio próprio ainda não está no ar — e por quê
+> **O domínio de um serviço é campo de UI — a API v1 do Coolify não o expõe.** Foi tentado, sem sucesso: `PATCH /services/{uuid}` com `domains` (*"This field is not allowed"*), `PATCH` das envs `SERVICE_FQDN_SUPABASEKONG*` (aceita, mas não regenera os labels do Traefik), redeploy com `force`, `PATCH /applications/{uuid}` (*"Application not found"* — sub-aplicação de serviço não é exposta) e criação de um serviço novo com o FQDN literal no compose (o Coolify sobrescreve com o `sslip.io`).
 >
-> O alvo é **`https://supabase.ganza.bmjtech.duckdns.org`** (o DNS já resolve para o servidor; ver decisão D6 do roadmap).
+> **O caminho que funciona:** projeto → serviço → contêiner `supabase-kong` → *Edit domain* → **Protocol `https`**, Domain sem esquema, Port `8000`, Path vazio → Save → **Redeploy**. É o `https` que dispara o Let's Encrypt; com `http` o Traefik só cria router HTTP e serve o `TRAEFIK DEFAULT CERT` no 443.
 >
-> **A API v1 do Coolify não expõe o FQDN de um serviço.** Foi tentado, sem sucesso: `PATCH /services/{uuid}` com `domains` (*"This field is not allowed"*), `PATCH` das envs `SERVICE_FQDN_SUPABASEKONG*` (aceita, mas não regenera os labels do Traefik), redeploy com `force`, `PATCH /applications/{uuid}` (*"Application not found"* — sub-aplicação de serviço não é exposta) e criação de um serviço novo com o FQDN literal no compose (o Coolify sobrescreve com o `sslip.io`).
->
-> **É um campo de UI.** Enquanto ele não for preenchido, o Traefik só gera router HTTP e serve o `TRAEFIK DEFAULT CERT` no 443 — daí o 503 em HTTPS.
->
-> **Como resolver (30 segundos no painel):** projeto **Ganza** → serviço `ganza-supabase` → contêiner `supabase-kong` → campo de domínio → `https://supabase.ganza.bmjtech.duckdns.org` → salvar e redeployar. O `https://` é o que dispara o Let's Encrypt.
->
-> Depois disso, atualize também a env `API_EXTERNAL_URL` (já está com o valor final) e confira `/auth/v1/health` no domínio novo.
+> O redeploy em si **pode** ser disparado pela API (`POST /api/v1/deploy?uuid=...&force=true`).
 
 ## Chaves
 
@@ -75,7 +77,6 @@ Geradas pelo Coolify e visíveis em `GET /api/v1/services/{uuid}/envs`. **Nunca 
 
 ## Ainda por fazer
 
-- Domínio + TLS (acima).
 - **SMTP** para os e-mails de autenticação — `SMTP_HOST`/`SMTP_USER`/`SMTP_PASS` estão vazios. Sem isso, confirmação de e-mail e recuperação de senha não saem.
 - Backend NestJS em `api.ganza.bmjtech.duckdns.org` (F0.8).
 - Front web em `ganza.bmjtech.duckdns.org` (Fase 8).

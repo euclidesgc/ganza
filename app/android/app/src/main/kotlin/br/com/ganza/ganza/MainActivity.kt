@@ -1,0 +1,5 @@
+package br.com.ganza.ganza
+
+import io.flutter.embedding.android.FlutterActivity
+
+class MainActivity : FlutterActivity()
