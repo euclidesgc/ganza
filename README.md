@@ -31,6 +31,14 @@ Flutter (Android/Web)
                            pg_cron (pg_net)
 ```
 
+## Primeiro clone
+
+```bash
+git config core.hooksPath scripts/git-hooks
+```
+
+Instala o hook que barra push direto em `main`/`develop` — a proteção de branch do GitHub não está disponível em repo privado no plano gratuito. Detalhes em [`docs/GITFLOW.md`](docs/GITFLOW.md) §1.
+
 ## Rodando (a partir da Fase 0)
 
 ```bash

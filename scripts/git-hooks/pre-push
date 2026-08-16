@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+#
+# Barra push direto em main/develop.
+#
+# O GitHub só oferece proteção de branch em repositório privado no plano Pro,
+# e este repo é privado no plano gratuito. Como quem empurra é sempre esta
+# máquina (o dev e os agentes), a cancela local cobre o vetor real.
+#
+# Instalação (uma vez por clone):
+#   git config core.hooksPath scripts/git-hooks
+#
+# Escape consciente, para o raro caso legítimo (criar a branch, por exemplo):
+#   GANZA_ALLOW_DIRECT_PUSH=1 git push ...
+
+set -uo pipefail
+
+[ "${GANZA_ALLOW_DIRECT_PUSH:-0}" = "1" ] && exit 0
+
+protegidas="refs/heads/main refs/heads/develop"
+
+while read -r _local_ref _local_sha remote_ref _remote_sha; do
+  for p in $protegidas; do
+    if [ "$remote_ref" = "$p" ]; then
+      branch="${p#refs/heads/}"
+      echo ""
+      echo "✗ push direto em '$branch' é proibido (docs/GITFLOW.md §1)."
+      echo "  Todo trabalho nasce num branch de suporte e volta por Pull Request:"
+      echo ""
+      echo "      git switch -c feature/<issue>-<slug>"
+      echo "      gh pr create --base develop --fill"
+      echo ""
+      echo "  Caso legítimo? GANZA_ALLOW_DIRECT_PUSH=1 git push ..."
+      echo ""
+      exit 1
+    fi
+  done
+done
+
+exit 0

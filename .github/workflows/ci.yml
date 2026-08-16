@@ -22,6 +22,10 @@ on:
   push:
     branches: [develop, main]
 
+# Durante a Fase 0 o repositório ainda não tem `app/` nem `backend/`. Os jobs
+# correspondentes se PULAM em vez de falhar: CI cronicamente vermelha ensina a
+# ignorar a CI, e aí ela deixa de ser cancela. Assim que o diretório nasce, o
+# job passa a valer sem ninguém precisar lembrar de reativá-lo.
 jobs:
   app:
     name: App — format + analyze + gates + testes
@@ -32,30 +36,49 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: O app já existe?
+        id: check
+        working-directory: .
+        run: |
+          if [ -f app/pubspec.yaml ]; then
+            echo "existe=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "existe=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::app/ ainda não existe (Fase 0) — job pulado."
+          fi
+
       # Versão fixa (não `channel: stable` solto): o formatter do Dart muda de
       # release e `stable` flutuaria para o Flutter mais novo, quebrando o gate
       # de format a cada release. Casa com o `.puro.json` do repo — os dois
       # precisam andar juntos, senão o dev formata numa versão e a CI cobra outra.
       - uses: subosito/flutter-action@v2
+        if: steps.check.outputs.existe == 'true'
         with:
           flutter-version: 3.44.9
           channel: stable
           cache: true
 
       - name: Dependências
+        if: steps.check.outputs.existe == 'true'
         run: flutter pub get
 
       - name: Formatação
+        if: steps.check.outputs.existe == 'true'
         run: dart format --output=none --set-exit-if-changed .
 
       - name: Análise estática
+        if: steps.check.outputs.existe == 'true'
         run: flutter analyze
 
+      # O guard-script roda mesmo sem o app: ele próprio detecta a ausência de
+      # `app/lib` e sai limpo. Deixá-lo fora do `if` garante que ele não fique
+      # esquecido quando o app nascer.
       - name: Gates de qualidade (guard-script)
         working-directory: .
         run: bash scripts/gates_guard.sh
 
       - name: Testes
+        if: steps.check.outputs.existe == 'true'
         run: flutter test -r compact
 
   backend:
@@ -67,26 +90,43 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: O backend já existe?
+        id: check
+        working-directory: .
+        run: |
+          if [ -f backend/package.json ]; then
+            echo "existe=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "existe=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::backend/ ainda não existe (Fase 0) — job pulado."
+          fi
+
       - uses: pnpm/action-setup@v4
+        if: steps.check.outputs.existe == 'true'
         with:
           version: 10.24.0
 
       - uses: actions/setup-node@v4
+        if: steps.check.outputs.existe == 'true'
         with:
           node-version: 22
           cache: pnpm
           cache-dependency-path: backend/pnpm-lock.yaml
 
       - name: Dependências
+        if: steps.check.outputs.existe == 'true'
         run: pnpm install --frozen-lockfile
 
       - name: Lint
+        if: steps.check.outputs.existe == 'true'
         run: pnpm lint
 
       - name: Build
+        if: steps.check.outputs.existe == 'true'
         run: pnpm build
 
       - name: Testes
+        if: steps.check.outputs.existe == 'true'
         run: pnpm test
 
   migrations:
