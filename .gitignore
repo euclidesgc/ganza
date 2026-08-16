@@ -1,0 +1,34 @@
+# Segredo — nada disso entra no repositório
+.env
+.env.*
+*.key
+*.keystore
+*.jks
+google-services.json
+key.properties
+
+# Dart / Flutter
+.dart_tool/
+.packages
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+*.g.dart
+.puro.json
+
+# Node / NestJS
+node_modules/
+dist/
+
+# Ferramentas locais
+.code-review-graph/
+.claude/worktrees/
+.claude/RESUME.md
+.claude/settings.local.json
+.claude/RESUME.md
+.vscode/
+.idea/
+*.iml
+
+# Evidências pesadas de E2E ficam versionadas (são a prova); logs temporários não
+*.log

@@ -1,0 +1,135 @@
+name: CI
+
+# A cancela roda no servidor: o PR de um agente passa pela mesma régua que o de
+# um humano. Verde aqui é pré-requisito de merge em develop/main.
+on:
+  # PR empilhado (stacked PR) aponta para a branch de suporte de baixo, não para
+  # develop. Sem os prefixos abaixo, só o PR do fundo da pilha passaria pela
+  # régua e os do meio subiriam sem CI — o auto-deploy do Coolify dispara no
+  # push sem consultar o CI. A lista precisa cobrir TODO prefixo que pode virar
+  # base de pilha, não só os do GitFlow: prefixo novo em uso como base entra
+  # aqui no mesmo PR.
+  pull_request:
+    branches:
+      - develop
+      - main
+      - 'feature/**'
+      - 'bugfix/**'
+      - 'hotfix/**'
+      - 'release/**'
+      - 'docs/**'
+      - 'chore/**'
+  push:
+    branches: [develop, main]
+
+jobs:
+  app:
+    name: App — format + analyze + gates + testes
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+
+      # Versão fixa (não `channel: stable` solto): o formatter do Dart muda de
+      # release e `stable` flutuaria para o Flutter mais novo, quebrando o gate
+      # de format a cada release. Casa com o `.puro.json` do repo — os dois
+      # precisam andar juntos, senão o dev formata numa versão e a CI cobra outra.
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.44.9
+          channel: stable
+          cache: true
+
+      - name: Dependências
+        run: flutter pub get
+
+      - name: Formatação
+        run: dart format --output=none --set-exit-if-changed .
+
+      - name: Análise estática
+        run: flutter analyze
+
+      - name: Gates de qualidade (guard-script)
+        working-directory: .
+        run: bash scripts/gates_guard.sh
+
+      - name: Testes
+        run: flutter test -r compact
+
+  backend:
+    name: Backend — lint + build + testes
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.24.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: backend/pnpm-lock.yaml
+
+      - name: Dependências
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Build
+        run: pnpm build
+
+      - name: Testes
+        run: pnpm test
+
+  migrations:
+    name: Banco — migrations aplicam limpo e RLS está ligada
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready --health-interval 5s
+          --health-timeout 5s --health-retries 10
+        ports: ['5432:5432']
+    steps:
+      - uses: actions/checkout@v4
+
+      # O valor da migration está em aplicar do zero, na ordem, num banco vazio
+      # — é o único ensaio do que vai acontecer em produção.
+      - name: Aplicar migrations em ordem
+        env:
+          PGPASSWORD: postgres
+        run: |
+          shopt -s nullglob
+          files=(supabase/migrations/*.sql)
+          if [ ${#files[@]} -eq 0 ]; then echo "nenhuma migration ainda"; exit 0; fi
+          for f in "${files[@]}"; do
+            echo "→ $f"
+            psql -h localhost -U postgres -v ON_ERROR_STOP=1 -q -f "$f"
+          done
+
+      # Tabela sem RLS é a falha que não dá erro nem no deploy nem no teste
+      # manual: tudo funciona, e o dado fica exposto. Por isso é gate de CI.
+      - name: Toda tabela de aplicação tem RLS ligada
+        env:
+          PGPASSWORD: postgres
+        run: |
+          sem_rls=$(psql -h localhost -U postgres -tAc "
+            select string_agg(tablename, ', ')
+            from pg_tables
+            where schemaname = 'public' and rowsecurity = false")
+          if [ -n "$sem_rls" ]; then
+            echo "✗ tabelas sem RLS: $sem_rls"
+            exit 1
+          fi
+          echo "✓ todas as tabelas de public têm RLS"

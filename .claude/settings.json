@@ -1,0 +1,42 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git *)",
+      "Bash(gh *)",
+      "Bash(pnpm *)",
+      "Bash(npm *)",
+      "Bash(dart *)",
+      "Bash(flutter *)",
+      "Bash(adb *)",
+      "Bash(emulator *)",
+      "Bash(docker *)",
+      "Bash(psql *)",
+      "Bash(rtk *)",
+      "Bash(fd *)",
+      "Bash(rg *)",
+      "Bash(jq *)",
+      "Bash(mkdir *)",
+      "Edit",
+      "Write",
+      "Read",
+      "Glob",
+      "Grep",
+      "WebFetch"
+    ],
+    "ask": [
+      "Bash(ssh *)",
+      "Bash(scp *)",
+      "Bash(rsync *)",
+      "Bash(curl *)"
+    ],
+    "deny": [
+      "Read(./.env)",
+      "Read(./**/.env)",
+      "Read(./**/.env.*)",
+      "Read(./**/*.key)",
+      "Read(./**/*.keystore)",
+      "Read(./**/*.jks)",
+      "Read(./**/google-services.json)"
+    ]
+  }
+}
