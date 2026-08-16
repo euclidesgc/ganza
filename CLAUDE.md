@@ -148,6 +148,18 @@ O humano pediu **o mínimo de interação**. Isso é autorização durável, nã
 - **Decida sozinho** o que tem resposta óbvia ou é reversível de graça — e **registre a decisão** na tabela do `docs/roadmap.md` em vez de trazê-la para a conversa. Registro vale mais que pergunta: sobrevive à sessão.
 - Quando parar for inevitável, **entregue tudo que não dependia da resposta primeiro** e pergunte uma coisa só.
 
+## Quem executa é sub-agente — a conversa principal orquestra
+
+**O contexto da conversa principal é o recurso mais escasso do projeto.** Ele se enche de saída de comando, diff e log, e quando enche o trabalho perde a memória do que foi decidido. Por isso a execução mora nos sub-agentes.
+
+- **Toda tarefa de implementação vai para um `especialista-*`**, via a tool `Agent` — não se escreve código na conversa principal, nem "só esse ajuste rápido". Um ajuste rápido custa o diff inteiro no contexto de quem deveria estar orquestrando.
+- **Varredura de código vai para sub-agente** (ou para o grafo do CRG). O que volta é a conclusão, não o arquivo.
+- **A conversa principal guarda:** o estado do fluxo, as decisões, o que o humano precisa decidir e os resumos que os agentes devolvem. Nada de código-fonte varrido, spec inteira ou log.
+- **Quando a execução for genuinamente independente**, dispare os agentes em paralelo (ver "Ritmo de teste e paralelismo"). Em fila só o que tem dependência real.
+- **O que fica na conversa principal, e só ele:** falar com o humano, decidir o próximo passo, e apertar o gate do DoD.
+
+Exceção honesta: correção de uma linha óbvia, apontada por erro de CI, não justifica o custo de despachar um agente. A régua é o tamanho do contexto que a tarefa arrasta — se ela exige ler arquivos para decidir, é sub-agente.
+
 ## Ritmo de teste e paralelismo
 
 **Rode teste escopado enquanto itera; a suíte inteira só nos pontos de consolidação.** Corrigindo um achado pontual, rode o arquivo de teste afetado. A suíte completa roda ao fechar um conjunto de mudanças, antes de um gate de revisão e antes de abrir PR. Numa iteração de agente o tempo dominante não é a execução do teste (segundos) — é o raciocínio e as chamadas de ferramenta. Rodar tudo a cada ajuste soma tempo de parede sem ganhar sinal.
