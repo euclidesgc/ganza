@@ -57,7 +57,7 @@ Regras do `docs/plano.md` que viram gate de código:
 - Acessibilidade: cor nunca é o único sinal de informação; controles com `Semantics`/tooltip; alvos de toque grandes (o app se usa com uma mão).
 - Arquivos `snake_case`, classes `PascalCase`, **uma classe/widget por arquivo**; código em inglês, UI e docs em pt-BR. Única exceção: o estado `sealed` do cubit mora no mesmo arquivo do cubit via `part of`.
 - **Zero comentário — o código se explica por nomes.** Vale para Dart, TypeScript e SQL. **Não escreva** comentário que diga o que a linha faz, que repita o nome do identificador logo abaixo, cabeçalho decorativo de seção, nem nota de autoria/histórico ("antes era X", "adicionado na F2") — para isso existe o git. Legibilidade se conquista **extraindo** variável/função/widget com nome descritivo. **Única exceção:** o **porquê** que o código não tem como mostrar — decisão de arquitetura, workaround de bug externo, restrição de plataforma ou invariante não óbvia; e aí o comentário explica a **razão**, nunca a mecânica. Ao editar arquivo já comentado, limpe o que não passa nesse teste.
-- Cancela de máquina: **"pronto" = `flutter analyze` verde + testes existentes passando.** Nunca opinião.
+- Cancela de máquina: **`flutter analyze` verde + testes passando é o mínimo, não o "pronto".** O pronto é o DoD da etapa — ver "DoD por etapa". Nunca opinião.
 
 ## Design system e organização de widgets (inegociável)
 
@@ -110,11 +110,30 @@ Toda skill declara `allowed-tools` e **todas são auto-invocáveis pelo modelo**
 |---|---|---|
 | `tech-manager` | **não** (`disable-model-invocation`) | é o ponto de entrada do humano e dispara o time inteiro; auto-invocar tomaria o controle da conversa e custaria caro. Vira automática apagando uma linha do frontmatter. |
 | `criar-modulo` · `criar-migration` | sim | gabarito de módulo Flutter e de migration com RLS |
+| `fechar-etapa` | sim | **verifica o DoD rodando, antes de abrir PR — é o gate de avanço** |
 | `revisar-fase` · `instrumentar-e2e` · `escrever-testes` · `manter-docs-vivas` | sim | o ciclo do QA |
 | `iniciar-feature` · `iniciar-bugfix` · `iniciar-hotfix` · `empilhar-prs` · `publicar-release` | sim | GitFlow por situação (a decisão de *começar* hotfix/release continua humana — está no corpo da skill) |
 | `subir-supabase` | sim | a stack self-hosted enxuta, com a razão de cada serviço que fica de fora |
 
-**Todo plano termina num DoD, e o E2E faz parte dele — plano sem DoD não está pronto.** A última seção de toda `docs/NN-<nome>/plan.md` é a **Definition of Done**, com cada linha **verificável** (responde "como eu provo que isto está feito", não intenção genérica). O **E2E da feature implementada é item do DoD**: a feature só fecha quando o roteiro foi executado e **atestado pelo dev humano** — o QA instrumenta, o humano confere os prints, a evidência fica em `evidencias/rodada_MM/`. O roteiro exercita o que a feature **promete**, não o caminho feliz: se a feature corrige uma falha silenciosa, o E2E prova que cada modo de falha produz estado **visualmente distinto**.
+## DoD por etapa — a regra que governa o avanço
+
+**Cada etapa do plano tem a sua própria Definition of Done, escrita antes de a etapa começar.** Não é uma seção no fim do documento: é uma lista por etapa, e ela é o que autoriza o avanço.
+
+**O ciclo é fechado:** etapa implementada → **DoD verificada, rodando de verdade** → PR aberto → merge → próxima etapa. Sem DoD atingida não se abre PR, não se mergeia, e não se começa a etapa seguinte. "Acho que está pronto" não move nada.
+
+**Toda linha do DoD é uma prova executável, de um destes três tipos:**
+
+| Tipo | Como se prova |
+|---|---|
+| **Teste automatizado** | O teste existe, passa, **e falha sem a mudança**. Teste que nunca foi visto falhar não prova nada — verifique revertendo. |
+| **Saída de comando** | O comando e a saída esperada, literais: `curl .../health` devolve `200` com `{"status":"ok"}`. Quem lê reproduz sem perguntar nada. |
+| **Evidência de E2E** | Print ou log em `docs/NN-<nome>/evidencias/rodada_MM/`, com o `README.md` da rodada dizendo o que aquela imagem prova. |
+
+**Escreva o DoD no nível do que a etapa promete, não do que é fácil medir.** Esta sessão custou três deploys quebrados porque o "pronto" do backend era *"os testes passam"* — e o que importava era *"o `/health` responde 200 no domínio"*. CI verde com serviço fora do ar é DoD mal escrito, não azar.
+
+**O E2E entra no DoD da etapa que entrega comportamento visível ao usuário**, e é atestado pelo dev humano: o QA instrumenta, o humano confere os prints, a evidência fica na rodada. O roteiro exercita o que a etapa **promete**, não o caminho feliz — se a etapa corrige uma falha silenciosa, prova que cada modo de falha produz estado **visualmente distinto**.
+
+**No PR, o DoD vai no corpo, com o resultado de cada linha.** É o que o revisor lê primeiro.
 
 **Roadmap vivo (`docs/roadmap.md`).** Fonte única de rastreabilidade — o que foi feito, o que está em andamento, o que falta, **ordenado por dependência**, com status `[ ]` não iniciada · `[-]` em andamento · `[x]` concluída. **A tabela de decisões travadas do roadmap sobrepõe o `docs/plano.md`** onde os dois conflitarem: o plano é a intenção de origem, a decisão é o que ficou valendo. **Mantido atualizado pela IA** no fechamento de cada trabalho. Ao surgir item novo, a IA pode **reescrever o texto** para dar clareza e **reordená-lo** para o ponto de precedência correto. Decisão pendente do humano é **estado** e mora no roadmap, junto do item que a espera.
 

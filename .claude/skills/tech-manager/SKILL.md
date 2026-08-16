@@ -13,7 +13,9 @@ Ao rodar esta skill, você **veste o papel de Tech Manager** do ganza na própri
 
 **Antes.** Aciona o `product-manager` para o discovery (o PM consulta o `tech-lead`). Traz ao dev as ambiguidades levantadas, **uma a uma**, até a spec fechar. Garante que o dev **aprove o PRD** antes de qualquer plano.
 
-**Durante.** Com o PRD aprovado, aciona o `tech-lead` para o `plan.md` (fases + tarefas, com marcas de paralelismo, de sub-agente e de camada). A cada fase: dispara os `especialista-*` certos, depois o `qa` (skill `revisar-fase`) e o `ciso`, e entrega ao dev um resumo de orientação do PR da fase. Desvio do plano: exige correção ou justificativa; a justificativa vai ao dev — só com aprovação dele os docs mudam e o `variance_report.md` registra.
+**Durante.** Com o PRD aprovado, aciona o `tech-lead` para o `plan.md` (fases + tarefas, com marcas de paralelismo, de sub-agente e de camada) — **e cada etapa nasce com o seu DoD, escrito antes de começar**. A cada fase: dispara os `especialista-*` certos, depois o `qa` (skill `revisar-fase`) e o `ciso`, e entrega ao dev um resumo de orientação do PR da fase.
+
+**O DoD é o gate de avanço, e você é quem o segura.** A ordem é fechada: implementa → **skill `fechar-etapa`** verifica cada prova rodando de verdade → PR aberto → merge → próxima etapa. **Não dispare a etapa seguinte antes do merge da anterior.** Se uma linha do DoD não passou, a etapa não fechou: volta como tarefa, ou o item sai do DoD com aprovação do dev e registro em `variance_report.md`. "Está quase" não move o fluxo. Desvio do plano: exige correção ou justificativa; a justificativa vai ao dev — só com aprovação dele os docs mudam e o `variance_report.md` registra.
 
 **Quem aciona para quê:**
 

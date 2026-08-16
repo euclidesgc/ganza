@@ -4,6 +4,8 @@ Fonte única de rastreabilidade: o que foi feito, o que está em andamento, o qu
 
 Status: `[ ]` não iniciada · `[-]` em andamento · `[x]` concluída
 
+> **Todo item tem DoD, escrito antes de começar.** O ciclo é fechado: implementa → DoD verificado rodando → PR → merge → próximo item. Sem DoD atingido não se abre PR nem se avança. Cada linha do DoD é uma prova executável — teste que falha sem a mudança, comando com saída literal, ou evidência em `evidencias/rodada_MM/`. A skill `fechar-etapa` conduz a verificação; a regra mora no `CLAUDE.md`.
+
 > **Regra de ritmo (do `docs/plano.md`): se a fase N não estiver em uso diário, não comece a N+1.** O objetivo real é o O8 — sobreviver ao próprio uso. Nenhuma fase entregue e não usada conta como progresso.
 
 ---
@@ -47,11 +49,22 @@ O plano estima 3 semanas. Com a D1 (sem Edge Functions) a estimativa cai para ~2
 - [x] **F0.5+F0.6 — App Flutter e design system.** Fundidos num PR só: o `gates_guard` proíbe estilo hardcoded desde o primeiro widget, então separar criaria um PR que viola o próprio gate. Entrega: `flutter create` (Android + Web), flavors com `applicationId` distinto, `bootstrap.dart` com as 4 redes de erro, go_router, get_it, `core/error` com `Failure` selada, tradutor único de exceção, `core/theme/` completo (paleta do plano §11, tipografia com algarismos tabulares, `GanzaColors` como `ThemeExtension`), tela inicial com a marca e a faixa de pulso. 14 testes, analyze limpo, gates verdes. **Pendente:** os arquivos de fonte (Fraunces e IBM Plex Sans) ainda não estão em `app/assets/fonts/` — hoje cai no fallback do sistema (**P5**).
 - [x] **F0.7 — Auth + navegação.** `auth_module` completo (domain/data/presentation) sobre o GoTrue, guarda de rota reagindo ao stream de sessão, e `areas_module` listando as quatro áreas padrão — leitura direta por `supabase_flutter`, sem filtro de usuário na query, porque quem autoriza é a RLS. 18 testes.
 - [x] **F0.8 — Lógica de servidor: esqueleto.** Edge Functions em Deno (D10): `main/index.ts` roteando `/functions/v1/<nome>`, `health` consultando o banco de verdade, publicação por `scripts/deploy-functions.sh`, CI com `deno fmt`/`lint`/`check`/`test`. Verificado no domínio: 200 no health, 404 em rota inexistente. *(Nasceu em NestJS e migrou; os três deploys falhos do caminho — DI, rede e binding IPv4-only — estão em `docs/deploy/coolify.md`.)*
-- [ ] **F0.9 — Cadastro manual ponta a ponta.** Uma entidade (transação) criada e listada pela UI, sem IA. É o que prova que o encanamento inteiro funciona.
+- [ ] **F0.9 — Cadastro manual ponta a ponta.** Uma transação criada e listada pela UI, sem IA. É o que prova o encanamento inteiro: Flutter → Edge Function → Postgres → RLS → de volta na tela.
+
+  **DoD**
+  - [ ] `supabase/migrations/0004_criar_transactions.sql` aplica limpo no CI, com RLS e política — job "Banco" verde
+  - [ ] `deno task test` cobre a função de criação: valor não-inteiro e `direction` fora de `in|out` viram 400. Verificado que os testes **falham** sem a validação
+  - [ ] `curl -X POST https://supabase.ganza.bmjtech.duckdns.org/functions/v1/transactions` com o JWT da conta cria a linha e devolve 201; **sem** `Authorization` devolve 401
+  - [ ] `GET /rest/v1/transactions` **anônimo** devolve `[]` e com a sessão do dono devolve a transação — a RLS provada pelo caminho real
+  - [ ] `flutter test -r compact` verde, incluindo widget test do formulário e do estado vazio da lista
+  - [ ] E2E no emulador: print da transação registrada aparecendo na lista, em `docs/01-cadastro-manual/evidencias/rodada_01/`, atestado pelo dev
+  - [ ] valor exibido usa algarismos tabulares e a data é explícita ("15/08, sexta"), conferido no print
 
 ## Fase 1 — Chat de texto
 
-- [ ] `/ingest` no backend, camada de IA abstraída (`ai_providers`/`ai_routes`/`ai_usage`) com Gemini
+> DoD de cada item entra no `plan.md` da feature quando ela for planejada. Duas linhas são **obrigatórias em toda etapa desta fase**, porque são as invariantes que o produto não pode perder: (a) um teste que prova que a ingestão **não grava** na tabela final, só em `proposed_actions`; (b) a extração devolvendo **lista**, verificada com uma mensagem que gera dois registros.
+
+- [ ] `/ingest` como Edge Function, camada de IA abstraída (`ai_providers`/`ai_routes`/`ai_usage`) com Gemini
 - [ ] Classificação de intenção (`create` · `attach` · `query`, sendo as duas últimas "ainda não sei")
 - [ ] Extração devolvendo **lista**, gravada em `proposed_actions`
 - [ ] Cards de confirmação em sequência, não editáveis, com data explícita
