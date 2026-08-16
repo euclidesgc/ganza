@@ -83,7 +83,12 @@ Geradas pelo Coolify e visíveis em `GET /api/v1/services/{uuid}/envs`. **Nunca 
 | Branch | `develop` — ver decisão D7 do roadmap |
 | Build | Dockerfile, base `/backend`, porta `3333` |
 | Domínio | `https://api.ganza.bmjtech.duckdns.org` — para **aplicações** a API aceita `domains`, ao contrário de serviços |
-| Healthcheck | `/health`, que consulta o banco de verdade. A imagem `node:22-alpine` traz o `wget` do busybox (não traz `curl`) — é o que o Coolify usa para sondar. |
+| Healthcheck | `/health`, que consulta o banco de verdade. `health_check_port` **precisa** ser preenchido (3333) — sem ele a sonda usa a porta errada. |
+
+**Duas armadilhas do healthcheck, ambas custaram um deploy:**
+
+1. A imagem `node:22-alpine` traz o `wget` do busybox e **não** traz `curl`. O comando que o Coolify monta tenta `curl` e cai no `wget` — funciona, mas o log fica cheio de `curl: not found`, que parece o erro e não é.
+2. A sonda usa **`localhost`**, que resolve primeiro para `::1`. Uma aplicação Node com `listen(port, '0.0.0.0')` só atende IPv4 e recusa a conexão — de pé, respondendo em `127.0.0.1`, e marcada `unhealthy`. **Não fixe o host no `listen`:** sem o segundo argumento o Node ouve em dual-stack.
 | **`watch_paths`** | **`backend/**`** |
 
 **Sobre o `watch_paths`:** sem ele o auto-deploy dispara a cada push na branch, e mexer no app Flutter rebuildaria o backend à toa. Num servidor de 2 vCPU compartilhado com driva e love-secret, isso não é detalhe. **Todo deployável novo nasce com `watch_paths` configurado.**

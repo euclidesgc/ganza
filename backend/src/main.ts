@@ -23,7 +23,11 @@ async function bootstrap(): Promise<void> {
     credentials: true,
   });
 
-  await app.listen(env.PORT, '0.0.0.0');
+  // Sem host explícito o Node ouve em dual-stack (IPv4 e IPv6). Fixar
+  // '0.0.0.0' limita a IPv4, e o healthcheck do Coolify sonda `localhost`,
+  // que resolve primeiro para ::1 — daí "connection refused" numa aplicação
+  // que estava de pé e respondendo em 127.0.0.1.
+  await app.listen(env.PORT);
   new Logger('bootstrap').log(`ganza-api ouvindo na porta ${env.PORT}`);
 }
 
