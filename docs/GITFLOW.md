@@ -21,6 +21,14 @@ git config core.hooksPath scripts/git-hooks
 
 Ele recusa push cujo destino seja `main` ou `develop` e mostra o caminho certo. Para o caso legítimo raro (criar a branch pela primeira vez): `GANZA_ALLOW_DIRECT_PUSH=1 git push …`.
 
+**O mesmo `hooksPath` instala o `pre-commit`**, que barra credencial antes de ela entrar no histórico: JWT, chave de provedor (`AKIA`, `ghp_`, `sk-`, `AIza`, chave privada PEM) e o par **e-mail + senha literal**. Valores que se leem como exemplo (`.invalid`, `exemplo`, `placeholder`, `${...}`) passam — hook que grita à toa é hook que o dev desliga.
+
+> **Por que no `pre-commit` e não no `pre-push`:** o GitGuardian escaneia **todos os commits do PR**, não o estado final. Corrigir num commit seguinte não limpa nada — o PR continua vermelho e a única saída é reescrever o branch. Isso já custou um squash no PR #3 e outro no #5. Em teste, use domínio `.invalid` e senha que se leia como placeholder.
+>
+> Falso positivo comprovado: `GANZA_ALLOW_SECRET=1 git commit …`.
+>
+> **O próprio hook é ignorado pelo GitGuardian** (`.gitguardian.yaml`): um arquivo feito de assinaturas de credencial é o detector, não o segredo — escaneá-lo marcou o PR #5 com "3 secrets", todos dentro dele. Ignorar **o caminho** é preciso; afrouxar as regras do repositório seria o contrário.
+
 **O que o hook não cobre, e por isso continua sendo disciplina:** ele não impede mergear um PR com a CI vermelha — *required status checks* também é recurso de plano pago. **CI vermelha não se mergeia**, e essa é a regra que sobra por sua conta.
 
 ---

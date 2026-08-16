@@ -48,7 +48,7 @@ Regras do `docs/plano.md` que viram gate de código:
 - **data** = models com (de)serialização validada por **zard** (`safeParse` → `Either`); impl do repositório atrás do contrato; **único lugar com try/catch** — traduz `PostgrestException`/`AuthException`/`StorageException`/`DioException` → `Failure` tipada de `core/error/`.
 - **presentation** = `Cubit` (flutter_bloc) com estado `sealed class` + `switch` exaustivo (states via `part of`); página `StatelessWidget` com `static Widget pageBuilder` — **o único lugar que toca o get_it**. Guarda `isClosed` após `await` antes de `emit`.
 - **Escopo mínimo de rebuild.** Nunca reconstrua uma tela inteira a cada tecla/tick: escope o rebuild ao menor pedaço que muda. Cubit escopado + `BlocSelector`/`buildWhen`, ou widget-folha pequeno para estado **efêmero** (hover, foco, drag). Estado nunca mora no topo de uma tela grande sob um `BlocBuilder` único. Isole o caro com `RepaintBoundary`.
-- **presentation NUNCA importa data.** Nenhum módulo importa o interno de outro (só o barrel público). Lógica recebe dependências pelo construtor.
+- **presentation NUNCA importa data.** Nenhum módulo importa o interno de outro (só o barrel público). Lógica recebe dependências pelo construtor. **Única exceção, documentada:** o barrel do `auth_module` exporta também o contrato de sessão (`AuthenticatedUser`, `ObserveCurrentUser`, `SignOut`), porque autenticação é transversal — a guarda de rota da raiz e qualquer tela com "sair" dependem dela. Repositório, models, cubits e páginas do auth continuam internos.
 - Navegação: go_router; rotas por módulo em classe `XRoutes` (`static GoRoute get route` + constantes); sempre variantes `*Named`; nada de `extra:` (some no refresh web).
 - Erros imprevistos: `runZonedGuarded` + `FlutterError.onError` + `PlatformDispatcher.onError` + `AppBlocObserver` no `bootstrap.dart`.
 - Flavors: `main_dev.dart`/`main_prod.dart` → `bootstrap(AppConfig)`; config via `--dart-define-from-file=config/<env>.json`; **segredo nunca em dart-define**.
@@ -116,6 +116,15 @@ Toda skill declara `allowed-tools` e **todas são auto-invocáveis pelo modelo**
 **Roadmap vivo (`docs/roadmap.md`).** Fonte única de rastreabilidade — o que foi feito, o que está em andamento, o que falta, **ordenado por dependência**, com status `[ ]` não iniciada · `[-]` em andamento · `[x]` concluída. **A tabela de decisões travadas do roadmap sobrepõe o `docs/plano.md`** onde os dois conflitarem: o plano é a intenção de origem, a decisão é o que ficou valendo. **Mantido atualizado pela IA** no fechamento de cada trabalho. Ao surgir item novo, a IA pode **reescrever o texto** para dar clareza e **reordená-lo** para o ponto de precedência correto. Decisão pendente do humano é **estado** e mora no roadmap, junto do item que a espera.
 
 **A ordem das fases é uma decisão de produto, não de conveniência:** rotina vem antes de finanças. É a rotina que faz o app ser aberto todo dia e é o domínio mais barato para construir a máquina de ocorrência, estado terminal, log de eventos e notificação em dupla via. **Se a fase N não estiver em uso diário, não comece a N+1.**
+
+## Autonomia — quando agir e quando parar
+
+O humano pediu **o mínimo de interação**. Isso é autorização durável, não permissão para um passo só:
+
+- **Siga sem perguntar** em tudo que é aditivo e reversível dentro do escopo do ganza: criar branch, abrir PR, escrever código e docs, criar recursos **novos** do ganza no Coolify, aplicar migration em banco local, marcar o roadmap.
+- **Pare e pergunte** só quando: a ação toca recurso de **outro projeto** no servidor compartilhado (driva, love-secret, Garage, o próprio Coolify); é **destrutiva ou irreversível** (apagar volume, derrubar serviço alheio, aplicar migration em produção com dado real, `push --force`); ou exige **conta externa** dele (DuckDNS, Google/Firebase, Pluggy, cartão).
+- **Decida sozinho** o que tem resposta óbvia ou é reversível de graça — e **registre a decisão** na tabela do `docs/roadmap.md` em vez de trazê-la para a conversa. Registro vale mais que pergunta: sobrevive à sessão.
+- Quando parar for inevitável, **entregue tudo que não dependia da resposta primeiro** e pergunte uma coisa só.
 
 ## Economia de tokens (obrigatório)
 

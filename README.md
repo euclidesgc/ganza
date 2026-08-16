@@ -37,13 +37,23 @@ Flutter (Android/Web)
 git config core.hooksPath scripts/git-hooks
 ```
 
-Instala o hook que barra push direto em `main`/`develop` — a proteção de branch do GitHub não está disponível em repo privado no plano gratuito. Detalhes em [`docs/GITFLOW.md`](docs/GITFLOW.md) §1.
+Instala dois hooks: o `pre-push`, que barra push direto em `main`/`develop` (a proteção de branch do GitHub não está disponível em repo privado no plano gratuito), e o `pre-commit`, que barra credencial antes de ela entrar no histórico. Detalhes em [`docs/GITFLOW.md`](docs/GITFLOW.md) §1.
 
-## Rodando (a partir da Fase 0)
+## Rodando
+
+Antes da primeira execução, crie o arquivo de configuração local (ele é gitignored — carrega a anon key, e chave em repositório é hábito que uma hora erra o arquivo):
 
 ```bash
-flutter run --flavor dev -t app/lib/main_dev.dart --dart-define-from-file=app/config/dev.json
+cp app/config/dev.json.example app/config/dev.json
 ```
+
+Preencha `SUPABASE_ANON_KEY` com o valor de `SERVICE_SUPABASEANON_KEY` do painel do Coolify. Então:
+
+```bash
+cd app && flutter run --flavor dev -t lib/main_dev.dart --dart-define-from-file=config/dev.json
+```
+
+Os flavors `dev` e `prod` têm `applicationId` distinto, então convivem no mesmo aparelho — instalar o build de teste não desinstala o que você usa de verdade.
 
 A cancela local, antes de qualquer PR:
 

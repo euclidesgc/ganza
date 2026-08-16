@@ -132,40 +132,53 @@ jobs:
   migrations:
     name: Banco — migrations aplicam limpo e RLS está ligada
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:15
-        env:
-          POSTGRES_PASSWORD: postgres
-        options: >-
-          --health-cmd pg_isready --health-interval 5s
-          --health-timeout 5s --health-retries 10
-        ports: ['5432:5432']
     steps:
       - uses: actions/checkout@v4
+
+      # `services:` não deixa passar argumentos ao processo do Postgres, e
+      # pg_cron precisa estar em shared_preload_libraries para ser criado.
+      # Daí o docker run explícito. A imagem é a MESMA de produção: testar
+      # contra `postgres:15` puro validaria um banco que não é o nosso —
+      # pg_cron, pg_net e supabase_vault nem existem lá.
+      # Senha aleatória e nenhuma porta publicada: tudo aqui fala com o banco
+      # por `docker exec`, então não há motivo para existir credencial literal
+      # no arquivo nem 5432 aberto no runner.
+      - name: Subir o Postgres do Supabase
+        run: |
+          docker run -d --name pg \
+            -e POSTGRES_PASSWORD="$(openssl rand -hex 24)" \
+            supabase/postgres:15.8.1.085 \
+            postgres -c shared_preload_libraries=pg_cron,pg_net -c cron.database_name=postgres
+          for i in $(seq 1 60); do
+            docker exec pg pg_isready -U postgres -q && break
+            sleep 2
+          done
+          docker exec pg pg_isready -U postgres
+
+      # Quem cria `auth.users` e `auth.uid()` no ambiente real é o GoTrue, que
+      # não roda aqui. O bootstrap monta o mínimo para as migrations poderem
+      # referenciá-los — e não é aplicado em nenhum ambiente real.
+      - name: Bootstrap do schema auth (só CI)
+        run: docker exec -i pg psql -U supabase_admin -d postgres -v ON_ERROR_STOP=1 -q < supabase/ci-bootstrap.sql
 
       # O valor da migration está em aplicar do zero, na ordem, num banco vazio
       # — é o único ensaio do que vai acontecer em produção.
       - name: Aplicar migrations em ordem
-        env:
-          PGPASSWORD: postgres
         run: |
           shopt -s nullglob
           files=(supabase/migrations/*.sql)
           if [ ${#files[@]} -eq 0 ]; then echo "nenhuma migration ainda"; exit 0; fi
           for f in "${files[@]}"; do
             echo "→ $f"
-            psql -h localhost -U postgres -v ON_ERROR_STOP=1 -q -f "$f"
+            docker exec -i pg psql -U supabase_admin -d postgres -v ON_ERROR_STOP=1 -q < "$f"
           done
 
       # Tabela sem RLS é a falha que não dá erro nem no deploy nem no teste
       # manual: tudo funciona, e o dado fica exposto. Por isso é gate de CI.
       - name: Toda tabela de aplicação tem RLS ligada
-        env:
-          PGPASSWORD: postgres
         run: |
-          sem_rls=$(psql -h localhost -U postgres -tAc "
-            select string_agg(tablename, ', ')
+          sem_rls=$(docker exec pg psql -U supabase_admin -d postgres -tAc "
+            select coalesce(string_agg(tablename, ', '), '')
             from pg_tables
             where schemaname = 'public' and rowsecurity = false")
           if [ -n "$sem_rls" ]; then
@@ -173,3 +186,20 @@ jobs:
             exit 1
           fi
           echo "✓ todas as tabelas de public têm RLS"
+
+      # RLS ligada sem política nenhuma bloqueia tudo em silêncio — parece
+      # seguro e o app simplesmente não lê nada. As duas coisas andam juntas.
+      - name: Toda tabela com RLS tem política
+        run: |
+          sem_policy=$(docker exec pg psql -U supabase_admin -d postgres -tAc "
+            select coalesce(string_agg(t.tablename, ', '), '')
+            from pg_tables t
+            where t.schemaname = 'public'
+              and not exists (
+                select 1 from pg_policies p
+                where p.schemaname = t.schemaname and p.tablename = t.tablename)")
+          if [ -n "$sem_policy" ]; then
+            echo "✗ tabelas com RLS mas sem política: $sem_policy"
+            exit 1
+          fi
+          echo "✓ todas as tabelas de public têm política"

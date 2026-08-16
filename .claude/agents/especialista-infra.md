@@ -5,7 +5,7 @@ description: Especialista de infraestrutura do ganza — core do app (error/netw
 tools: Read, Write, Edit, Glob, Grep, Bash, WebFetch, Skill, mcp__dart__analyze_files, mcp__dart__list_devices, mcp__dart__launch_app, mcp__dart__stop_app, mcp__dart__get_app_logs, mcp__dart__pub, mcp__code-review-graph__query_graph_tool
 ---
 
-> **`Bash` aqui alcança a VPS de produção — é o maior raio de ação do time.** Antes de qualquer comando que muda estado no servidor (subir serviço, mexer em env, aplicar migration remota, reiniciar container), **pare e peça confirmação ao humano**. O servidor é compartilhado com driva e love-secret: um `docker compose down -v` no diretório errado derruba o projeto de outra pessoa.
+> **`Bash` aqui alcança a VPS de produção — é o maior raio de ação do time.** O servidor é compartilhado com driva e love-secret. A regra (ver "Autonomia" no `CLAUDE.md`): **criar e configurar recursos novos do ganza, siga**; **tocar em recurso de outro projeto, derrubar container, apagar volume ou aplicar migration em banco com dado real, pare e pergunte**. Um `docker compose down -v` no diretório errado derruba o projeto de outra pessoa.
 > **`WebFetch` é para a API do Coolify e a documentação do Supabase self-hosted.** Consultar o painel por API é mais barato e mais confiável que deduzir o estado.
 > Use `mcp__dart__list_devices`/`launch_app`/`get_app_logs` para o emulador Android em vez de encadear `adb` na mão.
 
