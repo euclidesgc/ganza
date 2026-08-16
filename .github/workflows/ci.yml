@@ -22,13 +22,49 @@ on:
   push:
     branches: [develop, main]
 
-# Durante a Fase 0 o repositório ainda não tem `app/` nem `backend/`. Os jobs
-# correspondentes se PULAM em vez de falhar: CI cronicamente vermelha ensina a
-# ignorar a CI, e aí ela deixa de ser cancela. Assim que o diretório nasce, o
-# job passa a valer sem ninguém precisar lembrar de reativá-lo.
+# O paths-filter consulta a API de pull requests para saber o que mudou; sem
+# esta permissão o job morre com "Resource not accessible by integration".
+permissions:
+  contents: read
+  pull-requests: read
+
+# Monorepo: cada job roda só quando a sua parte muda. Mexer no app Flutter não
+# tem por que rebuildar o backend, e o runner não é infinito. O job `changes`
+# decide, e os outros o consultam.
+#
+# Durante a Fase 0 o repositório ainda pode não ter `app/` ou `backend/`. Além
+# do filtro por caminho, cada job confere se o diretório existe e se PULA em vez
+# de falhar: CI cronicamente vermelha ensina a ignorar a CI, e aí ela deixa de
+# ser cancela.
 jobs:
+  changes:
+    name: O que mudou?
+    runs-on: ubuntu-latest
+    outputs:
+      app: ${{ steps.filtro.outputs.app }}
+      backend: ${{ steps.filtro.outputs.backend }}
+      migrations: ${{ steps.filtro.outputs.migrations }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filtro
+        with:
+          filters: |
+            app:
+              - 'app/**'
+              - 'scripts/gates_guard.sh'
+              - '.github/workflows/ci.yml'
+            backend:
+              - 'backend/**'
+              - '.github/workflows/ci.yml'
+            migrations:
+              - 'supabase/**'
+              - '.github/workflows/ci.yml'
+
   app:
     name: App — format + analyze + gates + testes
+    needs: changes
+    if: needs.changes.outputs.app == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -83,6 +119,8 @@ jobs:
 
   backend:
     name: Backend — lint + build + testes
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -131,6 +169,8 @@ jobs:
 
   migrations:
     name: Banco — migrations aplicam limpo e RLS está ligada
+    needs: changes
+    if: needs.changes.outputs.migrations == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
