@@ -29,20 +29,19 @@ permissions:
   pull-requests: read
 
 # Monorepo: cada job roda só quando a sua parte muda. Mexer no app Flutter não
-# tem por que rebuildar o backend, e o runner não é infinito. O job `changes`
-# decide, e os outros o consultam.
+# tem por que rebuildar as Edge Functions, e o runner não é infinito. O job
+# `changes` decide, e os outros o consultam.
 #
-# Durante a Fase 0 o repositório ainda pode não ter `app/` ou `backend/`. Além
-# do filtro por caminho, cada job confere se o diretório existe e se PULA em vez
-# de falhar: CI cronicamente vermelha ensina a ignorar a CI, e aí ela deixa de
-# ser cancela.
+# Durante a Fase 0 o repositório ainda pode não ter `app/`. Além do filtro por
+# caminho, o job confere se o diretório existe e se PULA em vez de falhar: CI
+# cronicamente vermelha ensina a ignorar a CI, e aí ela deixa de ser cancela.
 jobs:
   changes:
     name: O que mudou?
     runs-on: ubuntu-latest
     outputs:
       app: ${{ steps.filtro.outputs.app }}
-      backend: ${{ steps.filtro.outputs.backend }}
+      functions: ${{ steps.filtro.outputs.functions }}
       migrations: ${{ steps.filtro.outputs.migrations }}
     steps:
       - uses: actions/checkout@v4
@@ -54,8 +53,8 @@ jobs:
               - 'app/**'
               - 'scripts/gates_guard.sh'
               - '.github/workflows/ci.yml'
-            backend:
-              - 'backend/**'
+            functions:
+              - 'supabase/functions/**'
               - '.github/workflows/ci.yml'
             migrations:
               - 'supabase/**'
@@ -117,55 +116,95 @@ jobs:
         if: steps.check.outputs.existe == 'true'
         run: flutter test -r compact
 
-  backend:
-    name: Backend — lint + build + testes
+  functions:
+    name: Edge Functions — fmt + check + testes
     needs: changes
-    if: needs.changes.outputs.backend == 'true'
+    if: needs.changes.outputs.functions == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: backend
+        working-directory: supabase/functions
     steps:
       - uses: actions/checkout@v4
 
-      - name: O backend já existe?
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Formatação
+        run: deno fmt --check
+
+      - name: Lint
+        run: deno lint
+
+      # `deno check` é o equivalente do build: sem etapa de compilação, é aqui
+      # que erro de tipo aparece antes de virar 500 em produção.
+      - name: Tipos
+        run: deno task check
+
+      - name: Testes
+        run: deno task test
+
+  migrations:
+              - 'supabase/**'
+              - '.github/workflows/ci.yml'
+
+  app:
+    name: App — format + analyze + gates + testes
+    needs: changes
+    if: needs.changes.outputs.app == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: O app já existe?
         id: check
         working-directory: .
         run: |
-          if [ -f backend/package.json ]; then
+          if [ -f app/pubspec.yaml ]; then
             echo "existe=true" >> "$GITHUB_OUTPUT"
           else
             echo "existe=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::backend/ ainda não existe (Fase 0) — job pulado."
+            echo "::notice::app/ ainda não existe (Fase 0) — job pulado."
           fi
 
-      - uses: pnpm/action-setup@v4
+      # Versão fixa (não `channel: stable` solto): o formatter do Dart muda de
+      # release e `stable` flutuaria para o Flutter mais novo, quebrando o gate
+      # de format a cada release. Casa com o `.puro.json` do repo — os dois
+      # precisam andar juntos, senão o dev formata numa versão e a CI cobra outra.
+      - uses: subosito/flutter-action@v2
         if: steps.check.outputs.existe == 'true'
         with:
-          version: 10.24.0
-
-      - uses: actions/setup-node@v4
-        if: steps.check.outputs.existe == 'true'
-        with:
-          node-version: 22
-          cache: pnpm
-          cache-dependency-path: backend/pnpm-lock.yaml
+          flutter-version: 3.44.9
+          channel: stable
+          cache: true
 
       - name: Dependências
         if: steps.check.outputs.existe == 'true'
-        run: pnpm install --frozen-lockfile
+        run: flutter pub get
 
-      - name: Lint
+      - name: Formatação
         if: steps.check.outputs.existe == 'true'
-        run: pnpm lint
+        run: dart format --output=none --set-exit-if-changed .
 
-      - name: Build
+      - name: Análise estática
         if: steps.check.outputs.existe == 'true'
-        run: pnpm build
+        run: flutter analyze
+
+      # O guard-script roda mesmo sem o app: ele próprio detecta a ausência de
+      # `app/lib` e sai limpo. Deixá-lo fora do `if` garante que ele não fique
+      # esquecido quando o app nascer.
+      - name: Gates de qualidade (guard-script)
+        working-directory: .
+        run: bash scripts/gates_guard.sh
 
       - name: Testes
         if: steps.check.outputs.existe == 'true'
-        run: pnpm test
+        run: flutter test -r compact
+
 
   migrations:
     name: Banco — migrations aplicam limpo e RLS está ligada

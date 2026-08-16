@@ -7,7 +7,7 @@ O nome no repositório, no `applicationId`, nos pacotes e na URL é **`ganza`, s
 ## Layout do repositório
 
 - `app/` — Flutter, **um único código para Android e Web**. Não são dois projetos: é o mesmo `lib/` com dois alvos de build.
-- `backend/` — NestJS. Toda a lógica de servidor: `/ingest`, `/sync-finance`, `/finance-math`, `/notify`, `/calendar`. **Dono exclusivo de toda chave de terceiro** (Gemini, Pluggy, Google, FCM).
+- `supabase/functions/` — **Edge Functions em Deno**. Toda a lógica de servidor: `ingest`, `sync-finance`, `finance-math`, `notify`, `calendar`. **Dona exclusiva de toda chave de terceiro** (Gemini, Pluggy, Google, FCM). `main/index.ts` roteia `/functions/v1/<nome>`; publicar é `scripts/deploy-functions.sh`.
 - `supabase/migrations/` — SQL versionado. Schema, RLS, `pg_cron`.
 - `infra/coolify/` — compose e variáveis de ambiente da stack self-hosted.
 - `docs/NN-<nome>/` — docs vivas de cada feature (`specs.md`, `prd.md`, `plan.md`, `variance_report.md`, `test_plan.md`, `final_report.md`, `evidencias/rodada_MM/`). **`NN`** é o número de sequência com dois dígitos na ordem de desenvolvimento (`01`, `02`, …). Pastas de referência (`deploy/`, `specs/`) **não** são numeradas.
@@ -20,13 +20,13 @@ O desenho é **Supabase enxuto + backend próprio**. A divisão é rígida:
 
 | Camada | Responsabilidade | O que **nunca** faz |
 |---|---|---|
-| **Supabase** (Postgres, GoTrue, PostgREST, Storage, pg_cron) | Persistência, autenticação, RLS, arquivos, agendamento | Não hospeda lógica de negócio. **Sem Edge Functions** — o runtime Deno não sobe. |
-| **Backend NestJS** | Toda lógica: interpretação de mensagem, chamadas de IA, Pluggy, Google Calendar, matemática financeira, push | Não guarda estado próprio. Fala com o Postgres do Supabase. |
-| **App Flutter** | UI, captura, confirmação, leitura de dados via `supabase_flutter` | **Não fala com nenhuma API externa.** Nem Gemini, nem Pluggy, nem Google. Só Supabase e o backend. |
+| **Supabase** (Postgres, GoTrue, PostgREST, Storage, pg_cron) | Persistência, autenticação, RLS, arquivos, agendamento | Não guarda regra de negócio em plpgsql. |
+| **Edge Functions** (Deno, no mesmo Supabase) | Toda lógica: interpretação de mensagem, chamadas de IA, Pluggy, Google Calendar, matemática financeira, push | Não guarda estado próprio. |
+| **App Flutter** | UI, captura, confirmação, leitura de dados via `supabase_flutter` | **Não fala com nenhuma API externa.** Nem Gemini, nem Pluggy, nem Google. Só o Supabase. |
 
 - **Leitura** de dados do usuário: app → `supabase_flutter` (PostgREST + RLS). Não passa pelo backend.
-- **Escrita que exige lógica** (interpretar, categorizar, calcular, conciliar): app → backend → Postgres.
-- **Trabalho agendado**: `pg_cron` → `pg_net` chama o endpoint do backend por HTTP com segredo do Vault. Nunca lógica dentro de function SQL.
+- **Escrita que exige lógica** (interpretar, categorizar, calcular, conciliar): app → Edge Function → Postgres.
+- **Trabalho agendado**: `pg_cron` → `pg_net` chama a Edge Function por HTTP com segredo do Vault. Nunca lógica dentro de function SQL.
 
 ## Invariantes de produto (o QA e o CISO cobram, não são sugestão)
 
@@ -70,9 +70,12 @@ Os tokens saem da identidade do `docs/plano.md` §11 — paleta de couro/palha/o
 
 **Princípios de interface** (do plano §11.4, valem mais que a paleta): o app sustenta por baixo, não disputa atenção; a tela inicial mostra hoje e esta semana, relatório se vai buscar; toca-se com uma mão, chat sempre a um toque; material humilde — superfícies chapadas, sem vidro fosco nem sombra pesada.
 
-## Regras do backend (NestJS) e do banco
+## Regras das Edge Functions e do banco
 
-- **Controller fino, serviço burro de transporte, lógica em caso de uso.** DTO validado com `class-validator` em toda entrada — nenhum `any` atravessa a borda.
+- **`index.ts` é só a borda**: `Deno.serve(handler)` e nada mais. O comportamento mora num `handler.ts` exportado, para ser testado sem subir servidor.
+- **Valide toda entrada na borda** (zod ou validação explícita) — nenhum `any` atravessa, e JSON externo nunca vira objeto de domínio sem schema.
+- **Use o JWT do usuário, não a `service_role`, sempre que der.** Com o `Authorization` da requisição, a RLS se aplica sozinha. A `service_role` fura RLS por definição: reserve-a para trabalho agendado sem usuário, e escreva no código por que era necessária.
+- **Publicar é `scripts/deploy-functions.sh`** — no self-hosted não existe `supabase functions deploy`. Função apagada do repositório some do servidor.
 - **A camada de IA é abstraída** (`ai_providers`/`ai_routes`): o código chama `execute(taskType, input)`, o provedor/modelo vem da tabela. Trocar provedor de um `task_type` não recompila nada. Toda chamada grava em `ai_usage`.
 - **Transcrição e extração são `task_type` separados** mesmo quando o mesmo modelo faria as duas numa chamada — quando errar, é preciso saber qual etapa falhou.
 - **Migration é `.sql` versionado em `supabase/migrations/`**, nome `NNNN_<verbo>_<alvo>.sql`, e **aplica limpo num banco vazio** (o CI valida isso). Toda tabela nasce com RLS e política. Sem ORM que gere schema: o SQL é a fonte da verdade.
@@ -96,7 +99,7 @@ Cada agente declara suas `tools` no frontmatter. **A restrição é a regra de f
 | `especialista-dominio` | sonnet | entidades, contratos, use cases | fatia fechada: sem `Agent`, sem web |
 | `especialista-dados` | sonnet | models, repositórios, Supabase/Dio | **sem `WebFetch`** — quem fala com o mundo é o backend |
 | `especialista-apresentacao` | sonnet | cubits, páginas, tema | **único com app rodando** (`hot_reload`, `get_widget_tree`) |
-| `especialista-backend` | sonnet | NestJS, IA, integrações, migrations, RLS | **único com `WebFetch`/`WebSearch`**; `psql` só em banco descartável |
+| `especialista-backend` | sonnet | Edge Functions, IA, integrações, migrations, RLS | **único com `WebFetch`/`WebSearch`**; `psql` só em banco descartável |
 | `especialista-infra` | sonnet | `core/`, DI, router, notificações, build, Coolify | **maior raio de ação: `Bash` alcança a VPS de produção** — muda estado no servidor só com confirmação do humano |
 
 ### Skills e política de invocação
@@ -164,9 +167,9 @@ Fonte da verdade: **`docs/GITFLOW.md`**. Resumo operacional:
 
 ## CI/CD e deploy (Coolify)
 
-- **CI é a cancela** (`.github/workflows/ci.yml`): `dart format` + `flutter analyze` + `gates_guard.sh` + testes Flutter, lint/build/testes do backend, e **as migrations aplicando limpo num Postgres vazio** com gate de RLS e de política. Verde é pré-requisito de merge.
-- **Monorepo: cada parte só builda quando muda.** No CI, um job `changes` (paths-filter) decide quais jobs rodam. No Coolify, cada deployável tem **`watch_paths`** (`backend/**`, `app/**`) — sem isso, mexer no app Flutter redeploya o backend à toa, e o servidor tem 2 vCPU dividido com outros dois projetos. **Deployável novo nasce com `watch_paths` configurado**; esquecer disso é o tipo de desperdício que ninguém percebe porque nada quebra.
+- **CI é a cancela** (`.github/workflows/ci.yml`): `dart format` + `flutter analyze` + `gates_guard.sh` + testes Flutter; `deno fmt`/`lint`/`check`/`test` nas functions; e **as migrations aplicando limpo num Postgres vazio** com gate de RLS e de política. Verde é pré-requisito de merge.
+- **Monorepo: cada parte só builda quando muda.** No CI, um job `changes` (paths-filter) decide quais jobs rodam. No Coolify, cada deployável tem **`watch_paths`** (`app/**` quando a web entrar) — sem isso, mexer no app Flutter redeploya o backend à toa, e o servidor tem 2 vCPU dividido com outros dois projetos. **Deployável novo nasce com `watch_paths` configurado**; esquecer disso é o tipo de desperdício que ninguém percebe porque nada quebra.
 - **Deploy = auto-deploy por branch** no **Coolify** (GitHub App). Deployáveis, domínios e variáveis: **`docs/deploy/coolify.md`**.
-- **O Android não sai do Coolify.** O Coolify serve a web e o backend; o APK é build local ou de CI, assinado fora do repo.
+- **O Android não sai do Coolify.** O Coolify serve a stack Supabase e, mais tarde, a web; o APK é build local ou de CI, assinado fora do repo.
 - **Segredo/URL/origem nunca no repo** — só env/Build Variable no Coolify. A URL da API do front é **compile-time** (`--dart-define-from-file`); o CORS do backend vem de `CORS_ORIGINS`.
 - **Backup não é escopo** (decisão D4 do `docs/roadmap.md`, que sobrepõe o R9 e o §5.1 do plano). Não proponha rotina de `pg_dump`, não trate backup como item de DoD e não reabra o assunto — o humano já decidiu.
