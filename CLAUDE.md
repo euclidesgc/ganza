@@ -117,6 +117,15 @@ Toda skill declara `allowed-tools` e **todas são auto-invocáveis pelo modelo**
 
 **A ordem das fases é uma decisão de produto, não de conveniência:** rotina vem antes de finanças. É a rotina que faz o app ser aberto todo dia e é o domínio mais barato para construir a máquina de ocorrência, estado terminal, log de eventos e notificação em dupla via. **Se a fase N não estiver em uso diário, não comece a N+1.**
 
+## Autonomia — quando agir e quando parar
+
+O humano pediu **o mínimo de interação**. Isso é autorização durável, não permissão para um passo só:
+
+- **Siga sem perguntar** em tudo que é aditivo e reversível dentro do escopo do ganza: criar branch, abrir PR, escrever código e docs, criar recursos **novos** do ganza no Coolify, aplicar migration em banco local, marcar o roadmap.
+- **Pare e pergunte** só quando: a ação toca recurso de **outro projeto** no servidor compartilhado (driva, love-secret, Garage, o próprio Coolify); é **destrutiva ou irreversível** (apagar volume, derrubar serviço alheio, aplicar migration em produção com dado real, `push --force`); ou exige **conta externa** dele (DuckDNS, Google/Firebase, Pluggy, cartão).
+- **Decida sozinho** o que tem resposta óbvia ou é reversível de graça — e **registre a decisão** na tabela do `docs/roadmap.md` em vez de trazê-la para a conversa. Registro vale mais que pergunta: sobrevive à sessão.
+- Quando parar for inevitável, **entregue tudo que não dependia da resposta primeiro** e pergunte uma coisa só.
+
 ## Economia de tokens (obrigatório)
 
 Custo de token é regra, não preferência. rtk (reescreve `git`/`grep`/`ls`/… via hook) e o grafo do CRG (`.code-review-graph/`, auto-atualizado por hook a cada edição) estão ativos — **use-os**:
