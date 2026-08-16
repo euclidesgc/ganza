@@ -37,11 +37,11 @@ O plano estima 3 semanas. Com a D1 (sem Edge Functions) a estimativa cai para ~2
 - [x] **F0.1 — Repositório e harness.** Estrutura, `CLAUDE.md`, 9 agentes, 13 skills, GitFlow, `.gitignore`, README, CHANGELOG, `gates_guard.sh`, `ci.yml`.
 - [-] **F0.2 — GitHub + CI verde.** Repo privado criado, `main`/`develop`, `develop` como padrão e hook `pre-push` no lugar da proteção de branch (ver D5). **Falta:** o `ci.yml` passar de verdade — hoje ele descreve um projeto que ainda não existe, e só fica verde depois de F0.5/F0.8.
 - [-] **F0.3 — Supabase enxuto no Coolify.** Sete contêineres no ar e saudáveis (`db`, `kong`, `auth`, `rest`, `storage`, `meta`, `studio`), **~840 MB** — 8 dos 15 serviços do template foram cortados. Vizinhos (driva, love-secret, Garage) seguem `running:healthy`. Detalhes em `docs/deploy/coolify.md`. **Falta:** domínio próprio + TLS (**P3**) e SMTP (**P4**).
-- [ ] **F0.4 — Primeira migration.** Extensões (`pgcrypto`, `pg_cron`, `pg_net`, `supabase_vault`), `profiles`, `areas`, e RLS em tudo. Skill `criar-migration`. PR sozinho.
+- [x] **F0.4 — Primeira migration.** Extensões (`pgcrypto`, `pg_cron`, `pg_net`, `supabase_vault`), `profiles`, `areas` com RLS e política, e o trigger que cria perfil + 4 áreas padrão no signup. Aplicado no banco real e **provado**: anônimo lê `[]`, o dono lê as 4 áreas. CI passou a rodar contra a imagem `supabase/postgres` de produção e ganhou o gate de política, não só o de RLS.
 - [ ] **F0.5 — App Flutter: esqueleto.** `flutter create`, flavors dev/prod, `bootstrap.dart` com as 4 redes de erro, go_router, get_it, `core/error` e `core/network`.
 - [ ] **F0.6 — Design system.** Tokens de `core/theme/` a partir da identidade do plano §11 (paleta couro/palha/ocre/latão, Fraunces + IBM Plex Sans com algarismos tabulares), tema claro e escuro. `gates_guard.sh` verde.
 - [ ] **F0.7 — Auth + navegação.** Login pelo Supabase, sessão persistida, shell de navegação, tela vazia por área.
-- [ ] **F0.8 — Backend NestJS: esqueleto.** Projeto, Dockerfile, health check, conexão com o Postgres, deploy no Coolify em `api.ganza.duckdns.org`, CORS.
+- [ ] **F0.8 — Backend NestJS: esqueleto.** Projeto, Dockerfile, health check, conexão com o Postgres, deploy no Coolify em `api.ganza.bmjtech.duckdns.org`, CORS.
 - [ ] **F0.9 — Cadastro manual ponta a ponta.** Uma entidade (transação) criada e listada pela UI, sem IA. É o que prova que o encanamento inteiro funciona.
 
 ## Fase 1 — Chat de texto
