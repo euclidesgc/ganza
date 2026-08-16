@@ -13,6 +13,16 @@ Segue o **GitFlow** (modelo de Vincent Driessen), com a variante prática **feat
 
 > Regra de ouro: **ninguém comita direto em `main` ou `develop`.** Todo trabalho nasce num branch de suporte e volta por Pull Request.
 
+**Quem cobra isso, na prática.** A proteção de branch do GitHub só existe em repositório privado no plano **Pro**, e o `euclidesgc/ganza` é privado no plano gratuito. Como quem empurra é sempre a máquina do dev (ele e os agentes), a cancela é um **hook `pre-push`** versionado em `scripts/git-hooks/`. Instale uma vez por clone:
+
+```bash
+git config core.hooksPath scripts/git-hooks
+```
+
+Ele recusa push cujo destino seja `main` ou `develop` e mostra o caminho certo. Para o caso legítimo raro (criar a branch pela primeira vez): `GANZA_ALLOW_DIRECT_PUSH=1 git push …`.
+
+**O que o hook não cobre, e por isso continua sendo disciplina:** ele não impede mergear um PR com a CI vermelha — *required status checks* também é recurso de plano pago. **CI vermelha não se mergeia**, e essa é a regra que sobra por sua conta.
+
 ---
 
 ## 2. Branches de suporte (temporários)

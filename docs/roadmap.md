@@ -16,13 +16,14 @@ Status: `[ ]` não iniciada · `[-]` em andamento · `[x]` concluída
 | D2 | **Sem melos e sem packages.** Um app só, módulos em `app/lib/modules/`. Extrair para pacote quando existir um segundo consumidor de verdade. | 2026-08-16 | `CLAUDE.md` |
 | D3 | **Um ambiente remoto (produção) + Supabase local para dev e teste de migration.** `hml` nasce quando a falta doer. | 2026-08-16 | `docs/GITFLOW.md` §4 |
 | D4 | **Backup não é escopo.** Decisão do humano. **Sobrepõe o R9 e o §5.1 do `docs/plano.md`**, que pediam `pg_dump` agendado desde a Fase 0. Não propor rotina de backup, não tratar como item de DoD, não reabrir o assunto — se um dia mudar, é o humano quem traz. | 2026-08-16 | `CLAUDE.md` |
+| D5 | **Repositório `euclidesgc/ganza`, privado, `develop` como branch padrão.** Proteção de branch do GitHub não está disponível no plano gratuito para repo privado — a cancela é o hook `pre-push` em `scripts/git-hooks/`. | 2026-08-16 | `docs/GITFLOW.md` §1 |
 
 ## Decisões pendentes do humano
 
 | # | Decisão | Bloqueia | Contexto |
 |---|---|---|---|
-| P1 | **Repositório no GitHub** — criar `euclidesgc/ganza` privado agora? | F0.2 (CI) | O CI e o auto-deploy do Coolify dependem dele. |
-| P2 | **Conta Google e projeto Firebase** para FCM e OAuth do Calendar. | F2 (push), F5 (agenda) | O OAuth em modo de teste expira o refresh token a cada 7 dias — publicar o app resolve. |
+| P1 | **Conta Google e projeto Firebase** para FCM e OAuth do Calendar. | F2 (push), F5 (agenda) | O OAuth em modo de teste expira o refresh token a cada 7 dias — publicar o app resolve. |
+| P2 | **GitHub Pro (US$ 4/mês)?** Só ele libera proteção de branch e *required status checks* em repo privado. | nada hoje | O hook `pre-push` cobre o push direto. O que falta é a cancela que impede mergear com CI vermelha — hoje isso é disciplina. Alternativa sem custo: tornar o repo público. |
 
 ---
 
@@ -30,8 +31,8 @@ Status: `[ ]` não iniciada · `[-]` em andamento · `[x]` concluída
 
 O plano estima 3 semanas. Com a D1 (sem Edge Functions) a estimativa cai para ~2.
 
-- [ ] **F0.1 — Repositório e harness.** Estrutura, `CLAUDE.md`, agentes, skills, GitFlow, `.gitignore`, README, CHANGELOG. *(em curso nesta sessão)*
-- [ ] **F0.2 — GitHub + CI verde.** Criar o repo, `main`/`develop`, proteção de branch, e o `ci.yml` passando de verdade (hoje ele descreve um projeto que ainda não existe). Depende de **P1**.
+- [x] **F0.1 — Repositório e harness.** Estrutura, `CLAUDE.md`, 9 agentes, 13 skills, GitFlow, `.gitignore`, README, CHANGELOG, `gates_guard.sh`, `ci.yml`.
+- [-] **F0.2 — GitHub + CI verde.** Repo privado criado, `main`/`develop`, `develop` como padrão e hook `pre-push` no lugar da proteção de branch (ver D5). **Falta:** o `ci.yml` passar de verdade — hoje ele descreve um projeto que ainda não existe, e só fica verde depois de F0.5/F0.8.
 - [ ] **F0.3 — Supabase enxuto no Coolify.** Skill `subir-supabase`. Projeto `Ganza`, DuckDNS `ganza.duckdns.org` com wildcard, TLS, SMTP para os e-mails de auth. Confirmar que os projetos vizinhos seguem saudáveis.
 - [ ] **F0.4 — Primeira migration.** Extensões (`pgcrypto`, `pg_cron`, `pg_net`, `supabase_vault`), `profiles`, `areas`, e RLS em tudo. Skill `criar-migration`. PR sozinho.
 - [ ] **F0.5 — App Flutter: esqueleto.** `flutter create`, flavors dev/prod, `bootstrap.dart` com as 4 redes de erro, go_router, get_it, `core/error` e `core/network`.
