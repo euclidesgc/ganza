@@ -1,0 +1,9 @@
+version: 2
+
+secret:
+  ignored-paths:
+    # O hook de pre-commit é feito de assinaturas de credencial — é o detector,
+    # não o segredo. Escanear a rede em busca de peixe marca o PR inteiro:
+    # foram "3 secrets uncovered" no PR #5, todos dentro deste arquivo.
+    # Ignorar o caminho é preciso; afrouxar as regras para o repo, não.
+    - "scripts/git-hooks/**"

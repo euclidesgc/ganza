@@ -25,6 +25,12 @@ android {
         versionName = flutter.versionName
     }
 
+    // O template do Flutter desliga resValues por padrão; os flavors usam
+    // resValue para o app_name aparecer diferente na gaveta.
+    buildFeatures {
+        resValues = true
+    }
+
     // Dois flavors com applicationId distinto para dev e prod conviverem no
     // mesmo aparelho — sem isso, instalar o build de teste desinstala o que
     // está em uso de verdade.

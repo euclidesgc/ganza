@@ -37,7 +37,7 @@ Flutter (Android/Web)
 git config core.hooksPath scripts/git-hooks
 ```
 
-Instala o hook que barra push direto em `main`/`develop` — a proteção de branch do GitHub não está disponível em repo privado no plano gratuito. Detalhes em [`docs/GITFLOW.md`](docs/GITFLOW.md) §1.
+Instala dois hooks: o `pre-push`, que barra push direto em `main`/`develop` (a proteção de branch do GitHub não está disponível em repo privado no plano gratuito), e o `pre-commit`, que barra credencial antes de ela entrar no histórico. Detalhes em [`docs/GITFLOW.md`](docs/GITFLOW.md) §1.
 
 ## Rodando
 
