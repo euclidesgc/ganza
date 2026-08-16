@@ -22,6 +22,12 @@ on:
   push:
     branches: [develop, main]
 
+# O paths-filter consulta a API de pull requests para saber o que mudou; sem
+# esta permissão o job morre com "Resource not accessible by integration".
+permissions:
+  contents: read
+  pull-requests: read
+
 # Monorepo: cada job roda só quando a sua parte muda. Mexer no app Flutter não
 # tem por que rebuildar o backend, e o runner não é infinito. O job `changes`
 # decide, e os outros o consultam.
