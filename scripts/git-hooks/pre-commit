@@ -77,6 +77,14 @@ for arquivo in $arquivos; do
   done < <(grep -nE "$MARCA_ATRIBUICAO" "$arquivo" 2>/dev/null)
 done
 
+# Workflow com job duplicado passa em qualquer parser YAML e é recusado pelo
+# GitHub sem gerar log. Barrar aqui é mais barato que descobrir em develop.
+if printf '%s\n' $arquivos | grep -q '^\.github/workflows/'; then
+  if ! bash "$(dirname "${BASH_SOURCE[0]}")/../validar-workflows.sh"; then
+    achados=1
+  fi
+fi
+
 if [ "$achados" -ne 0 ]; then
   cat <<'FIM'
 

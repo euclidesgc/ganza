@@ -3,12 +3,9 @@ name: CI
 # A cancela roda no servidor: o PR de um agente passa pela mesma régua que o de
 # um humano. Verde aqui é pré-requisito de merge em develop/main.
 on:
-  # PR empilhado (stacked PR) aponta para a branch de suporte de baixo, não para
-  # develop. Sem os prefixos abaixo, só o PR do fundo da pilha passaria pela
-  # régua e os do meio subiriam sem CI — o auto-deploy do Coolify dispara no
-  # push sem consultar o CI. A lista precisa cobrir TODO prefixo que pode virar
-  # base de pilha, não só os do GitFlow: prefixo novo em uso como base entra
-  # aqui no mesmo PR.
+  # PR empilhado aponta para a branch de suporte de baixo, não para develop. Sem
+  # os prefixos abaixo, só o PR do fundo da pilha passaria pela régua. A lista
+  # cobre TODO prefixo que pode virar base de pilha, não só os do GitFlow.
   pull_request:
     branches:
       - develop
@@ -28,13 +25,10 @@ permissions:
   contents: read
   pull-requests: read
 
-# Monorepo: cada job roda só quando a sua parte muda. Mexer no app Flutter não
-# tem por que rebuildar as Edge Functions, e o runner não é infinito. O job
-# `changes` decide, e os outros o consultam.
-#
-# Durante a Fase 0 o repositório ainda pode não ter `app/`. Além do filtro por
-# caminho, o job confere se o diretório existe e se PULA em vez de falhar: CI
-# cronicamente vermelha ensina a ignorar a CI, e aí ela deixa de ser cancela.
+# Monorepo: cada parte só roda quando muda. Mexer no app Flutter não tem por que
+# validar as Edge Functions, e o runner não é infinito. O job `changes` decide e
+# os outros o consultam. O `ci.yml` entra em todos os filtros de propósito —
+# mexer na régua tem de revalidar tudo.
 jobs:
   changes:
     name: O que mudou?
@@ -45,6 +39,12 @@ jobs:
       migrations: ${{ steps.filtro.outputs.migrations }}
     steps:
       - uses: actions/checkout@v4
+
+      # Job duplicado passa em parser YAML e é recusado pelo GitHub sem gerar
+      # log. Validar aqui é a rede: o hook de pre-commit já barra localmente.
+      - name: Workflows são válidos
+        run: bash scripts/validar-workflows.sh
+
       - uses: dorny/paths-filter@v3
         id: filtro
         with:
@@ -57,7 +57,8 @@ jobs:
               - 'supabase/functions/**'
               - '.github/workflows/ci.yml'
             migrations:
-              - 'supabase/**'
+              - 'supabase/migrations/**'
+              - 'supabase/ci-bootstrap.sql'
               - '.github/workflows/ci.yml'
 
   app:
@@ -71,6 +72,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # O app pode ainda não existir numa fase inicial: o job se pula em vez de
+      # falhar. CI cronicamente vermelha ensina a ignorar a CI.
       - name: O app já existe?
         id: check
         working-directory: .
@@ -79,13 +82,12 @@ jobs:
             echo "existe=true" >> "$GITHUB_OUTPUT"
           else
             echo "existe=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::app/ ainda não existe (Fase 0) — job pulado."
+            echo "::notice::app/ ainda não existe — job pulado."
           fi
 
       # Versão fixa (não `channel: stable` solto): o formatter do Dart muda de
       # release e `stable` flutuaria para o Flutter mais novo, quebrando o gate
-      # de format a cada release. Casa com o `.puro.json` do repo — os dois
-      # precisam andar juntos, senão o dev formata numa versão e a CI cobra outra.
+      # de format. Casa com o `.puro.json` do repo — os dois andam juntos.
       - uses: subosito/flutter-action@v2
         if: steps.check.outputs.existe == 'true'
         with:
@@ -105,9 +107,8 @@ jobs:
         if: steps.check.outputs.existe == 'true'
         run: flutter analyze
 
-      # O guard-script roda mesmo sem o app: ele próprio detecta a ausência de
-      # `app/lib` e sai limpo. Deixá-lo fora do `if` garante que ele não fique
-      # esquecido quando o app nascer.
+      # Fora da condição de propósito: o guard-script já sai limpo sozinho
+      # quando não há app, e assim não corre risco de ser esquecido.
       - name: Gates de qualidade (guard-script)
         working-directory: .
         run: bash scripts/gates_guard.sh
@@ -117,7 +118,7 @@ jobs:
         run: flutter test -r compact
 
   functions:
-    name: Edge Functions — fmt + check + testes
+    name: Edge Functions — fmt + lint + tipos + testes
     needs: changes
     if: needs.changes.outputs.functions == 'true'
     runs-on: ubuntu-latest
@@ -137,74 +138,13 @@ jobs:
       - name: Lint
         run: deno lint
 
-      # `deno check` é o equivalente do build: sem etapa de compilação, é aqui
-      # que erro de tipo aparece antes de virar 500 em produção.
+      # Sem etapa de compilação, `deno check` é onde erro de tipo aparece antes
+      # de virar 500 em produção.
       - name: Tipos
         run: deno task check
 
       - name: Testes
         run: deno task test
-
-  migrations:
-              - 'supabase/**'
-              - '.github/workflows/ci.yml'
-
-  app:
-    name: App — format + analyze + gates + testes
-    needs: changes
-    if: needs.changes.outputs.app == 'true'
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: app
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: O app já existe?
-        id: check
-        working-directory: .
-        run: |
-          if [ -f app/pubspec.yaml ]; then
-            echo "existe=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "existe=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::app/ ainda não existe (Fase 0) — job pulado."
-          fi
-
-      # Versão fixa (não `channel: stable` solto): o formatter do Dart muda de
-      # release e `stable` flutuaria para o Flutter mais novo, quebrando o gate
-      # de format a cada release. Casa com o `.puro.json` do repo — os dois
-      # precisam andar juntos, senão o dev formata numa versão e a CI cobra outra.
-      - uses: subosito/flutter-action@v2
-        if: steps.check.outputs.existe == 'true'
-        with:
-          flutter-version: 3.44.9
-          channel: stable
-          cache: true
-
-      - name: Dependências
-        if: steps.check.outputs.existe == 'true'
-        run: flutter pub get
-
-      - name: Formatação
-        if: steps.check.outputs.existe == 'true'
-        run: dart format --output=none --set-exit-if-changed .
-
-      - name: Análise estática
-        if: steps.check.outputs.existe == 'true'
-        run: flutter analyze
-
-      # O guard-script roda mesmo sem o app: ele próprio detecta a ausência de
-      # `app/lib` e sai limpo. Deixá-lo fora do `if` garante que ele não fique
-      # esquecido quando o app nascer.
-      - name: Gates de qualidade (guard-script)
-        working-directory: .
-        run: bash scripts/gates_guard.sh
-
-      - name: Testes
-        if: steps.check.outputs.existe == 'true'
-        run: flutter test -r compact
-
 
   migrations:
     name: Banco — migrations aplicam limpo e RLS está ligada
@@ -215,13 +155,11 @@ jobs:
       - uses: actions/checkout@v4
 
       # `services:` não deixa passar argumentos ao processo do Postgres, e
-      # pg_cron precisa estar em shared_preload_libraries para ser criado.
-      # Daí o docker run explícito. A imagem é a MESMA de produção: testar
-      # contra `postgres:15` puro validaria um banco que não é o nosso —
-      # pg_cron, pg_net e supabase_vault nem existem lá.
-      # Senha aleatória e nenhuma porta publicada: tudo aqui fala com o banco
-      # por `docker exec`, então não há motivo para existir credencial literal
-      # no arquivo nem 5432 aberto no runner.
+      # pg_cron precisa estar em shared_preload_libraries. Daí o docker run.
+      # A imagem é a MESMA de produção: testar contra `postgres:15` puro
+      # validaria um banco que não é o nosso.
+      #
+      # Senha aleatória e nenhuma porta publicada: tudo fala por `docker exec`.
       - name: Subir o Postgres do Supabase
         run: |
           docker run -d --name pg \
@@ -235,8 +173,9 @@ jobs:
           docker exec pg pg_isready -U postgres
 
       # Quem cria `auth.users` e `auth.uid()` no ambiente real é o GoTrue, que
-      # não roda aqui. O bootstrap monta o mínimo para as migrations poderem
-      # referenciá-los — e não é aplicado em nenhum ambiente real.
+      # não roda aqui. O bootstrap monta o mínimo e nunca é aplicado em ambiente
+      # real. Roda como supabase_admin: o schema `auth` da imagem pertence ao
+      # supabase_auth_admin e o usuário `postgres` não escreve nele.
       - name: Bootstrap do schema auth (só CI)
         run: docker exec -i pg psql -U supabase_admin -d postgres -v ON_ERROR_STOP=1 -q < supabase/ci-bootstrap.sql
 
@@ -253,7 +192,7 @@ jobs:
           done
 
       # Tabela sem RLS é a falha que não dá erro nem no deploy nem no teste
-      # manual: tudo funciona, e o dado fica exposto. Por isso é gate de CI.
+      # manual: tudo funciona, e o dado fica exposto.
       - name: Toda tabela de aplicação tem RLS ligada
         run: |
           sem_rls=$(docker exec pg psql -U supabase_admin -d postgres -tAc "
@@ -267,7 +206,7 @@ jobs:
           echo "✓ todas as tabelas de public têm RLS"
 
       # RLS ligada sem política nenhuma bloqueia tudo em silêncio — parece
-      # seguro e o app simplesmente não lê nada. As duas coisas andam juntas.
+      # segura e o app simplesmente não lê nada. As duas coisas andam juntas.
       - name: Toda tabela com RLS tem política
         run: |
           sem_policy=$(docker exec pg psql -U supabase_admin -d postgres -tAc "
