@@ -31,4 +31,8 @@ O que escrever, por camada:
 - **Conciliação**: match por valor igual (± centavos) em janela de ±5 dias funde e o valor do banco é canônico; sem match, fica `standalone`; e **não** duplica quando o mesmo fato entra por chat e por extrato.
 - **Confirmação**: existe um teste que prova que a ingestão **não grava** na tabela final. É a invariante nº 1 e ela merece teste explícito, não confiança.
 
+**Widget e golden testam coisas ortogonais — não corte uma categoria achando que a outra cobre.** O golden pega regressão *visual* que nenhuma asserção lógica enxerga: cor errada, elemento cortado, clip que mudou de camada. O teste de comportamento prova o que o golden não prova: o callback disparou, o estado mudou, o texto é o certo. Descartar uma das duas cria ponto cego real. Sobreposição existe caso a caso — quando os dois afirmam exatamente a mesma coisa estreita —, e aí se decide olhando o par, nunca a categoria.
+
+**Rode escopado enquanto escreve, suíte inteira antes de fechar.** Ver "Ritmo de teste e paralelismo" no `CLAUDE.md`.
+
 Pirâmide: muito domínio/cubit, alguns widget, poucos integração. DoD: **tudo verde** — e só então a tarefa fecha.
