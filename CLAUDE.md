@@ -128,7 +128,10 @@ O humano pediu **o mínimo de interação**. Isso é autorização durável, nã
 
 ## Economia de tokens (obrigatório)
 
-Custo de token é regra, não preferência. rtk (reescreve `git`/`grep`/`ls`/… via hook) e o grafo do CRG (`.code-review-graph/`, auto-atualizado por hook a cada edição) estão ativos — **use-os**:
+Custo de token é regra, não preferência. Duas ferramentas estão ativas neste repositório — **use-as**:
+
+- **rtk** reescreve `git`/`grep`/`ls`/… via hook e enxuga a saída.
+- **O grafo do CRG** (`.code-review-graph/`, ignorado pelo git) é atualizado por hook a cada `Edit`/`Write`. O repo está registrado com o alias **`ganza`**. Ele **só enxerga arquivo versionado**: código novo ainda não commitado não aparece no grafo — nesse caso, `Read` mesmo.
 
 - **Grafo antes de grep/read cru.** Para explorar código, consulte primeiro os tools do MCP `code-review-graph` (`query_graph`, `get_review_context`, `detect_changes`, `semantic_search_nodes`, `get_impact_radius`). Só caia em `Grep`/`Read` quando o grafo não cobrir. (Vale para subagentes — inclua isso no prompt deles.)
 - **Saída de comando enxuta.** Testes com `-r compact` (`flutter test -r compact`) e/ou `| tail`; nunca despejar log linha a linha.
