@@ -90,6 +90,14 @@ Detalhes que custaram tempo e ficam registrados:
 
 Verificado: `GET /functions/v1/health` com `apikey` devolve `{"status":"ok","database":"reachable"}`; rota inexistente devolve 404.
 
+## Autenticação
+
+Conta única (`euclides.catunda@gmail.com`), criada com `ENABLE_EMAIL_AUTOCONFIRM=true` e **cadastro fechado em seguida** com `DISABLE_SIGNUP=true` — o app é monousuário por desenho, e endpoint de signup aberto na internet é convite sem porteiro. Verificado: a tentativa devolve `422 signup_disabled`.
+
+> **Ao mexer em env do GoTrue, espere o redeploy terminar antes de testar.** O contêiner antigo continua servindo durante a troca: um teste feito no meio da janela mostrou signup funcionando com a config nova já salva. A stack tem **oito** contêineres — conte-os antes de concluir qualquer coisa.
+
+Redefinir senha, enquanto não há SMTP: pelo Studio, em `https://supabase.ganza.bmjtech.duckdns.org`.
+
 ## Ainda por fazer
 
 - **SMTP** para os e-mails de autenticação — `SMTP_HOST`/`SMTP_USER`/`SMTP_PASS` estão vazios. Sem isso, confirmação de e-mail e recuperação de senha não saem.
