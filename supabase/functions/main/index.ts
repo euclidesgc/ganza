@@ -1,7 +1,7 @@
 // Serviço principal do edge-runtime: recebe tudo em /functions/v1/<nome> e
 // despacha para a pasta correspondente. É o padrão do Supabase self-hosted —
 // sem ele, cada função precisaria de um worker próprio.
-import { STATUS_CODE } from 'jsr:@std/http/status';
+import { STATUS_CODE } from '@std/http/status';
 
 const JWT_SECRET = Deno.env.get('SUPABASE_JWT_SECRET') ?? Deno.env.get('JWT_SECRET');
 const VERIFY_JWT = Deno.env.get('VERIFY_JWT') === 'true';

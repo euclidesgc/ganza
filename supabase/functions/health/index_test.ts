@@ -1,4 +1,4 @@
-import { assertEquals } from 'jsr:@std/assert';
+import { assertEquals } from '@std/assert';
 
 // O contrato que o Coolify e o app dependem: 200 só quando o banco responde,
 // 503 caso contrário. Sem SUPABASE_DB_URL o endpoint não pode fingir saúde.
