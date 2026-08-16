@@ -75,6 +75,23 @@ Geradas pelo Coolify e visíveis em `GET /api/v1/services/{uuid}/envs`. **Nunca 
 - `SERVICE_SUPABASESERVICE_KEY` — a **service_role**, existe **só no backend NestJS**. Se aparecer no app ou numa variável de build do front, é incidente.
 - `SERVICE_PASSWORD_POSTGRES`, `SERVICE_PASSWORD_JWT`, `SERVICE_USER_ADMIN`/`SERVICE_PASSWORD_ADMIN` (login do Studio).
 
+## Aplicação `ganza-backend` · `attqmwjvikzhinf6pzj9yyqe`
+
+| | |
+|---|---|
+| Repositório | `euclidesgc/ganza` via GitHub App `bmjtech` (`u124me46u673cte4392i1z0o`) |
+| Branch | `develop` — ver decisão D7 do roadmap |
+| Build | Dockerfile, base `/backend`, porta `3333` |
+| Domínio | `https://api.ganza.bmjtech.duckdns.org` — para **aplicações** a API aceita `domains`, ao contrário de serviços |
+| Healthcheck | `/health`, que consulta o banco de verdade |
+| **`watch_paths`** | **`backend/**`** |
+
+**Sobre o `watch_paths`:** sem ele o auto-deploy dispara a cada push na branch, e mexer no app Flutter rebuildaria o backend à toa. Num servidor de 2 vCPU compartilhado com driva e love-secret, isso não é detalhe. **Todo deployável novo nasce com `watch_paths` configurado.**
+
+**Rede:** o serviço Supabase precisou de `connect_to_docker_network: true` para o backend alcançar `supabase-db-lqsjrqqs6r8rnggbvwpi4nuf:5432`. Sem isso cada stack fica na própria rede e o `DATABASE_URL` não resolve.
+
+> O backend conecta hoje como `postgres`. Assim que passar a escrever (Fase 1), deve ganhar um role próprio com permissão mínima — está no roadmap.
+
 ## Ainda por fazer
 
 - **SMTP** para os e-mails de autenticação — `SMTP_HOST`/`SMTP_USER`/`SMTP_PASS` estão vazios. Sem isso, confirmação de e-mail e recuperação de senha não saem.

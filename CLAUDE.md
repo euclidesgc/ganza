@@ -154,7 +154,8 @@ Fonte da verdade: **`docs/GITFLOW.md`**. Resumo operacional:
 
 ## CI/CD e deploy (Coolify)
 
-- **CI é a cancela** (`.github/workflows/ci.yml`): `dart format` + `flutter analyze` + `gates_guard.sh` + testes Flutter, e lint/build/testes do backend, e **as migrations aplicando limpo num Postgres vazio**. Verde é pré-requisito de merge.
+- **CI é a cancela** (`.github/workflows/ci.yml`): `dart format` + `flutter analyze` + `gates_guard.sh` + testes Flutter, lint/build/testes do backend, e **as migrations aplicando limpo num Postgres vazio** com gate de RLS e de política. Verde é pré-requisito de merge.
+- **Monorepo: cada parte só builda quando muda.** No CI, um job `changes` (paths-filter) decide quais jobs rodam. No Coolify, cada deployável tem **`watch_paths`** (`backend/**`, `app/**`) — sem isso, mexer no app Flutter redeploya o backend à toa, e o servidor tem 2 vCPU dividido com outros dois projetos. **Deployável novo nasce com `watch_paths` configurado**; esquecer disso é o tipo de desperdício que ninguém percebe porque nada quebra.
 - **Deploy = auto-deploy por branch** no **Coolify** (GitHub App). Deployáveis, domínios e variáveis: **`docs/deploy/coolify.md`**.
 - **O Android não sai do Coolify.** O Coolify serve a web e o backend; o APK é build local ou de CI, assinado fora do repo.
 - **Segredo/URL/origem nunca no repo** — só env/Build Variable no Coolify. A URL da API do front é **compile-time** (`--dart-define-from-file`); o CORS do backend vem de `CORS_ORIGINS`.
