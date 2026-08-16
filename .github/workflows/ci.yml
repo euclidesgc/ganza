@@ -166,11 +166,27 @@ jobs:
             -e POSTGRES_PASSWORD="$(openssl rand -hex 24)" \
             supabase/postgres:15.8.1.085 \
             postgres -c shared_preload_libraries=pg_cron,pg_net -c cron.database_name=postgres
-          for i in $(seq 1 60); do
-            docker exec pg pg_isready -U postgres -q && break
+          # A imagem sobe um Postgres TEMPORÁRIO para rodar os init scripts e
+          # só então reinicia no definitivo. Um `pg_isready` isolado pega o
+          # temporário e o passo seguinte esbarra em "the database system is
+          # shutting down". Por isso a espera exige três respostas seguidas:
+          # é o que distingue servidor estável de servidor de passagem.
+          estaveis=0
+          for _ in $(seq 1 90); do
+            if docker exec pg psql -U supabase_admin -d postgres -c 'select 1' > /dev/null 2>&1; then
+              estaveis=$((estaveis + 1))
+              [ "$estaveis" -ge 3 ] && break
+            else
+              estaveis=0
+            fi
             sleep 2
           done
-          docker exec pg pg_isready -U postgres
+          if [ "$estaveis" -lt 3 ]; then
+            echo "✗ o Postgres não estabilizou"
+            docker logs pg 2>&1 | tail -20
+            exit 1
+          fi
+          echo "✓ Postgres estável"
 
       # Quem cria `auth.users` e `auth.uid()` no ambiente real é o GoTrue, que
       # não roda aqui. O bootstrap monta o mínimo e nunca é aplicado em ambiente
