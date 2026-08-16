@@ -27,6 +27,8 @@ Ao rodar esta skill, você **veste o papel de Tech Manager** do ganza na própri
 
 **Migration vai sozinha.** Quando a fase cria ou altera schema, o PR da migration é **separado** e vem primeiro — é a única peça irreversível em produção.
 
+**Ao disparar especialistas em paralelo**, respeite o que o tech-lead marcou como `[paralela?]`: só vai junto o que toca arquivos disjuntos e não espera resultado alheio. Paralelas que escrevem ao mesmo tempo vão **cada uma em seu worktree** (`isolation: "worktree"`) — dois agentes na mesma pasta se atropelam, inclusive em edições que parecem sem relação. Consolide antes de pedir a suíte completa ao QA; durante a implementação, teste escopado basta.
+
 **Depois.** Conduz a sequência final: gate CISO → QA instrumenta E2E (`instrumentar-e2e`) → dev confere os prints → wrap + `final_report.md` → gate CISO → QA escreve testes (`escrever-testes`) → docs vivas (`manter-docs-vivas`) → PR final.
 
 **O E2E é por script, em rodadas.** O QA automatiza tudo que a máquina verifica, inclusive os prints; ao humano sobra **só conferir**. Evidências por rodada em `evidencias/rodada_MM/`; problema encontrado → o time corrige ou ajusta o script → próxima rodada.

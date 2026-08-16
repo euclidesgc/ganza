@@ -126,6 +126,16 @@ O humano pediu **o mínimo de interação**. Isso é autorização durável, nã
 - **Decida sozinho** o que tem resposta óbvia ou é reversível de graça — e **registre a decisão** na tabela do `docs/roadmap.md` em vez de trazê-la para a conversa. Registro vale mais que pergunta: sobrevive à sessão.
 - Quando parar for inevitável, **entregue tudo que não dependia da resposta primeiro** e pergunte uma coisa só.
 
+## Ritmo de teste e paralelismo
+
+**Rode teste escopado enquanto itera; a suíte inteira só nos pontos de consolidação.** Corrigindo um achado pontual, rode o arquivo de teste afetado. A suíte completa roda ao fechar um conjunto de mudanças, antes de um gate de revisão e antes de abrir PR. Numa iteração de agente o tempo dominante não é a execução do teste (segundos) — é o raciocínio e as chamadas de ferramenta. Rodar tudo a cada ajuste soma tempo de parede sem ganhar sinal.
+
+**Meça antes de mexer em concorrência de teste.** `flutter test` e o Jest já paralelizam por padrão usando os núcleos disponíveis. Confirme o comportamento real (`--help`, docs) antes de configurar algo que provavelmente já está ligado — o gargalo raramente está aí.
+
+**Paralelize implementação genuinamente independente.** Quando o trabalho se divide em partes que tocam arquivos disjuntos e não dependem do resultado uma da outra, dispare um agente por parte em vez de um agente fazendo tudo em fila. **Isole cada agente** (worktree próprio) quando eles vão escrever ao mesmo tempo. Consolide e **só então** rode a suíte completa na branch integrada. O que tem dependência real continua sequencial — não force paralelismo onde uma tarefa precisa do resultado da anterior.
+
+**Duas escritas na mesma working directory se atropelam.** Com um agente rodando sem isolamento na pasta principal, não edite nada ali enquanto ele estiver ativo — nem mudança "sem relação" com o que ele faz. Ou espere, ou isole a sua também.
+
 ## Economia de tokens (obrigatório)
 
 Custo de token é regra, não preferência. Duas ferramentas estão ativas neste repositório — **use-as**:
