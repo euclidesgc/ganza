@@ -1,4 +1,4 @@
-import postgres from 'https://deno.land/x/postgresjs@v3.4.4/mod.js';
+import postgres from 'postgres';
 
 // Separado do index.ts para poder ser testado sem subir um servidor: o
 // `Deno.serve` do index é a borda, isto é o comportamento.

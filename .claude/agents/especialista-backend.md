@@ -21,6 +21,7 @@ O `edge-runtime` serve o que estiver no volume `volumes/functions`. **`main/inde
 
 - **`index.ts` é só a borda.** O comportamento mora num `handler.ts` exportado, para ser testável sem subir servidor. `Deno.serve(handler)` e nada mais no index.
 - **Sem build.** Deno roda TypeScript direto; `deno check` faz o papel do compilador e roda no CI junto com `deno fmt`, `deno lint` e `deno test`.
+- **Toda dependência tem versão fixada, e num lugar só:** o mapa `imports` do `supabase/functions/deno.json`. Import com URL solta espalha a versão pelo código e deixa a função sujeita a quebrar sozinha quando a lib publicar algo novo. O `deno lint` recusa import sem versão (`no-unversioned-import`).
 - **Publicar é `scripts/deploy-functions.sh`**, que sincroniza o volume por `tar` sobre ssh e reinicia o runtime. Não existe `supabase functions deploy` no self-hosted. Função apagada do repositório **some** do servidor — o script faz o papel do `--delete`.
 - **O ambiente já vem pronto:** `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_DB_URL` e `SUPABASE_JWT_SECRET` estão no runtime. Não invente configuração para o que já existe.
 - **Use o JWT do usuário, não a `service_role`, sempre que der.** Criando o cliente com o `Authorization` da requisição, a RLS se aplica sozinha e o banco vira a autorização. A `service_role` fura RLS por definição: reserve-a para trabalho agendado sem usuário (sync, geração de ocorrências) e diga no código por que ela era necessária ali.
