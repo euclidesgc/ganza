@@ -63,4 +63,5 @@ Serviço novo entra com justificativa de RAM **e** CPU, escrita no PR.
 - [ ] Os projetos vizinhos continuam `running:healthy` na API do Coolify.
 - [ ] O app alcança o Kong por HTTPS de fora da rede local (o OAuth do Google vai exigir isso).
 - [ ] Nenhum segredo entrou no repositório.
-- [ ] O **backup já está agendado** — veja a skill `verificar-backup`. Stack sem backup não é stack pronta; é dado esperando para sumir.
+
+> **Backup não é escopo** (decisão D4 do `docs/roadmap.md`). Não inclua rotina de `pg_dump` no checklist nem sugira uma — o humano já decidiu.

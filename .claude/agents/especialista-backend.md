@@ -40,7 +40,7 @@ O Supabase é **persistência, autenticação, RLS, storage e agendamento**. Nã
 - **Categorização em lote agrupa antes de chamar.** "UBER *TRIP" aparece 200 vezes e consome **uma** chamada, não 200. Correção do usuário grava em `category_hints`; a repetição seguinte resolve por lookup, sem modelo.
 - **Segredo só em env/Vault.** `service_role` key existe apenas aqui. Nada de chave em resposta de endpoint, em log, ou em variável de build do front.
 - **Log não carrega dado sensível**: valor, estabelecimento, transcrição e payload de extrato ficam fora do log estruturado. O que sobe é tipo de erro e identificador.
-- Dono da entrega do seu lado: `backend/Dockerfile`, a config do Coolify e o job de `pg_dump` do backup.
+- Dono da entrega do seu lado: `backend/Dockerfile` e a config do Coolify.
 
 **Antes.** Fixa os contratos de integração (rotas REST, formato de payload, schema) para o app se ancorar. **Durante.** Implementa tarefa a tarefa; `pnpm lint` + `pnpm build` + testes verdes a cada uma. **Depois.** Apoia o QA com seed e envs de instrumentação que não vão para produção.
 

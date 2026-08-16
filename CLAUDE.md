@@ -109,11 +109,11 @@ Toda skill declara `allowed-tools` e **todas são auto-invocáveis pelo modelo**
 | `criar-modulo` · `criar-migration` | sim | gabarito de módulo Flutter e de migration com RLS |
 | `revisar-fase` · `instrumentar-e2e` · `escrever-testes` · `manter-docs-vivas` | sim | o ciclo do QA |
 | `iniciar-feature` · `iniciar-bugfix` · `iniciar-hotfix` · `empilhar-prs` · `publicar-release` | sim | GitFlow por situação (a decisão de *começar* hotfix/release continua humana — está no corpo da skill) |
-| `subir-supabase` · `verificar-backup` | sim | a stack self-hosted e a prova de que dá para voltar |
+| `subir-supabase` | sim | a stack self-hosted enxuta, com a razão de cada serviço que fica de fora |
 
 **Todo plano termina num DoD, e o E2E faz parte dele — plano sem DoD não está pronto.** A última seção de toda `docs/NN-<nome>/plan.md` é a **Definition of Done**, com cada linha **verificável** (responde "como eu provo que isto está feito", não intenção genérica). O **E2E da feature implementada é item do DoD**: a feature só fecha quando o roteiro foi executado e **atestado pelo dev humano** — o QA instrumenta, o humano confere os prints, a evidência fica em `evidencias/rodada_MM/`. O roteiro exercita o que a feature **promete**, não o caminho feliz: se a feature corrige uma falha silenciosa, o E2E prova que cada modo de falha produz estado **visualmente distinto**.
 
-**Roadmap vivo (`docs/roadmap.md`).** Fonte única de rastreabilidade — o que foi feito, o que está em andamento, o que falta, **ordenado por dependência**, com status `[ ]` não iniciada · `[-]` em andamento · `[x]` concluída. **Mantido atualizado pela IA** no fechamento de cada trabalho. Ao surgir item novo, a IA pode **reescrever o texto** para dar clareza e **reordená-lo** para o ponto de precedência correto. Decisão pendente do humano é **estado** e mora no roadmap, junto do item que a espera.
+**Roadmap vivo (`docs/roadmap.md`).** Fonte única de rastreabilidade — o que foi feito, o que está em andamento, o que falta, **ordenado por dependência**, com status `[ ]` não iniciada · `[-]` em andamento · `[x]` concluída. **A tabela de decisões travadas do roadmap sobrepõe o `docs/plano.md`** onde os dois conflitarem: o plano é a intenção de origem, a decisão é o que ficou valendo. **Mantido atualizado pela IA** no fechamento de cada trabalho. Ao surgir item novo, a IA pode **reescrever o texto** para dar clareza e **reordená-lo** para o ponto de precedência correto. Decisão pendente do humano é **estado** e mora no roadmap, junto do item que a espera.
 
 **A ordem das fases é uma decisão de produto, não de conveniência:** rotina vem antes de finanças. É a rotina que faz o app ser aberto todo dia e é o domínio mais barato para construir a máquina de ocorrência, estado terminal, log de eventos e notificação em dupla via. **Se a fase N não estiver em uso diário, não comece a N+1.**
 
@@ -146,4 +146,4 @@ Fonte da verdade: **`docs/GITFLOW.md`**. Resumo operacional:
 - **Deploy = auto-deploy por branch** no **Coolify** (GitHub App). Deployáveis, domínios e variáveis: **`docs/deploy/coolify.md`**.
 - **O Android não sai do Coolify.** O Coolify serve a web e o backend; o APK é build local ou de CI, assinado fora do repo.
 - **Segredo/URL/origem nunca no repo** — só env/Build Variable no Coolify. A URL da API do front é **compile-time** (`--dart-define-from-file`); o CORS do backend vem de `CORS_ORIGINS`.
-- **Backup é responsabilidade nossa, não de terceiro.** `pg_dump` agendado com cópia **fora da VPS** desde a Fase 0 — o Garage S3 roda no mesmo disco e não conta como backup. Sem backup rodando, a Fase 0 não fecha.
+- **Backup não é escopo** (decisão D4 do `docs/roadmap.md`, que sobrepõe o R9 e o §5.1 do plano). Não proponha rotina de `pg_dump`, não trate backup como item de DoD e não reabra o assunto — o humano já decidiu.

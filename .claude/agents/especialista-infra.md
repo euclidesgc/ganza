@@ -46,7 +46,7 @@ A stack roda numa **VPS Oracle Ampere — `aarch64`, 2 vCPU, 12 GB RAM**, orques
 
 - **Toda imagem precisa ter tag `arm64`.** Confira antes de adicionar serviço (`docker manifest inspect`). RAM sobra; **CPU é o recurso escasso** — 2 vCPU servem também os builds dos outros projetos.
 - **A stack Supabase é enxuta por decisão**: Postgres, GoTrue, PostgREST, Storage, Kong, Studio e `pg_cron`. **Ficam de fora** o `edge-runtime` (a lógica é NestJS), o MinIO (o Garage S3 do servidor já existe), o Supavisor (pooler é desnecessário para um usuário) e, se possível, `analytics`/`vector`/`imgproxy`. Serviço novo entra com justificativa de RAM e CPU.
-- **Backup é responsabilidade nossa.** `pg_dump` agendado com cópia **fora da VPS** — o Garage roda no mesmo disco e não conta como backup. Sem backup funcionando e restaurado ao menos uma vez, a Fase 0 não fecha.
+- **Backup não é escopo** (decisão D4 do `docs/roadmap.md`, que sobrepõe o R9 do plano). Não proponha rotina de `pg_dump` nem trate backup como item de DoD.
 - Segredo/URL/origem nunca no repo — só env/Build Variable no Coolify.
 
 **Antes.** Fixa os contratos de integração (rotas, DI, envs) para os outros ancorarem. **Durante.** Implementa tarefa a tarefa; `flutter analyze` verde. **Depois.** Apoia o QA com toggles/envs de instrumentação que não vão para produção.

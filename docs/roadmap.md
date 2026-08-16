@@ -15,14 +15,14 @@ Status: `[ ]` não iniciada · `[-]` em andamento · `[x]` concluída
 | D1 | **Backend próprio em NestJS; Supabase reduzido a Postgres + Auth + PostgREST + Storage + pg_cron.** Sem Edge Functions/Deno. Motivo: o deploy de função no Supabase self-hosted é por volume montado, e é justamente ali que mora o código que mais muda (ingest, prompts, cálculo). Com NestJS, publicar lógica volta a ser merge em branch. | 2026-08-16 | `CLAUDE.md` |
 | D2 | **Sem melos e sem packages.** Um app só, módulos em `app/lib/modules/`. Extrair para pacote quando existir um segundo consumidor de verdade. | 2026-08-16 | `CLAUDE.md` |
 | D3 | **Um ambiente remoto (produção) + Supabase local para dev e teste de migration.** `hml` nasce quando a falta doer. | 2026-08-16 | `docs/GITFLOW.md` §4 |
+| D4 | **Backup não é escopo.** Decisão do humano. **Sobrepõe o R9 e o §5.1 do `docs/plano.md`**, que pediam `pg_dump` agendado desde a Fase 0. Não propor rotina de backup, não tratar como item de DoD, não reabrir o assunto — se um dia mudar, é o humano quem traz. | 2026-08-16 | `CLAUDE.md` |
 
 ## Decisões pendentes do humano
 
 | # | Decisão | Bloqueia | Contexto |
 |---|---|---|---|
-| P1 | **Destino do backup externo** — Backblaze B2, Cloudflare R2, máquina local, ou dois deles? | F0.5 | O Garage S3 roda no mesmo disco do Postgres: não conta como backup. B2 tem 10 GB grátis. Recomendação: B2 **e** cópia local. |
-| P2 | **Repositório no GitHub** — criar `euclidesgc/ganza` privado agora? | F0.2 (CI) | O CI e o auto-deploy do Coolify dependem dele. |
-| P3 | **Conta Google e projeto Firebase** para FCM e OAuth do Calendar. | F2 (push), F5 (agenda) | O OAuth em modo de teste expira o refresh token a cada 7 dias — publicar o app resolve. |
+| P1 | **Repositório no GitHub** — criar `euclidesgc/ganza` privado agora? | F0.2 (CI) | O CI e o auto-deploy do Coolify dependem dele. |
+| P2 | **Conta Google e projeto Firebase** para FCM e OAuth do Calendar. | F2 (push), F5 (agenda) | O OAuth em modo de teste expira o refresh token a cada 7 dias — publicar o app resolve. |
 
 ---
 
@@ -31,15 +31,14 @@ Status: `[ ]` não iniciada · `[-]` em andamento · `[x]` concluída
 O plano estima 3 semanas. Com a D1 (sem Edge Functions) a estimativa cai para ~2.
 
 - [ ] **F0.1 — Repositório e harness.** Estrutura, `CLAUDE.md`, agentes, skills, GitFlow, `.gitignore`, README, CHANGELOG. *(em curso nesta sessão)*
-- [ ] **F0.2 — GitHub + CI verde.** Criar o repo, `main`/`develop`, proteção de branch, e o `ci.yml` passando de verdade (hoje ele descreve um projeto que ainda não existe). Depende de **P2**.
+- [ ] **F0.2 — GitHub + CI verde.** Criar o repo, `main`/`develop`, proteção de branch, e o `ci.yml` passando de verdade (hoje ele descreve um projeto que ainda não existe). Depende de **P1**.
 - [ ] **F0.3 — Supabase enxuto no Coolify.** Skill `subir-supabase`. Projeto `Ganza`, DuckDNS `ganza.duckdns.org` com wildcard, TLS, SMTP para os e-mails de auth. Confirmar que os projetos vizinhos seguem saudáveis.
 - [ ] **F0.4 — Primeira migration.** Extensões (`pgcrypto`, `pg_cron`, `pg_net`, `supabase_vault`), `profiles`, `areas`, e RLS em tudo. Skill `criar-migration`. PR sozinho.
-- [ ] **F0.5 — Backup rodando e restaurado uma vez.** Skill `verificar-backup`. Depende de **P1**. **A Fase 0 não fecha sem isso.**
-- [ ] **F0.6 — App Flutter: esqueleto.** `flutter create`, flavors dev/prod, `bootstrap.dart` com as 4 redes de erro, go_router, get_it, `core/error` e `core/network`.
-- [ ] **F0.7 — Design system.** Tokens de `core/theme/` a partir da identidade do plano §11 (paleta couro/palha/ocre/latão, Fraunces + IBM Plex Sans com algarismos tabulares), tema claro e escuro. `gates_guard.sh` verde.
-- [ ] **F0.8 — Auth + navegação.** Login pelo Supabase, sessão persistida, shell de navegação, tela vazia por área.
-- [ ] **F0.9 — Backend NestJS: esqueleto.** Projeto, Dockerfile, health check, conexão com o Postgres, deploy no Coolify em `api.ganza.duckdns.org`, CORS.
-- [ ] **F0.10 — Cadastro manual ponta a ponta.** Uma entidade (transação) criada e listada pela UI, sem IA. É o que prova que o encanamento inteiro funciona.
+- [ ] **F0.5 — App Flutter: esqueleto.** `flutter create`, flavors dev/prod, `bootstrap.dart` com as 4 redes de erro, go_router, get_it, `core/error` e `core/network`.
+- [ ] **F0.6 — Design system.** Tokens de `core/theme/` a partir da identidade do plano §11 (paleta couro/palha/ocre/latão, Fraunces + IBM Plex Sans com algarismos tabulares), tema claro e escuro. `gates_guard.sh` verde.
+- [ ] **F0.7 — Auth + navegação.** Login pelo Supabase, sessão persistida, shell de navegação, tela vazia por área.
+- [ ] **F0.8 — Backend NestJS: esqueleto.** Projeto, Dockerfile, health check, conexão com o Postgres, deploy no Coolify em `api.ganza.duckdns.org`, CORS.
+- [ ] **F0.9 — Cadastro manual ponta a ponta.** Uma entidade (transação) criada e listada pela UI, sem IA. É o que prova que o encanamento inteiro funciona.
 
 ## Fase 1 — Chat de texto
 
