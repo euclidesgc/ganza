@@ -186,7 +186,7 @@ jobs:
             docker logs pg 2>&1 | tail -20
             exit 1
           fi
-          echo "✓ Postgres estável
+          echo "✓ Postgres estável"
 
       # Quem cria `auth.users` e `auth.uid()` no ambiente real é o GoTrue, que
       # não roda aqui. O bootstrap monta o mínimo e nunca é aplicado em ambiente
