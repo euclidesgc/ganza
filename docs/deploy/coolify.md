@@ -18,7 +18,7 @@ Estado da infraestrutura do ganza no servidor compartilhado. O passo a passo de 
 
 ## Serviço `ganza-supabase` · `lqsjrqqs6r8rnggbvwpi4nuf`
 
-Sete contêineres, todos `healthy`, **~840 MB de RAM somados** — bem abaixo dos ~2,5 GB que a stack completa custaria.
+Oito contêineres, todos `healthy` — bem abaixo dos ~2,5 GB que a stack completa custaria. O `edge-functions` voltou na decisão **D10**, quando a lógica migrou do NestJS para ele.
 
 | Contêiner | Imagem | RAM |
 |---|---|---|
@@ -29,6 +29,7 @@ Sete contêineres, todos `healthy`, **~840 MB de RAM somados** — bem abaixo do
 | `supabase-storage` | `supabase/storage-api:v1.44.2` | ~131 MB |
 | `supabase-meta` | `supabase/postgres-meta:v0.95.2` | ~83 MB |
 | `supabase-studio` | `supabase/studio:2026.03.16` | ~173 MB |
+| `supabase-edge-functions` | `supabase/edge-runtime:v1.71.2` | ~60 MB |
 
 > ### O painel mostra "Degraded" — e isso é esperado
 >
@@ -44,7 +45,6 @@ O template oficial do Coolify sobe **15** serviços. Removidos, com o motivo:
 
 | Fora | Por quê |
 |---|---|
-| `edge-functions` | a lógica é NestJS — decisão D1 do roadmap |
 | `minio` + `minio-createbucket` | o storage passou a `STORAGE_BACKEND=file` num volume; o Garage S3 do servidor já existe se um dia precisar de S3 |
 | `imgproxy` | não há transformação de imagem no escopo (`ENABLE_IMAGE_TRANSFORMATION=false`) |
 | `supavisor` | pooler para um usuário é peso morto |
@@ -72,33 +72,25 @@ TLS por Let's Encrypt (`CN = supabase.ganza.bmjtech.duckdns.org`, emitido em 16/
 Geradas pelo Coolify e visíveis em `GET /api/v1/services/{uuid}/envs`. **Nunca no repositório:**
 
 - `SERVICE_SUPABASEANON_KEY` — a **anon key**, vai para o app Flutter.
-- `SERVICE_SUPABASESERVICE_KEY` — a **service_role**, existe **só no backend NestJS**. Se aparecer no app ou numa variável de build do front, é incidente.
+- `SERVICE_SUPABASESERVICE_KEY` — a **service_role**. Chega pronta ao runtime das functions; **nunca** ao app. Se aparecer no cliente ou numa variável de build do front, é incidente.
 - `SERVICE_PASSWORD_POSTGRES`, `SERVICE_PASSWORD_JWT`, `SERVICE_USER_ADMIN`/`SERVICE_PASSWORD_ADMIN` (login do Studio).
 
-## Aplicação `ganza-backend` · `attqmwjvikzhinf6pzj9yyqe`
+## Edge Functions
 
-| | |
-|---|---|
-| Repositório | `euclidesgc/ganza` via GitHub App `bmjtech` (`u124me46u673cte4392i1z0o`) |
-| Branch | `develop` — ver decisão D7 do roadmap |
-| Build | Dockerfile, base `/backend`, porta `3333` |
-| Domínio | `https://api.ganza.bmjtech.duckdns.org` — para **aplicações** a API aceita `domains`, ao contrário de serviços |
-| Healthcheck | `/health`, que consulta o banco de verdade. `health_check_port` **precisa** ser preenchido (3333) — sem ele a sonda usa a porta errada. |
+A lógica de servidor roda no `supabase-edge-functions`, dentro da própria stack (decisão **D10** do roadmap). Não há aplicação separada no Coolify.
 
-**Duas armadilhas do healthcheck, ambas custaram um deploy:**
+**Publicar** é `scripts/deploy-functions.sh`: no self-hosted não existe `supabase functions deploy` — o runtime serve o que estiver no volume, então o script sincroniza `supabase/functions/` para `/data/coolify/services/<uuid>/volumes/functions/` e reinicia o contêiner.
 
-1. A imagem `node:22-alpine` traz o `wget` do busybox e **não** traz `curl`. O comando que o Coolify monta tenta `curl` e cai no `wget` — funciona, mas o log fica cheio de `curl: not found`, que parece o erro e não é.
-2. A sonda usa **`localhost`**, que resolve primeiro para `::1`. Uma aplicação Node com `listen(port, '0.0.0.0')` só atende IPv4 e recusa a conexão — de pé, respondendo em `127.0.0.1`, e marcada `unhealthy`. **Não fixe o host no `listen`:** sem o segundo argumento o Node ouve em dual-stack.
-| **`watch_paths`** | **`backend/**`** |
+Detalhes que custaram tempo e ficam registrados:
 
-**Sobre o `watch_paths`:** sem ele o auto-deploy dispara a cada push na branch, e mexer no app Flutter rebuildaria o backend à toa. Num servidor de 2 vCPU compartilhado com driva e love-secret, isso não é detalhe. **Todo deployável novo nasce com `watch_paths` configurado.**
+- O servidor **não tem `rsync`**. O script usa `tar` sobre ssh — instalar dependência numa máquina compartilhada com outros dois projetos custa mais que a alternativa.
+- O diretório pertence ao `root`; o `ubuntu` tem **sudo sem senha**, e o script usa isso.
+- O script **apaga o destino antes de extrair** (o papel do `--delete`): função removida do repositório precisa sumir do servidor, senão um endpoint apagado continua de pé e ninguém nota.
+- O runtime já recebe `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_DB_URL` e `SUPABASE_JWT_SECRET` — não invente configuração para o que já existe.
 
-**Rede:** o serviço Supabase precisou de `connect_to_docker_network: true` para o backend alcançar `supabase-db-lqsjrqqs6r8rnggbvwpi4nuf:5432`. Sem isso cada stack fica na própria rede e o `DATABASE_URL` não resolve.
-
-> O backend conecta hoje como `postgres`. Assim que passar a escrever (Fase 1), deve ganhar um role próprio com permissão mínima — está no roadmap.
+Verificado: `GET /functions/v1/health` com `apikey` devolve `{"status":"ok","database":"reachable"}`; rota inexistente devolve 404.
 
 ## Ainda por fazer
 
 - **SMTP** para os e-mails de autenticação — `SMTP_HOST`/`SMTP_USER`/`SMTP_PASS` estão vazios. Sem isso, confirmação de e-mail e recuperação de senha não saem.
-- Backend NestJS em `api.ganza.bmjtech.duckdns.org` (F0.8).
 - Front web em `ganza.bmjtech.duckdns.org` (Fase 8).
