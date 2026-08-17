@@ -1,0 +1,57 @@
+Resolving dependencies...
+Downloading packages...
+  _fe_analyzer_shared 91.0.0 (105.0.0 available)
+  analyzer 8.4.1 (14.1.0 available)
+  app_links 7.0.0 (7.2.1 available)
+  app_links_platform_interface 2.0.2 (2.0.4 available)
+< characters 1.4.0 (was 1.4.1) (1.4.1 available)
+  get_it 8.3.0 (9.2.1 available)
+  go_router 16.3.0 (17.5.0 available)
++ js 0.7.2
+< matcher 0.12.17 (was 0.12.19) (0.12.20 available)
+< material_color_utilities 0.11.1 (was 0.13.0) (0.13.1 available)
+< meta 1.17.0 (was 1.18.0) (1.19.0 available)
+  package_config 2.2.0 (3.0.0 available)
+  shared_preferences_android 2.4.23 (2.4.27 available)
+< test 1.26.3 (was 1.31.0) (1.31.2 available)
+< test_api 0.7.7 (was 0.7.11) (0.7.13 available)
+< test_core 0.6.12 (was 0.6.17) (0.6.19 available)
+  url_launcher_android 6.3.30 (6.3.32 available)
+  vector_math 2.2.0 (2.4.2 available)
+  zard 0.0.26 (1.4.0 available)
+Changed 8 dependencies!
+18 packages have newer versions incompatible with dependency constraints.
+Try `flutter pub outdated` for more information.
+Running Gradle task 'assembleProdDebug'...                        156,8s
+✓ Built build/app/outputs/flutter-apk/app-prod-debug.apk
+Installing build/app/outputs/flutter-apk/app-prod-debug.apk...         4,4s
+I/com.ganza.ganza( 3466): Compiler allocated 5174KB to compile void android.view.ViewRootImpl.performTraversals()
+I/Choreographer( 3466): Skipped 247 frames!  The application may be doing too much work on its main thread.
+I/com.ganza.ganza( 3466): Compiler allocated 5417KB to compile void android.view.ViewRootImpl.performTraversals()
+VMServiceFlutterDriver: Connecting to Flutter application at http://127.0.0.1:37409/18jH265yXWo=/
+VMServiceFlutterDriver: Isolate found with number: 7449748316136327
+I/com.ganza.ganza( 3466): Background concurrent mark compact GC freed 1994KB AllocSpace bytes, 3(60KB) LOS objects, 49% free, 2595KB/5191KB, paused 224us,13.046ms total 66.369ms
+VMServiceFlutterDriver: Isolate 7449748316136327 is runnable.
+VMServiceFlutterDriver: Isolate is paused at start.
+VMServiceFlutterDriver: Attempting to resume isolate
+I/flutter ( 3466): 00:00 +0: cena erro
+VMServiceFlutterDriver: Connected to Flutter application.
+I/Choreographer( 3466): Skipped 52 frames!  The application may be doing too much work on its main thread.
+I/flutter ( 3466): supabase.supabase_flutter: INFO: ***** Supabase init completed ***** 
+I/Choreographer( 3466): Skipped 93 frames!  The application may be doing too much work on its main thread.
+I/HWUI    ( 3466): Davey! duration=2220ms; Flags=1, FrameTimelineVsyncId=14930, IntendedVsync=302657105811, Vsync=304207105749, InputEventId=0, HandleInputStart=304226152202, AnimationStart=304226156392, PerformTraversalsStart=304226158446, DrawStart=304231462526, FrameDeadline=302673772477, FrameInterval=304222838822, FrameStartTime=16666666, SyncQueued=304233435073, SyncStart=304234214772, IssueDrawCommandsStart=304235863348, SwapBuffers=304277184514, FrameCompleted=304878802648, DequeueBufferDuration=6913117, QueueBufferDuration=6467475, GpuCompleted=304871615748, SwapBuffersCompleted=304878802648, DisplayPresentTime=135321540401793, CommandSubmissionCompleted=304277184514, 
+VMServiceFlutterDriver: request_data message is taking a long time to complete...
+W/WindowOnBackDispatcher( 3466): OnBackInvokedCallback is not enabled for the application.
+W/WindowOnBackDispatcher( 3466): Set 'android:enableOnBackInvokedCallback="true"' in the application manifest.
+D/EGL_emulation( 3466): app_time_stats: avg=2076.81ms min=416.51ms max=4113.30ms count=3
+D/EGL_emulation( 3466): app_time_stats: avg=191.74ms min=50.11ms max=271.28ms count=6
+D/EGL_emulation( 3466): app_time_stats: avg=279.58ms min=267.39ms max=291.74ms count=4
+D/EGL_emulation( 3466): app_time_stats: avg=294.29ms min=199.76ms max=377.19ms count=4
+D/EGL_emulation( 3466): app_time_stats: avg=301.24ms min=262.74ms max=369.90ms count=4
+D/EGL_emulation( 3466): app_time_stats: avg=286.42ms min=266.06ms max=333.25ms count=4
+D/EGL_emulation( 3466): app_time_stats: avg=352.61ms min=272.19ms max=487.81ms count=3
+I/flutter ( 3466): 00:15 +1: (tearDownAll)
+I/flutter ( 3466): 00:16 +2: All tests passed!
+D/EGL_emulation( 3466): app_time_stats: avg=4546.51ms min=371.21ms max=12234.39ms count=3
+print salvo: /home/euclidesgc/development/ganza/docs/01-cadastro-manual/evidencias/rodada_01/01_erro_de_leitura.png (52642 bytes)
+All tests passed.

@@ -4,6 +4,7 @@ import 'dart:developer';
 import 'package:bloc/bloc.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'app.dart';
@@ -17,6 +18,10 @@ Future<void> bootstrap(AppConfig config) async {
   await runZonedGuarded(
     () async {
       WidgetsFlutterBinding.ensureInitialized();
+
+      // Sem isso, `DateFormat('EEEE', 'pt_BR')` lança em runtime — os dados
+      // de locale do `intl` são carregados sob demanda, não embutidos.
+      await initializeDateFormatting('pt_BR');
 
       FlutterError.onError = (detalhes) {
         log(

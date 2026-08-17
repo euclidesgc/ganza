@@ -1,5 +1,10 @@
 plugins {
     id("com.android.application")
+    // Faltava no módulo `:app`, embora o `settings.gradle.kts` já declarasse a
+    // versão com `apply false` e a linha 63 usasse o `kotlin { }` que só este
+    // plugin registra. Sem ele, `android.builtInKotlin=false` deixa a extensão
+    // sem dono e o Gradle aborta na configuração — nenhum build Android saía.
+    id("org.jetbrains.kotlin.android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }

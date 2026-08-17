@@ -1,0 +1,24 @@
+// Init script TEMPORÁRIO do E2E do ganza (T3.8/T4.7).
+//
+// O plugin `integration_test` do SDK do Flutter arrasta
+// `androidx.test.espresso:espresso-core:3.2.0`, e esse AAR compartilha o
+// namespace `androidx.test.espresso` com `espresso-idling-resource:3.2.0`.
+// O AGP 9 transformou namespace duplicado em ERRO de merge de manifesto, e o
+// build morre em `processDevDebugMainManifest`. A 3.6.1 já tem namespaces
+// distintos.
+//
+// Fica FORA do build do repositório de propósito: em produção o app não
+// depende de espresso, e um `force` no `build.gradle.kts` seria cruft
+// permanente para resolver um problema que só existe durante o E2E.
+//
+// Instalado e removido por `e2e_shots.sh` em ~/.gradle/init.d/ganza-e2e.gradle
+// — `e2e_shots.sh down` apaga.
+
+allprojects {
+    configurations.all {
+        resolutionStrategy {
+            force 'androidx.test.espresso:espresso-core:3.6.1'
+            force 'androidx.test.espresso:espresso-idling-resource:3.6.1'
+        }
+    }
+}

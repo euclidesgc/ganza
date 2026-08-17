@@ -1,0 +1,20 @@
+[
+    {
+        "description": "Venda de s\u00e1bado \u00e0 noite",
+        "amount": 123456789,
+        "direction": "in",
+        "occurred_at": "2026-08-16T01:30:00+00:00"
+    },
+    {
+        "description": "Caf\u00e9",
+        "amount": 700,
+        "direction": "out",
+        "occurred_at": "2026-08-14T12:00:00+00:00"
+    },
+    {
+        "description": "Almo\u00e7o",
+        "amount": 4500,
+        "direction": "out",
+        "occurred_at": "2026-08-14T11:00:00+00:00"
+    }
+]

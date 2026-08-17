@@ -1,0 +1,26 @@
+[
+    {
+        "id": "dabfcd3c-9eb7-4556-9cca-b7a317cc660c",
+        "description": "Reforma da cozinha",
+        "amount": 123456789,
+        "direction": "out",
+        "occurred_at": "2026-08-15T15:00:00+00:00",
+        "source": "manual"
+    },
+    {
+        "id": "f44e0432-7a34-4899-a531-a0d505b34748",
+        "description": "Caf\u00e9",
+        "amount": 700,
+        "direction": "out",
+        "occurred_at": "2026-08-15T12:00:00+00:00",
+        "source": "manual"
+    },
+    {
+        "id": "dd43738a-ef05-46a3-b1bf-8e35bb86a60d",
+        "description": "Almo\u00e7o",
+        "amount": 4500,
+        "direction": "out",
+        "occurred_at": "2026-08-14T15:00:00+00:00",
+        "source": "manual"
+    }
+]

@@ -1,0 +1,74 @@
+import 'package:fpdart/fpdart.dart';
+import 'package:zard/zard.dart';
+
+import '../../../../core/error/failure.dart';
+import '../../domain/entities/transaction.dart';
+import '../../domain/entities/transaction_direction.dart';
+
+/// A resposta do PostgREST muda quando a migration muda. Validar aqui é o
+/// que impede uma coluna renomeada, um `amount` que chegasse como texto ou
+/// um `direction` fora do enum fechado de virar erro em runtime três telas
+/// adiante.
+abstract final class TransactionModel {
+  static final _schema = z.map({
+    'id': z.string(),
+    'area_id': z.string().optional(),
+    'direction': z.string(),
+    'amount': z.int(),
+    'description': z.string(),
+    'occurred_at': z.string(),
+    'source': z.string(),
+    'reconciliation_status': z.string(),
+    'created_at': z.string(),
+    'updated_at': z.string(),
+  });
+
+  static Either<Failure, Transaction> fromMap(Map<String, dynamic> map) {
+    final result = _schema.safeParse(_withoutNulls(map));
+    if (!result.success || result.data == null) {
+      return const Left(ValidationFailure('Transação em formato inesperado.'));
+    }
+
+    final data = result.data!;
+
+    final direction = _directionFromWire(data['direction'] as String);
+    final occurredAt = DateTime.tryParse(data['occurred_at'] as String);
+    final createdAt = DateTime.tryParse(data['created_at'] as String);
+    final updatedAt = DateTime.tryParse(data['updated_at'] as String);
+    if (direction == null ||
+        occurredAt == null ||
+        createdAt == null ||
+        updatedAt == null) {
+      return const Left(ValidationFailure('Transação em formato inesperado.'));
+    }
+
+    return Right(
+      Transaction(
+        id: data['id'] as String,
+        areaId: data['area_id'] as String?,
+        direction: direction,
+        amount: data['amount'] as int,
+        description: data['description'] as String,
+        occurredAt: occurredAt.toUtc(),
+        source: data['source'] as String,
+        reconciliationStatus: data['reconciliation_status'] as String,
+        createdAt: createdAt.toUtc(),
+        updatedAt: updatedAt.toUtc(),
+      ),
+    );
+  }
+
+  static TransactionDirection? _directionFromWire(String wireValue) {
+    for (final direction in TransactionDirection.values) {
+      if (direction.wireValue == wireValue) return direction;
+    }
+    return null;
+  }
+
+  /// O `.nullable()` do zard 0.0.26 não aceita `null` de fato — só `.optional()`
+  /// (chave ausente) passa. E o PostgREST manda `area_id` nulo explicitamente.
+  static Map<String, dynamic> _withoutNulls(Map<String, dynamic> map) => {
+    for (final entry in map.entries)
+      if (entry.value != null) entry.key: entry.value,
+  };
+}

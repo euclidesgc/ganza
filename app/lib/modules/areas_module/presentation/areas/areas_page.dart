@@ -6,6 +6,7 @@ import '../../../../injection.dart';
 import 'areas_cubit.dart';
 import 'widgets/areas_body.dart';
 import 'widgets/sign_out_button.dart';
+import 'widgets/transactions_button.dart';
 
 class AreasPage extends StatelessWidget {
   const AreasPage({super.key});
@@ -21,7 +22,7 @@ class AreasPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Ganzá'),
-        actions: const [SignOutButton()],
+        actions: const [TransactionsButton(), SignOutButton()],
       ),
       body: const SafeArea(child: AreasBody()),
     );
