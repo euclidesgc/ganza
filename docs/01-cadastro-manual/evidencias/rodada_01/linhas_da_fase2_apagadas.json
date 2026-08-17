@@ -1,0 +1,31 @@
+{
+  "nota": "As três linhas que a Fase 2 plantou na conta do dono e que esta rodada apagou (DELETE /rest/v1/transactions?id=eq.<id>, uma a uma, com o JWT do dono) para poder provar o estado vazio. Registradas aqui à parte porque o 'estado_inicial.json' desta pasta é o snapshot da ÚLTIMA execução do e2e_shots.sh, e a essa altura as linhas da Fase 2 já não existiam. Se alguém quiser o banco no estado anterior à rodada, recrie estas três pela Edge Function.",
+  "apagadas_em": "2026-08-17",
+  "user_id": "a90fd596-4d6c-47c2-8721-fe4ed0d917db",
+  "linhas": [
+    {
+      "id": "691ae8bd-0858-4ae7-8b4d-3533903ecd08",
+      "description": "Café (E2E fase 2 — no domínio)",
+      "amount": 750,
+      "direction": "out",
+      "occurred_at": "2026-08-17T02:34:54.924202+00:00",
+      "source": "manual"
+    },
+    {
+      "id": "770b8946-0f85-4586-bb80-66a7c8000d35",
+      "description": "Almoço (E2E fase 2)",
+      "amount": 4500,
+      "direction": "out",
+      "occurred_at": "2026-08-16T02:18:08+00:00",
+      "source": "manual"
+    },
+    {
+      "id": "303790bd-527f-46a4-bde7-540b0f02d86e",
+      "description": "Almoço (E2E fase 2 - user_id alheio)",
+      "amount": 4500,
+      "direction": "out",
+      "occurred_at": "2026-08-16T02:18:08+00:00",
+      "source": "manual"
+    }
+  ]
+}

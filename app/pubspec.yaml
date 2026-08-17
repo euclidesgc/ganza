@@ -28,6 +28,14 @@ dev_dependencies:
     sdk: flutter
   mocktail: ^1.0.4
 
+  # Instrumentação do E2E (T3.8/T4.7) — driver dos prints em emulador Android.
+  # Não vai para o binário: dev_dependency de `integration_test/` e
+  # `test_driver/`, ambos fora de `lib/`. Sai no wrap do E2E.
+  flutter_driver:
+    sdk: flutter
+  integration_test:
+    sdk: flutter
+
 flutter:
   uses-material-design: true
 
