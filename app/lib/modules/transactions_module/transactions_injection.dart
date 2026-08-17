@@ -3,7 +3,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'data/repositories/transactions_repository_impl.dart';
 import 'domain/repositories/transactions_repository.dart';
+import 'domain/usecases/create_transaction.dart';
 import 'domain/usecases/list_transactions.dart';
+import 'presentation/new_transaction/new_transaction_cubit.dart';
 import 'presentation/transactions_list/transactions_list_cubit.dart';
 
 void registerTransactionsModule(GetIt getIt) {
@@ -12,5 +14,7 @@ void registerTransactionsModule(GetIt getIt) {
       () => TransactionsRepositoryImpl(getIt<SupabaseClient>()),
     )
     ..registerFactory(() => ListTransactions(getIt<TransactionsRepository>()))
-    ..registerFactory(() => TransactionsListCubit(getIt<ListTransactions>()));
+    ..registerFactory(() => CreateTransaction(getIt<TransactionsRepository>()))
+    ..registerFactory(() => TransactionsListCubit(getIt<ListTransactions>()))
+    ..registerFactory(() => NewTransactionCubit(getIt<CreateTransaction>()));
 }
