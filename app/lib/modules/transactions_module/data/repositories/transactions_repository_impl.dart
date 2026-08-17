@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../core/error/failure.dart';
 import '../../../../core/network/failure_from_exception.dart';
+import '../../domain/entities/new_transaction.dart';
 import '../../domain/entities/transaction.dart';
 import '../../domain/repositories/transactions_repository.dart';
 import '../models/transaction_model.dart';
@@ -38,6 +39,25 @@ class TransactionsRepositoryImpl implements TransactionsRepository {
         );
       }
       return Right(transactions);
+    } catch (error) {
+      return Left(failureFromException(error));
+    }
+  }
+
+  /// A Edge Function decide direção, valor e conciliação; o `Dio` de
+  /// `core/network` aponta para outro deployável e não serve aqui. O
+  /// `FunctionsClient` injeta `apikey` e `Authorization` com a mesma sessão
+  /// usada em `list`.
+  @override
+  Future<Either<Failure, Transaction>> create(
+    NewTransaction transaction,
+  ) async {
+    try {
+      final response = await _client.functions.invoke(
+        'transactions',
+        body: TransactionModel.toPayload(transaction),
+      );
+      return TransactionModel.fromMap(response.data as Map<String, dynamic>);
     } catch (error) {
       return Left(failureFromException(error));
     }
