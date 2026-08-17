@@ -2,6 +2,7 @@ import 'package:fpdart/fpdart.dart';
 import 'package:zard/zard.dart';
 
 import '../../../../core/error/failure.dart';
+import '../../domain/entities/new_transaction.dart';
 import '../../domain/entities/transaction.dart';
 import '../../domain/entities/transaction_direction.dart';
 
@@ -56,6 +57,18 @@ abstract final class TransactionModel {
         updatedAt: updatedAt.toUtc(),
       ),
     );
+  }
+
+  /// `user_id` fica de fora porque quem decide o dono é o `auth.uid()` no
+  /// banco; `area_id` fica de fora pela decisão D13. Mandá-los seria
+  /// inofensivo hoje, mas o contrato do app não deve sugerir que eles existem.
+  static Map<String, dynamic> toPayload(NewTransaction transaction) {
+    return {
+      'direction': transaction.direction.wireValue,
+      'amount': transaction.amount,
+      'description': transaction.description,
+      'occurred_at': transaction.occurredAt.toUtc().toIso8601String(),
+    };
   }
 
   static TransactionDirection? _directionFromWire(String wireValue) {
