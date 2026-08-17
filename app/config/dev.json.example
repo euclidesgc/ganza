@@ -1,6 +1,5 @@
 {
   "FLAVOR": "dev",
   "SUPABASE_URL": "https://supabase.ganza.bmjtech.duckdns.org",
-  "SUPABASE_ANON_KEY": "cole-aqui-a-anon-key-do-painel-do-coolify",
-  "API_BASE_URL": "http://localhost:3333"
+  "SUPABASE_ANON_KEY": "cole-aqui-a-anon-key-do-painel-do-coolify"
 }

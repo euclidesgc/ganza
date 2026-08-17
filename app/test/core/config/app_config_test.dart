@@ -3,12 +3,11 @@ import 'package:ganza/core/config/app_config.dart';
 
 void main() {
   group('AppConfig', () {
-    test('isComplete só quando as três informações estão presentes', () {
+    test('isComplete só quando as duas informações estão presentes', () {
       const completo = AppConfig(
         flavor: Flavor.dev,
         supabaseUrl: 'http://exemplo',
         supabaseAnonKey: 'chave',
-        apiBaseUrl: 'http://api',
       );
       expect(completo.isComplete, isTrue);
 
@@ -17,7 +16,6 @@ void main() {
           flavor: Flavor.dev,
           supabaseUrl: '',
           supabaseAnonKey: 'chave',
-          apiBaseUrl: 'http://api',
         ).isComplete,
         isFalse,
       );
@@ -27,7 +25,6 @@ void main() {
           flavor: Flavor.dev,
           supabaseUrl: 'http://exemplo',
           supabaseAnonKey: '',
-          apiBaseUrl: 'http://api',
         ).isComplete,
         isFalse,
       );

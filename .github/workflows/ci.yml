@@ -237,3 +237,31 @@ jobs:
             exit 1
           fi
           echo "✓ todas as tabelas de public têm política"
+
+      # `using`/`with check` que chamam auth.<função>() ou current_setting()
+      # fora de um `select` fazem o Postgres reavaliar a chamada linha a linha
+      # em vez de uma vez por consulta — o lint "Auth RLS Initialization Plan"
+      # do Security Advisor. A lista de funções vem de pg_proc (schema `auth`)
+      # em vez de hardcoded, para cobrir qualquer helper que passe a existir
+      # ali sem precisar editar este gate.
+      - name: Toda política chama auth.<função>()/current_setting() dentro de um select
+        run: |
+          auth_fns=$(docker exec pg psql -U supabase_admin -d postgres -tAc "
+            select coalesce(string_agg(distinct p.proname, '|'), '')
+            from pg_proc p
+            join pg_namespace n on n.oid = p.pronamespace
+            where n.nspname = 'auth'")
+          padrao="${auth_fns:+$auth_fns|}current_setting"
+          sem_initplan=$(docker exec pg psql -U supabase_admin -d postgres -tAc "
+            select coalesce(string_agg(distinct t.tablename || '.' || t.policyname, ', '), '')
+            from pg_policies t
+            where t.schemaname = 'public'
+              and (
+                (t.qual is not null and t.qual ~ '(?<!SELECT )\y(${padrao})\(')
+                or (t.with_check is not null and t.with_check ~ '(?<!SELECT )\y(${padrao})\(')
+              )")
+          if [ -n "$sem_initplan" ]; then
+            echo "✗ políticas reavaliam auth.<função>()/current_setting() por linha, envolva em (select ...): $sem_initplan"
+            exit 1
+          fi
+          echo "✓ toda política chama auth.<função>()/current_setting() dentro de um select"

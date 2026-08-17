@@ -7,32 +7,30 @@ class AppConfig extends Equatable {
     required this.flavor,
     required this.supabaseUrl,
     required this.supabaseAnonKey,
-    required this.apiBaseUrl,
   });
 
   /// Lido de `--dart-define-from-file`. Nada aqui é segredo: a anon key é
-  /// pública por desenho (quem protege é a RLS) e as URLs são endereços.
+  /// pública por desenho (quem protege é a RLS) e a URL é um endereço.
   /// Chave de terceiro nunca entra — o binário se descompila.
+  ///
+  /// Não existe `API_BASE_URL`: a D10 revogou o backend NestJS separado — a
+  /// lógica de servidor são Edge Functions no próprio Supabase, alcançadas em
+  /// `$SUPABASE_URL/functions/v1` (ver [dio_factory.dart]).
   factory AppConfig.fromEnvironment() {
     const flavor = String.fromEnvironment('FLAVOR', defaultValue: 'dev');
     return AppConfig(
       flavor: flavor == 'prod' ? Flavor.prod : Flavor.dev,
       supabaseUrl: const String.fromEnvironment('SUPABASE_URL'),
       supabaseAnonKey: const String.fromEnvironment('SUPABASE_ANON_KEY'),
-      apiBaseUrl: const String.fromEnvironment('API_BASE_URL'),
     );
   }
 
   final Flavor flavor;
   final String supabaseUrl;
   final String supabaseAnonKey;
-  final String apiBaseUrl;
 
-  bool get isComplete =>
-      supabaseUrl.isNotEmpty &&
-      supabaseAnonKey.isNotEmpty &&
-      apiBaseUrl.isNotEmpty;
+  bool get isComplete => supabaseUrl.isNotEmpty && supabaseAnonKey.isNotEmpty;
 
   @override
-  List<Object?> get props => [flavor, supabaseUrl, supabaseAnonKey, apiBaseUrl];
+  List<Object?> get props => [flavor, supabaseUrl, supabaseAnonKey];
 }

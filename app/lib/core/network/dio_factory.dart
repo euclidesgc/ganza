@@ -2,12 +2,13 @@ import 'package:dio/dio.dart';
 
 import '../config/app_config.dart';
 
-/// O Dio fala apenas com o nosso backend. Chamada a API de terceiro
-/// (Gemini, Pluggy, Google) não sai do app — sai do servidor.
+/// O Dio fala apenas com as Edge Functions do nosso Supabase (D10 — não há
+/// backend separado). Chamada a API de terceiro (Gemini, Pluggy, Google)
+/// não sai do app — sai do servidor.
 Dio createDio(AppConfig config, {String Function()? accessToken}) {
   final dio = Dio(
     BaseOptions(
-      baseUrl: config.apiBaseUrl,
+      baseUrl: '${config.supabaseUrl}/functions/v1',
       connectTimeout: const Duration(seconds: 15),
       receiveTimeout: const Duration(seconds: 30),
       headers: {'Content-Type': 'application/json'},

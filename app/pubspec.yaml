@@ -30,3 +30,19 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+
+  # Licenças OFL das fontes abaixo — acompanham o app na distribuição
+  # (exigência da SIL Open Font License).
+  assets:
+    - assets/fonts/licenses/
+
+  # Fraunces e IBM Plex Sans são variable fonts: um único arquivo cobre toda
+  # a faixa de peso. Um asset por família — nada de repetir `weight:` para
+  # cada peso, quem varia o traço é `FontVariation` em core/theme.
+  fonts:
+    - family: Fraunces
+      fonts:
+        - asset: assets/fonts/Fraunces.ttf
+    - family: IBMPlexSans
+      fonts:
+        - asset: assets/fonts/IBMPlexSans.ttf
