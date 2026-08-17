@@ -11,9 +11,9 @@ const VERIFY_JWT = Deno.env.get('VERIFY_JWT') === 'true';
 // endpoint aceitar chamada anônima antes mesmo de chegar no banco.
 const PUBLICAS = new Set(['health']);
 
-function semAutorizacao(mensagem: string): Response {
-  return new Response(JSON.stringify({ error: mensagem }), {
-    status: STATUS_CODE.Unauthorized,
+function erro(code: string, message: string, status: number): Response {
+  return new Response(JSON.stringify({ error: { code, message } }), {
+    status,
     headers: { 'Content-Type': 'application/json' },
   });
 }
@@ -23,14 +23,11 @@ Deno.serve(async (req: Request) => {
   const nome = url.pathname.replace(/^\/+/, '').split('/')[0];
 
   if (!nome) {
-    return new Response(JSON.stringify({ error: 'função não informada' }), {
-      status: STATUS_CODE.BadRequest,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return erro('missing_function', 'função não informada', STATUS_CODE.BadRequest);
   }
 
   if (VERIFY_JWT && !PUBLICAS.has(nome) && !req.headers.get('Authorization')) {
-    return semAutorizacao('sessão ausente');
+    return erro('unauthorized', 'sessão ausente', STATUS_CODE.Unauthorized);
   }
 
   const caminho = `/home/deno/functions/${nome}`;
@@ -53,9 +50,6 @@ Deno.serve(async (req: Request) => {
 
     return await worker.fetch(req);
   } catch {
-    return new Response(JSON.stringify({ error: `função "${nome}" não encontrada` }), {
-      status: STATUS_CODE.NotFound,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return erro('function_not_found', `função "${nome}" não encontrada`, STATUS_CODE.NotFound);
   }
 });
