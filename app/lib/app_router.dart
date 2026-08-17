@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'injection.dart';
 import 'modules/areas_module/areas_module.dart';
 import 'modules/auth_module/auth_module.dart';
+import 'modules/transactions_module/transactions_module.dart';
 
 /// Sem `extra:` em nenhuma rota — ele some no refresh do navegador, e o
 /// mesmo `lib/` serve Android e Web.
@@ -23,7 +24,7 @@ GoRouter createRouter() {
       if (signedIn && goingToLogin) return AreasRoutes.path;
       return null;
     },
-    routes: [AreasRoutes.route, AuthRoutes.route],
+    routes: [AreasRoutes.route, AuthRoutes.route, TransactionsRoutes.route],
   );
 }
 
