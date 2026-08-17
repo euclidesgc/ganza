@@ -38,6 +38,7 @@ SERIAL="${SERIAL:-emulator-5554}"
 PACOTE="br.com.ganza.ganza"
 INIT_GRADLE="$HOME/.gradle/init.d/ganza-e2e.gradle"
 LOGS="$DESTINO/logs"
+FUSO="${FUSO:-America/Sao_Paulo}"
 
 export PATH="$PATH:${ANDROID_HOME:-$HOME/Android/Sdk}/platform-tools:${ANDROID_HOME:-$HOME/Android/Sdk}/emulator"
 
@@ -89,7 +90,11 @@ api() { # <método> <caminho> [corpo]
 # ───────────────────────────────────────────────────────────── emulador ──
 etapa 'emulador'
 if ! adb devices | grep -q "${SERIAL}[[:space:]]*device"; then
+  # `-timezone` no boot: a lista renderiza a data no fuso do aparelho, e a
+  # prova do fix de fuso (linha guardada em 01:30Z de 16/08, vivida às 22:30
+  # de 15/08) só existe se o emulador estiver em America/Sao_Paulo.
   nohup emulator -avd "$AVD" -no-window -no-audio -no-boot-anim \
+    -timezone "$FUSO" \
     -gpu swiftshader_indirect -no-snapshot > "$LOGS/emulador.log" 2>&1 &
   adb wait-for-device
 fi
@@ -103,6 +108,25 @@ done
 
 adb -s "$SERIAL" shell svc wifi enable >/dev/null 2>&1
 adb -s "$SERIAL" shell svc data enable >/dev/null 2>&1
+
+# ─────────────────────────────────────────────────────── fuso do emulador ──
+# Não é detalhe de ambiente: é o que a cena 3 prova. Se o aparelho estivesse
+# em UTC, a linha de 01:30Z sairia como "16/08, domingo" e o print estaria
+# mentindo sobre a correção. Aborta se não conseguir fixar o fuso.
+etapa 'fuso do emulador'
+fuso_atual() { adb -s "$SERIAL" shell getprop persist.sys.timezone | tr -d '\r'; }
+if [ "$(fuso_atual)" != "$FUSO" ]; then
+  adb -s "$SERIAL" root >/dev/null 2>&1
+  adb -s "$SERIAL" wait-for-device
+  adb -s "$SERIAL" shell setprop persist.sys.timezone "$FUSO" >/dev/null 2>&1
+  sleep 2
+fi
+if [ "$(fuso_atual)" = "$FUSO" ]; then
+  ok "emulador em $FUSO ($(adb -s "$SERIAL" shell date | tr -d '\r'))"
+else
+  nok "fuso do emulador é '$(fuso_atual)', esperava $FUSO — a prova de fuso não valeria"
+  exit 1
+fi
 
 install -D -m 644 "$RAIZ/docs/01-cadastro-manual/e2e_gradle_init.gradle" "$INIT_GRADLE"
 ok 'init.d do Gradle instalado (força espresso 3.6.1 — ver e2e_gradle_init.gradle)'
@@ -191,36 +215,57 @@ cena vazio 02_estado_vazio
 # Recriadas pela Edge Function real (o caminho de escrita do produto), nunca
 # por SQL: o que a Fase 4 vai exercitar pelo formulário é este mesmo endpoint.
 etapa 'cena 3 · lista carregada (linhas recriadas pela Edge Function)'
-criar() { # <descrição> <centavos> <occurred_at>
+criar() { # <direção in|out> <descrição> <centavos> <occurred_at>
   local resposta codigo corpo
   resposta="$(curl -sS -X POST "$SUPABASE_URL/functions/v1/transactions" \
     -H "apikey: $ANON_KEY" -H "Authorization: Bearer $JWT_DONO" \
     -H 'Content-Type: application/json' \
-    -d "{\"direction\":\"out\",\"amount\":$2,\"description\":\"$1\",\"occurred_at\":\"$3\"}" \
+    -d "{\"direction\":\"$1\",\"amount\":$3,\"description\":\"$2\",\"occurred_at\":\"$4\"}" \
     -w '\n%{http_code}')"
   codigo="$(printf '%s' "$resposta" | tail -1)"
   corpo="$(printf '%s' "$resposta" | sed '$d')"
   if [ "$codigo" = '201' ] && printf '%s' "$corpo" | python3 -c "
 import json,sys
 l = json.load(sys.stdin)
-assert isinstance(l['amount'], int) and l['amount'] == $2, l['amount']
+assert isinstance(l['amount'], int) and l['amount'] == $3, l['amount']
+assert l['direction'] == '$1', l['direction']
 assert l['source'] == 'manual', l['source']
 assert l['reconciliation_status'] == 'pending', l['reconciliation_status']
 assert l['user_id'] == '$USER_ID', l['user_id']
 "; then
-    ok "Edge Function criou '$1' com amount=$2 inteiro, source=manual"
+    ok "Edge Function criou '$2' com direction=$1, amount=$3 inteiro, source=manual"
   else
-    nok "POST de '$1' devolveu $codigo: $corpo"
+    nok "POST de '$2' devolveu $codigo: $corpo"
   fi
 }
-# A ordem de criação define o empate de occurred_at (order by created_at desc):
-# o valor grande fica logo acima do curto, que é onde a coluna dançaria.
-criar 'Café'               700       '2026-08-15T09:00:00-03:00'
-criar 'Reforma da cozinha' 123456789 '2026-08-15T12:00:00-03:00'
-criar 'Almoço'             4500      '2026-08-14T12:00:00-03:00'
+# O seed é desenhado para que UMA lista prove as três coisas de uma vez:
+#
+#  • fuso  — 'Venda de sábado à noite' é guardada em 2026-08-16T01:30Z, que em
+#            America/Sao_Paulo é 22:30 do dia 15. Tem de sair '15/08, sábado';
+#            com o bug de formatar em UTC sairia '16/08, domingo'. É a única
+#            linha de 15/08 na lista, para não haver dúvida de qual é a prova.
+#  • sinal — ela é `in`: prefixo '+' e cor de entrada, ao lado das saídas.
+#  • coluna — o maior valor (+R$ 1.234.567,89) fica LOGO ACIMA do menor
+#            (−R$ 7,00), com sinais opostos: é onde a coluna dançaria se a
+#            fonte não tivesse algarismos tabulares, e onde '+' e '−' revelam
+#            se ocupam a mesma largura.
+#
+# Ordem da lista = occurred_at desc; as três datas são distintas o bastante
+# para o empate por created_at não entrar em jogo.
+criar in  'Venda de sábado à noite' 123456789 '2026-08-16T01:30:00+00:00'
+criar out 'Café'                    700       '2026-08-14T09:00:00-03:00'
+criar out 'Almoço'                  4500      '2026-08-14T08:00:00-03:00'
 
 total="$(api GET '/rest/v1/transactions?select=id' | sed '$d' | python3 -c 'import json,sys; print(len(json.load(sys.stdin)))')"
 [ "$total" = '3' ] && ok 'três linhas na conta' || nok "esperava 3 linhas, achei $total"
+
+# O que o banco guardou, ao lado do que a tela mostra: é assim que o dev
+# humano confere o fuso sem abrir o Postgres — 2026-08-16T01:30:00+00:00 no
+# JSON, '15/08, sábado' no print.
+api GET '/rest/v1/transactions?select=description,amount,direction,occurred_at&order=occurred_at.desc' \
+  | sed '$d' | python3 -m json.tool > "$DESTINO/linhas_semeadas.json"
+ok "linhas semeadas salvas em $(basename "$DESTINO")/linhas_semeadas.json"
+
 cena lista 03_lista_carregada
 
 # ───────────────────────────────────── recorte dos algarismos tabulares ──
@@ -258,9 +303,14 @@ cat > "$DESTINO/README.md" <<README
 # Rodada $RODADA — E2E da listagem de transações (Fase 3 · T3.8)
 
 Gerado por \`docs/01-cadastro-manual/e2e_shots.sh\` em $(date '+%d/%m/%Y %H:%M')
-— emulador \`$AVD\` (Android API $(adb -s "$SERIAL" shell getprop ro.build.version.sdk 2>/dev/null | tr -d '\r')),
-build \`--flavor prod\` contra o Supabase de produção. Nenhum print foi tirado
-à mão: o app é dirigido por \`integration_test\` e a captura sai do driver.
+— emulador \`$AVD\` (Android API $(adb -s "$SERIAL" shell getprop ro.build.version.sdk 2>/dev/null | tr -d '\r'),
+fuso \`$(fuso_atual)\`), build \`--flavor prod\` contra o Supabase de produção.
+Nenhum print foi tirado à mão: o app é dirigido por \`integration_test\` e a
+captura sai do driver.
+
+O fuso do aparelho é parte da prova, não do ambiente: a lista formata a data
+no fuso de quem lê. O script fixa \`$FUSO\` no boot e **aborta** se não
+conseguir — um print tirado num emulador em UTC não provaria o fuso.
 
 **O atestado é do dev humano.** O QA gerou; quem confere as imagens é você.
 
@@ -271,26 +321,26 @@ build \`--flavor prod\` contra o Supabase de produção. Nenhum print foi tirado
 | \`01_erro_de_leitura.png\` | Com a rede do emulador derrubada (\`svc wifi/data disable\`), a lista mostra ícone de erro, mensagem e o botão **Tentar de novo**. O teste também afirma que o texto do estado vazio **não** aparece aqui. |
 | \`02_estado_vazio.png\` | Conta sem nenhuma transação (todas apagadas por id, ver \`estado_inicial.json\`): **"Nenhuma transação registrada."**, sem ilustração e sem entusiasmo. O teste afirma que **"Tentar de novo" não aparece**. |
 | \`01\` + \`02\` juntos | Falha e vazio são telas **visivelmente diferentes** — o \`prd.md\` proíbe que um erro se disfarce de "nada aqui". Duas imagens, dois estados. |
-| \`03_lista_carregada.png\` | Lista com as três linhas recriadas **pela Edge Function real** (\`POST /functions/v1/transactions\`, nunca por SQL): descrição, data no formato \`14/08, sexta\` e valor \`−R$ 45,00\` alinhado à direita, com o menos tipográfico (−, U+2212). |
-| \`04_algarismos_tabulares.png\` | **Recorte ampliado 2× da mesma captura de \`03\`** (não é outra tela), na coluna de valores: \`−R\$ 1.234.567,89\` e \`−R\$ 7,00\` em linhas vizinhas. É onde a coluna dançaria se a fonte não tivesse \`FontFeature.tabularFigures()\` (T3.2). |
+| \`03_lista_carregada.png\` | Lista com as três linhas recriadas **pela Edge Function real** (\`POST /functions/v1/transactions\`, nunca por SQL). Prova quatro coisas na mesma imagem: **(a) fuso** — \`Venda de sábado à noite\` está guardada como \`2026-08-16T01:30:00+00:00\` (ver \`linhas_semeadas.json\`) e aparece como **\`15/08, sábado\`**, o dia que o usuário viveu às 22:30; formatada em UTC sairia \`16/08, domingo\`. **(b) entrada** — a mesma linha é \`direction: "in"\` e vem com **\`+\`** e a cor de entrada, ao lado de duas saídas em \`−\` e cor de saída. **(c) valor e data no formato do DoD** — \`Almoço\`, \`14/08, sexta\`, \`−R$ 45,00\` à direita, com o menos tipográfico (−, U+2212). **(d) volta** — a \`AppBar\` tem a seta de voltar para Áreas (rota empilhada por \`pushNamed\`). |
+| \`04_algarismos_tabulares.png\` | **Recorte ampliado 2× da mesma captura de \`03\`** (não é outra tela), na coluna de valores: \`+R\$ 1.234.567,89\` imediatamente acima de \`−R\$ 7,00\`, e \`−R\$ 45,00\` abaixo. O maior e o menor valor colados, com **sinais opostos**: é onde a coluna dançaria se a fonte não tivesse \`FontFeature.tabularFigures()\` (T3.2), e onde se vê se o \`+\` e o \`−\` ocupam a mesma largura. |
+| \`linhas_semeadas.json\` | O que o banco guardou nesta rodada — \`occurred_at\` em UTC ao lado do que o print mostra. É por aqui que se confere o fuso sem abrir o Postgres. |
 | \`estado_inicial.json\` | Fotografia da tabela **antes** de qualquer DELETE — os ids apagados estão aqui. |
 | \`logs/\` | Saída completa de cada cena e do emulador. |
 | \`*.snapshot\` | Cópia congelada dos scripts e do teste que produziram exatamente estas imagens. |
 
-## Sobre o \`15/08, sexta\` do DoD
-
-O DoD cita \`15/08, sexta\` como **forma**, não como data: em 2026, 15/08 cai num
-sábado, e uma data de 2025 sairia com ano (\`15/08/2025, sexta\`) pela própria
-regra do formatador. A rodada cobre as duas metades da forma com datas reais:
-\`14/08, sexta\` (dia de semana pedido) e \`15/08, sábado\` (dia do mês pedido).
+O DoD escreve a data como \`15/08, sexta\`: é a **forma** (\`dd/MM, dia-da-semana\`),
+não o calendário — 15/08/2026 cai num sábado. A rodada mostra as duas metades
+com datas reais, \`15/08, sábado\` e \`14/08, sexta\`.
 
 ## O que o olho tem de julgar (não vira asserção)
 
 1. Os três valores terminam na **mesma vertical** e os algarismos têm a mesma
-   largura entre linhas (\`04\`).
-2. O vazio é **neutro** — nada de confete, ilustração ou convite animado.
-3. O erro **parece** erro: cor, ícone e ação de saída visíveis.
-4. A descrição fica em uma linha, com reticências se estourar.
+   largura entre linhas, com \`+\` e \`−\` alinhados (\`04\`).
+2. A cor da entrada e a da saída se distinguem **sem depender de cor** — o
+   \`+\`/\`−\` textual está lá — e nenhuma das duas some no fundo.
+3. O vazio é **neutro** — nada de confete, ilustração ou convite animado.
+4. O erro **parece** erro: cor, ícone e ação de saída visíveis.
+5. A descrição fica em uma linha, com reticências se estourar.
 
 ## Achados desta rodada (não bloqueiam o DoD)
 
@@ -298,9 +348,6 @@ regra do formatador. A rodada cobre as duas metades da forma com datas reais:
    diz "Algo deu errado. Tente de novo." em vez de algo como "Sem conexão".
    O estado está correto e distinto do vazio (que é o que o DoD exige), mas a
    mensagem não ajuda o usuário a agir.
-2. **Sem volta para Áreas.** A \`AppBar\` de Transações não tem seta de voltar —
-   a rota é alcançada por \`context.goNamed\` (troca de rota, não empilha), então
-   não há pilha para o \`AppBar\` gerar o botão.
 README
 ok 'README.md da rodada emitido'
 

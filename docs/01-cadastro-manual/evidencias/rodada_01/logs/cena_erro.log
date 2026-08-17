@@ -22,40 +22,36 @@ Downloading packages...
 Changed 8 dependencies!
 18 packages have newer versions incompatible with dependency constraints.
 Try `flutter pub outdated` for more information.
-Running Gradle task 'assembleProdDebug'...                         37,1s
+Running Gradle task 'assembleProdDebug'...                        156,8s
 ✓ Built build/app/outputs/flutter-apk/app-prod-debug.apk
-Installing build/app/outputs/flutter-apk/app-prod-debug.apk...        13,7s
-I/com.ganza.ganza( 3385): Compiler allocated 5174KB to compile void android.view.ViewRootImpl.performTraversals()
-I/Choreographer( 3385): Skipped 138 frames!  The application may be doing too much work on its main thread.
-D/ProfileInstaller( 3385): Installing profile for br.com.ganza.ganza
-I/com.ganza.ganza( 3385): Compiler allocated 5417KB to compile void android.view.ViewRootImpl.performTraversals()
-VMServiceFlutterDriver: Connecting to Flutter application at http://127.0.0.1:42575/vOlzuRo4m0c=/
-VMServiceFlutterDriver: Isolate found with number: 4946348241101995
-VMServiceFlutterDriver: Isolate 4946348241101995 is runnable.
+Installing build/app/outputs/flutter-apk/app-prod-debug.apk...         4,4s
+I/com.ganza.ganza( 3466): Compiler allocated 5174KB to compile void android.view.ViewRootImpl.performTraversals()
+I/Choreographer( 3466): Skipped 247 frames!  The application may be doing too much work on its main thread.
+I/com.ganza.ganza( 3466): Compiler allocated 5417KB to compile void android.view.ViewRootImpl.performTraversals()
+VMServiceFlutterDriver: Connecting to Flutter application at http://127.0.0.1:37409/18jH265yXWo=/
+VMServiceFlutterDriver: Isolate found with number: 7449748316136327
+I/com.ganza.ganza( 3466): Background concurrent mark compact GC freed 1994KB AllocSpace bytes, 3(60KB) LOS objects, 49% free, 2595KB/5191KB, paused 224us,13.046ms total 66.369ms
+VMServiceFlutterDriver: Isolate 7449748316136327 is runnable.
 VMServiceFlutterDriver: Isolate is paused at start.
 VMServiceFlutterDriver: Attempting to resume isolate
-I/flutter ( 3385): 00:00 +0: cena erro
+I/flutter ( 3466): 00:00 +0: cena erro
 VMServiceFlutterDriver: Connected to Flutter application.
-I/Choreographer( 3385): Skipped 47 frames!  The application may be doing too much work on its main thread.
-I/flutter ( 3385): supabase.supabase_flutter: INFO: ***** Supabase init completed ***** 
-I/Choreographer( 3385): Skipped 76 frames!  The application may be doing too much work on its main thread.
-I/Choreographer( 3385): Skipped 166 frames!  The application may be doing too much work on its main thread.
-I/com.ganza.ganza( 3385): Background concurrent mark compact GC freed 2070KB AllocSpace bytes, 5(164KB) LOS objects, 49% free, 2571KB/5143KB, paused 282us,5.238ms total 40.747ms
-I/HWUI    ( 3385): Davey! duration=3446ms; Flags=1, FrameTimelineVsyncId=14090, IntendedVsync=166879222079, Vsync=169645888635, InputEventId=0, HandleInputStart=169662066555, AnimationStart=169662070694, PerformTraversalsStart=169662073337, DrawStart=169675942362, FrameDeadline=166895888745, FrameInterval=169660594927, FrameStartTime=16666666, SyncQueued=169707183587, SyncStart=169712395008, IssueDrawCommandsStart=169722000763, SwapBuffers=169773535878, FrameCompleted=170331151518, DequeueBufferDuration=13176603, QueueBufferDuration=4747346, GpuCompleted=170331151518, SwapBuffersCompleted=170327263171, DisplayPresentTime=131541969181313, CommandSubmissionCompleted=169773535878, 
+I/Choreographer( 3466): Skipped 52 frames!  The application may be doing too much work on its main thread.
+I/flutter ( 3466): supabase.supabase_flutter: INFO: ***** Supabase init completed ***** 
+I/Choreographer( 3466): Skipped 93 frames!  The application may be doing too much work on its main thread.
+I/HWUI    ( 3466): Davey! duration=2220ms; Flags=1, FrameTimelineVsyncId=14930, IntendedVsync=302657105811, Vsync=304207105749, InputEventId=0, HandleInputStart=304226152202, AnimationStart=304226156392, PerformTraversalsStart=304226158446, DrawStart=304231462526, FrameDeadline=302673772477, FrameInterval=304222838822, FrameStartTime=16666666, SyncQueued=304233435073, SyncStart=304234214772, IssueDrawCommandsStart=304235863348, SwapBuffers=304277184514, FrameCompleted=304878802648, DequeueBufferDuration=6913117, QueueBufferDuration=6467475, GpuCompleted=304871615748, SwapBuffersCompleted=304878802648, DisplayPresentTime=135321540401793, CommandSubmissionCompleted=304277184514, 
 VMServiceFlutterDriver: request_data message is taking a long time to complete...
-D/EGL_emulation( 3385): app_time_stats: avg=2107.15ms min=1306.98ms max=2907.31ms count=2
-I/Choreographer( 3385): Skipped 31 frames!  The application may be doing too much work on its main thread.
-W/WindowOnBackDispatcher( 3385): OnBackInvokedCallback is not enabled for the application.
-W/WindowOnBackDispatcher( 3385): Set 'android:enableOnBackInvokedCallback="true"' in the application manifest.
-D/EGL_emulation( 3385): app_time_stats: avg=1758.23ms min=1758.23ms max=1758.23ms count=1
-D/EGL_emulation( 3385): app_time_stats: avg=204.24ms min=39.77ms max=291.56ms count=6
-D/EGL_emulation( 3385): app_time_stats: avg=275.28ms min=261.33ms max=295.15ms count=4
-D/EGL_emulation( 3385): app_time_stats: avg=272.58ms min=265.60ms max=278.82ms count=4
-D/EGL_emulation( 3385): app_time_stats: avg=271.46ms min=259.32ms max=288.03ms count=4
-D/EGL_emulation( 3385): app_time_stats: avg=274.19ms min=266.18ms max=281.89ms count=4
-D/EGL_emulation( 3385): app_time_stats: avg=265.36ms min=258.60ms max=268.86ms count=4
-I/flutter ( 3385): 00:16 +1: (tearDownAll)
-I/flutter ( 3385): 00:16 +2: All tests passed!
-D/EGL_emulation( 3385): app_time_stats: avg=3740.66ms min=453.80ms max=9627.59ms count=3
-print salvo: /home/euclidesgc/development/ganza/docs/01-cadastro-manual/evidencias/rodada_01/01_erro_de_leitura.png (51843 bytes)
+W/WindowOnBackDispatcher( 3466): OnBackInvokedCallback is not enabled for the application.
+W/WindowOnBackDispatcher( 3466): Set 'android:enableOnBackInvokedCallback="true"' in the application manifest.
+D/EGL_emulation( 3466): app_time_stats: avg=2076.81ms min=416.51ms max=4113.30ms count=3
+D/EGL_emulation( 3466): app_time_stats: avg=191.74ms min=50.11ms max=271.28ms count=6
+D/EGL_emulation( 3466): app_time_stats: avg=279.58ms min=267.39ms max=291.74ms count=4
+D/EGL_emulation( 3466): app_time_stats: avg=294.29ms min=199.76ms max=377.19ms count=4
+D/EGL_emulation( 3466): app_time_stats: avg=301.24ms min=262.74ms max=369.90ms count=4
+D/EGL_emulation( 3466): app_time_stats: avg=286.42ms min=266.06ms max=333.25ms count=4
+D/EGL_emulation( 3466): app_time_stats: avg=352.61ms min=272.19ms max=487.81ms count=3
+I/flutter ( 3466): 00:15 +1: (tearDownAll)
+I/flutter ( 3466): 00:16 +2: All tests passed!
+D/EGL_emulation( 3466): app_time_stats: avg=4546.51ms min=371.21ms max=12234.39ms count=3
+print salvo: /home/euclidesgc/development/ganza/docs/01-cadastro-manual/evidencias/rodada_01/01_erro_de_leitura.png (52642 bytes)
 All tests passed.

@@ -12,11 +12,7 @@ import 'package:integration_test/integration_test_driver_extended.dart';
 
 Future<void> main() => integrationDriver(
   onScreenshot:
-      (
-        String nome,
-        List<int> bytes, [
-        Map<String, Object?>? argumentos,
-      ]) async {
+      (String nome, List<int> bytes, [Map<String, Object?>? argumentos]) async {
         final destino = Platform.environment['E2E_DESTINO'];
         if (destino == null || destino.isEmpty) {
           stderr.writeln('E2E_DESTINO não definido — print descartado.');

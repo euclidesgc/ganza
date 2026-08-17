@@ -21,30 +21,32 @@ Downloading packages...
 Got dependencies!
 18 packages have newer versions incompatible with dependency constraints.
 Try `flutter pub outdated` for more information.
-Running Gradle task 'assembleProdDebug'...                         25,7s
+Running Gradle task 'assembleProdDebug'...                         47,2s
 ✓ Built build/app/outputs/flutter-apk/app-prod-debug.apk
 Installing build/app/outputs/flutter-apk/app-prod-debug.apk...         3,1s
-I/Choreographer( 3993): Skipped 127 frames!  The application may be doing too much work on its main thread.
-I/com.ganza.ganza( 3993): Compiler allocated 5417KB to compile void android.view.ViewRootImpl.performTraversals()
-D/ProfileInstaller( 3993): Installing profile for br.com.ganza.ganza
-VMServiceFlutterDriver: Connecting to Flutter application at http://127.0.0.1:40389/scpud8DRXvI=/
-VMServiceFlutterDriver: Isolate found with number: 1618665752795243
-VMServiceFlutterDriver: Isolate 1618665752795243 is runnable.
+I/com.ganza.ganza( 4123): Compiler allocated 5174KB to compile void android.view.ViewRootImpl.performTraversals()
+I/Choreographer( 4123): Skipped 117 frames!  The application may be doing too much work on its main thread.
+I/com.ganza.ganza( 4123): Compiler allocated 5417KB to compile void android.view.ViewRootImpl.performTraversals()
+D/ProfileInstaller( 4123): Installing profile for br.com.ganza.ganza
+VMServiceFlutterDriver: Connecting to Flutter application at http://127.0.0.1:41977/SMFJhxywAxE=/
+VMServiceFlutterDriver: Isolate found with number: 4592439912472503
+VMServiceFlutterDriver: Isolate 4592439912472503 is runnable.
 VMServiceFlutterDriver: Isolate is paused at start.
 VMServiceFlutterDriver: Attempting to resume isolate
-I/flutter ( 3993): 00:00 +0: cena vazio
+I/flutter ( 4123): 00:00 +0: cena vazio
 VMServiceFlutterDriver: Connected to Flutter application.
-I/Choreographer( 3993): Skipped 48 frames!  The application may be doing too much work on its main thread.
-I/flutter ( 3993): supabase.supabase_flutter: INFO: ***** Supabase init completed ***** 
-I/Choreographer( 3993): Skipped 78 frames!  The application may be doing too much work on its main thread.
-I/HWUI    ( 3993): Davey! duration=1734ms; Flags=1, FrameTimelineVsyncId=22751, IntendedVsync=250545885399, Vsync=251845885347, InputEventId=0, HandleInputStart=251847069637, AnimationStart=251847076643, PerformTraversalsStart=251847078939, DrawStart=251852549183, FrameDeadline=250562552065, FrameInterval=251846266602, FrameStartTime=16666666, SyncQueued=251855335944, SyncStart=251856673991, IssueDrawCommandsStart=251858823822, SwapBuffers=251901813695, FrameCompleted=252282064580, DequeueBufferDuration=6360133, QueueBufferDuration=652117, GpuCompleted=252275481423, SwapBuffersCompleted=252282064580, DisplayPresentTime=0, CommandSubmissionCompleted=251901813695, 
+I/Choreographer( 4123): Skipped 35 frames!  The application may be doing too much work on its main thread.
+I/flutter ( 4123): supabase.supabase_flutter: INFO: ***** Supabase init completed ***** 
+I/Choreographer( 4123): Skipped 77 frames!  The application may be doing too much work on its main thread.
+I/HWUI    ( 4123): Davey! duration=1699ms; Flags=1, FrameTimelineVsyncId=22743, IntendedVsync=403657101771, Vsync=404940435053, InputEventId=0, HandleInputStart=404945397289, AnimationStart=404945400414, PerformTraversalsStart=404945402349, DrawStart=404949788838, FrameDeadline=403673768437, FrameInterval=404944503153, FrameStartTime=16666666, SyncQueued=404952429120, SyncStart=404953337705, IssueDrawCommandsStart=404954718545, SwapBuffers=404986139665, FrameCompleted=405357606171, DequeueBufferDuration=4210334, QueueBufferDuration=1537662, GpuCompleted=405357606171, SwapBuffersCompleted=405345323453, DisplayPresentTime=72904454231359566, CommandSubmissionCompleted=404986139665, 
 VMServiceFlutterDriver: request_data message is taking a long time to complete...
-W/WindowOnBackDispatcher( 3993): OnBackInvokedCallback is not enabled for the application.
-W/WindowOnBackDispatcher( 3993): Set 'android:enableOnBackInvokedCallback="true"' in the application manifest.
-D/EGL_emulation( 3993): app_time_stats: avg=2143.64ms min=407.13ms max=4319.19ms count=3
-I/com.ganza.ganza( 3993): NativeAlloc concurrent mark compact GC freed 2195KB AllocSpace bytes, 5(164KB) LOS objects, 49% free, 2612KB/5225KB, paused 4.287ms,9.629ms total 140.023ms
-I/flutter ( 3993): 00:10 +1: (tearDownAll)
-I/flutter ( 3993): 00:10 +2: All tests passed!
-D/EGL_emulation( 3993): app_time_stats: avg=2723.93ms min=456.39ms max=6645.96ms count=3
-print salvo: /home/euclidesgc/development/ganza/docs/01-cadastro-manual/evidencias/rodada_01/02_estado_vazio.png (46585 bytes)
+W/WindowOnBackDispatcher( 4123): OnBackInvokedCallback is not enabled for the application.
+W/WindowOnBackDispatcher( 4123): Set 'android:enableOnBackInvokedCallback="true"' in the application manifest.
+D/EGL_emulation( 4123): app_time_stats: avg=1598.70ms min=419.43ms max=3257.06ms count=3
+D/EGL_emulation( 4123): app_time_stats: avg=511.87ms min=27.13ms max=996.60ms count=2
+I/com.ganza.ganza( 4123): NativeAlloc concurrent mark compact GC freed 2267KB AllocSpace bytes, 5(164KB) LOS objects, 49% free, 2676KB/5353KB, paused 272us,4.558ms total 101.030ms
+I/flutter ( 4123): 00:08 +1: (tearDownAll)
+I/flutter ( 4123): 00:08 +2: All tests passed!
+D/EGL_emulation( 4123): app_time_stats: avg=2389.33ms min=434.70ms max=5929.86ms count=3
+print salvo: /home/euclidesgc/development/ganza/docs/01-cadastro-manual/evidencias/rodada_01/02_estado_vazio.png (47376 bytes)
 All tests passed.

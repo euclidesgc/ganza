@@ -13,6 +13,7 @@
 
 import 'dart:convert';
 
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ganza/app.dart';
 import 'package:ganza/core/config/app_config.dart';
@@ -51,15 +52,38 @@ Future<void> main() async {
       case 'lista':
         await _aguardar(tester, find.text('Almoço'));
         expect(find.text('−R\$ 45,00'), findsOneWidget);
-        expect(find.text('14/08, sexta'), findsOneWidget);
+        expect(find.text('14/08, sexta'), findsNWidgets(2));
 
-        // Valor grande e valor curto na MESMA lista: é o par que denuncia
-        // fonte sem algarismo tabular.
-        expect(find.text('Reforma da cozinha'), findsOneWidget);
-        expect(find.text('−R\$ 1.234.567,89'), findsOneWidget);
+        // Fuso. A linha está guardada em 2026-08-16T01:30:00+00:00, que em
+        // America/Sao_Paulo é 22:30 do dia 15 — o dia que o usuário viveu.
+        // Formatar em UTC (o bug corrigido em fc78ab3) daria '16/08, domingo';
+        // por isso a ausência dessa string é asserção, não observação.
+        expect(find.text('Venda de sábado à noite'), findsOneWidget);
+        expect(find.text('15/08, sábado'), findsOneWidget);
+        expect(find.text('16/08, domingo'), findsNothing);
+
+        // Valor grande e valor curto na MESMA lista, com sinais opostos: é o
+        // par que denuncia fonte sem algarismo tabular e coluna que dança.
+        expect(find.text('+R\$ 1.234.567,89'), findsOneWidget);
         expect(find.text('Café'), findsOneWidget);
         expect(find.text('−R\$ 7,00'), findsOneWidget);
-        expect(find.text('15/08, sábado'), findsNWidgets(2));
+
+        // A metade do prefixo `−`/`+` "além da cor" que a máquina consegue
+        // afirmar: o sinal está no texto, as duas cores são diferentes entre
+        // si, e o estilo do valor carrega algarismos tabulares. Se as cores
+        // são as certas e a coluna não dança é o olho que julga, no print.
+        final entrada = _estiloDoValor(tester, '+R\$ 1.234.567,89');
+        final saida = _estiloDoValor(tester, '−R\$ 7,00');
+        expect(entrada.color, isNotNull);
+        expect(entrada.color, isNot(saida.color));
+        expect(
+          entrada.fontFeatures,
+          contains(const FontFeature.tabularFigures()),
+        );
+        expect(
+          saida.fontFeatures,
+          contains(const FontFeature.tabularFigures()),
+        );
 
         expect(find.text(_vazio), findsNothing);
         expect(find.text(_tentarDeNovo), findsNothing);
@@ -115,6 +139,19 @@ Future<void> _irParaTransacoes(WidgetTester tester) async {
   await _aguardar(tester, find.byTooltip('Ver transações'));
   await tester.tap(find.byTooltip('Ver transações'));
   await _aguardar(tester, find.text('Transações'));
+
+  // A rota é empilhada (`pushNamed`, fix 96ff5b5), não trocada: sem pilha o
+  // `AppBar` não gera o leading e a tela vira um beco sem saída. Vale para as
+  // três cenas — a entrada é a mesma.
+  expect(find.byType(BackButton), findsOneWidget);
+}
+
+/// O estilo efetivamente aplicado ao `Text` do valor — é onde moram a cor da
+/// direção e os algarismos tabulares.
+TextStyle _estiloDoValor(WidgetTester tester, String texto) {
+  final estilo = tester.widget<Text>(find.text(texto)).style;
+  expect(estilo, isNotNull, reason: 'valor "$texto" sem estilo');
+  return estilo!;
 }
 
 /// `pumpAndSettle` não serve aqui: o `CircularProgressIndicator` do estado de

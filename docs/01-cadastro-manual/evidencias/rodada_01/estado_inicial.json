@@ -1,6 +1,6 @@
 [
     {
-        "id": "d97267d0-7eae-4d0f-97a1-1f96ac943ab8",
+        "id": "dabfcd3c-9eb7-4556-9cca-b7a317cc660c",
         "description": "Reforma da cozinha",
         "amount": 123456789,
         "direction": "out",
@@ -8,7 +8,7 @@
         "source": "manual"
     },
     {
-        "id": "c242e592-990c-4111-aeb4-57ca9bab7dc2",
+        "id": "f44e0432-7a34-4899-a531-a0d505b34748",
         "description": "Caf\u00e9",
         "amount": 700,
         "direction": "out",
@@ -16,7 +16,7 @@
         "source": "manual"
     },
     {
-        "id": "cc50023d-a410-4a84-a978-7668f2dac33a",
+        "id": "dd43738a-ef05-46a3-b1bf-8e35bb86a60d",
         "description": "Almo\u00e7o",
         "amount": 4500,
         "direction": "out",
