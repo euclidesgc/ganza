@@ -2,7 +2,7 @@
 
 Fatiamento e execução. O "o quê" está em [`specs.md`](specs.md), o contrato do pronto em [`prd.md`](prd.md), a fronteira de escopo no DoD do item F0.9 do [`docs/roadmap.md`](../roadmap.md). **Este plano não inventa escopo: ele distribui aquele DoD entre as fases e acrescenta o que falta para cada fase se sustentar sozinha.**
 
-Estado: **Fase 1 em andamento** · branch `feature/GZ-14-migration-transactions` (de `develop`).
+Estado: **Fase 3 em andamento** · branch `feature/GZ-16-listar-transacoes` (de `develop`).
 
 ---
 
@@ -124,16 +124,16 @@ Sequenciais. Não marco `[paralela]` aqui: são três tarefas curtas e duas escr
 
 **DoD da Fase 1**
 
-- [ ] Num Postgres vazio local (`supabase/postgres:15.8.1.085`), `ci-bootstrap.sql` + as quatro migrations em ordem com `ON_ERROR_STOP=1` terminam **sem erro**. O `ci.yml` roda `psql -q`, que não imprime nada — **quem prova é o código de saída, não a saída**: rodar exatamente como o CI e checar `echo $?` → `0` em cada arquivo. Depois, com os objetos já no lugar: `psql -tAc "select to_regclass('public.transactions')"` → `transactions` e `psql -tAc "select policyname from pg_policies where tablename='transactions'"` → `transactions_owner`. Colar as três saídas no PR.
-- [ ] Gate de RLS: `select tablename from pg_tables where schemaname='public' and rowsecurity = false` devolve **0 linhas**.
-- [ ] Gate de política: a consulta de tabela-com-RLS-sem-política do `ci.yml` devolve **0 linhas**.
-- [ ] Cada `check` rejeita, com `ERROR: new row ... violates check constraint`: `amount = 0`, `amount = -1`, `direction = 'x'`, `description = '   '`. Quatro comandos, quatro erros — colar a saída no PR.
-- [ ] RLS provada em três comandos, **nesta ordem**, com a sessão montada na forma real do GoTrue — `set local request.jwt.claims = '{"sub":"<uuid do dono>","role":"authenticated"}'`, que é a que o stand-in do `ci-bootstrap.sql` passou a ler (**D12**):
+- [x] Num Postgres vazio local (`supabase/postgres:15.8.1.085`), `ci-bootstrap.sql` + as quatro migrations em ordem com `ON_ERROR_STOP=1` terminam **sem erro**. O `ci.yml` roda `psql -q`, que não imprime nada — **quem prova é o código de saída, não a saída**: rodar exatamente como o CI e checar `echo $?` → `0` em cada arquivo. Depois, com os objetos já no lugar: `psql -tAc "select to_regclass('public.transactions')"` → `transactions` e `psql -tAc "select policyname from pg_policies where tablename='transactions'"` → `transactions_owner`. Colar as três saídas no PR.
+- [x] Gate de RLS: `select tablename from pg_tables where schemaname='public' and rowsecurity = false` devolve **0 linhas**.
+- [x] Gate de política: a consulta de tabela-com-RLS-sem-política do `ci.yml` devolve **0 linhas**.
+- [x] Cada `check` rejeita, com `ERROR: new row ... violates check constraint`: `amount = 0`, `amount = -1`, `direction = 'x'`, `description = '   '`. Quatro comandos, quatro erros — colar a saída no PR.
+- [x] RLS provada em três comandos, **nesta ordem**, com a sessão montada na forma real do GoTrue — `set local request.jwt.claims = '{"sub":"<uuid do dono>","role":"authenticated"}'`, que é a que o stand-in do `ci-bootstrap.sql` passou a ler (**D12**):
   1. **Antes de inserir**, `select auth.uid()` devolve o uuid do dono, **não NULL**. Esta linha existe para impedir a prova falso-positiva: com `auth.uid()` NULL a política rejeitaria o próprio dono, e a negação do item 3 pareceria funcionar pelo motivo errado.
   2. `insert` como `anon`, **sem** `request.jwt.claims`, é negado: `ERROR: new row violates row-level security policy for table "transactions"`.
   3. `insert` do dono é aceito, e `user_id` vem do `auth.uid()` e não do payload — **inclusive** quando o `insert` traz explicitamente o `user_id` de outra conta. Conferir com `select user_id from public.transactions order by created_at desc limit 1`.
-- [ ] `select indexdef from pg_indexes where indexname = 'transactions_user_occurred_idx'` devolve a definição com `occurred_at DESC, created_at DESC`.
-- [ ] **Job "Banco" verde no CI do PR.** *(linha 1 do DoD do roadmap)*
+- [x] `select indexdef from pg_indexes where indexname = 'transactions_user_occurred_idx'` devolve a definição com `occurred_at DESC, created_at DESC`.
+- [x] **Job "Banco" verde no CI do PR.** *(linha 1 do DoD do roadmap)*
 
 ---
 
@@ -143,29 +143,29 @@ Branch: `feature/GZ-15-edge-function-transactions`. Contrato em `specs.md` §4.
 
 **Tarefas**
 
-- [ ] **T2.1** — `supabase/functions/transactions/handler.ts`: `export default async function handler(req: Request): Promise<Response>`. Só `POST` (senão `405`). Checa `Authorization` na borda **antes de tocar no banco** (senão `401`, mesmo com `VERIFY_JWT` desligado). Cria o client com o **JWT do usuário**, nunca `service_role`. Valida `direction ∈ {in,out}`, `amount` número **inteiro** `> 0`, `description` string com 1..200 após `trim`, `occurred_at` opcional e ISO-8601 parseável. `201` com a linha criada. Nenhum `any` atravessa; `area_id` e `user_id` **não** fazem parte do payload aceito. · camada **backend** · `especialista-backend`
-- [ ] **T2.2** — `supabase/functions/transactions/index.ts` com `Deno.serve(handler)` e nada mais. · camada **backend** · `especialista-backend`
-- [ ] **T2.3** — `supabase/functions/transactions/handler_test.ts` cobrindo `201`, os seis `400` (`invalid_json`, `invalid_direction`, `invalid_amount` para não-inteiro e para `<= 0`, `invalid_description` vazia e >200, `invalid_occurred_at`), `401` e `405`, e o caso "payload com `user_id` alheio não muda o dono". **É a única bateria de teste escrita fora da fase final**, porque o DoD do roadmap a exige nominalmente. · camada **backend** · `especialista-backend`
-- [ ] **T2.4** — Alinhar `supabase/functions/main/index.ts` ao contrato de erro `{"error":{"code","message"}}` (decisão **A5**) e acrescentar `transactions/index.ts` e `transactions/handler.ts` à task `check` do `deno.json`. · camada **backend** · `especialista-backend`
-- [ ] **T2.5** — **Depois do merge**: `scripts/deploy-functions.sh` a partir de `develop`, publicando na VPS. Toca produção e reinicia o edge-runtime (o `/health` cai por segundos). · camada **infra** · `especialista-infra`
+- [x] **T2.1** — `supabase/functions/transactions/handler.ts`: `export default async function handler(req: Request): Promise<Response>`. Só `POST` (senão `405`). Checa `Authorization` na borda **antes de tocar no banco** (senão `401`, mesmo com `VERIFY_JWT` desligado). Cria o client com o **JWT do usuário**, nunca `service_role`. Valida `direction ∈ {in,out}`, `amount` número **inteiro** `> 0`, `description` string com 1..200 após `trim`, `occurred_at` opcional e ISO-8601 parseável. `201` com a linha criada. Nenhum `any` atravessa; `area_id` e `user_id` **não** fazem parte do payload aceito. · camada **backend** · `especialista-backend`
+- [x] **T2.2** — `supabase/functions/transactions/index.ts` com `Deno.serve(handler)` e nada mais. · camada **backend** · `especialista-backend`
+- [x] **T2.3** — `supabase/functions/transactions/handler_test.ts` cobrindo `201`, os seis `400` (`invalid_json`, `invalid_direction`, `invalid_amount` para não-inteiro e para `<= 0`, `invalid_description` vazia e >200, `invalid_occurred_at`), `401` e `405`, e o caso "payload com `user_id` alheio não muda o dono". **É a única bateria de teste escrita fora da fase final**, porque o DoD do roadmap a exige nominalmente. · camada **backend** · `especialista-backend`
+- [x] **T2.4** — Alinhar `supabase/functions/main/index.ts` ao contrato de erro `{"error":{"code","message"}}` (decisão **A5**) e acrescentar `transactions/index.ts` e `transactions/handler.ts` à task `check` do `deno.json`. · camada **backend** · `especialista-backend`
+- [x] **T2.5** — **Depois do merge**: `scripts/deploy-functions.sh` a partir de `develop`, publicando na VPS. Toca produção e reinicia o edge-runtime (o `/health` cai por segundos). · camada **infra** · `especialista-infra`
 
 Sequenciais: T2.3 depende do handler; T2.5 depende do merge.
 
 **DoD da Fase 2 — antes do PR**
 
-- [ ] `deno fmt --check`, `deno lint` e `deno task check` verdes em `supabase/functions/` (o `check` já listando os arquivos novos).
-- [ ] `deno task test` verde, cobrindo valor não-inteiro (`45.5`) e `direction` fora de `in|out` virando `400`. *(linha 2 do DoD do roadmap)*
-- [ ] **Cada teste de validação visto falhando sem a validação**: comentar a regra, rodar, colar o `FAILED`, restaurar. Um por regra, não uma amostra. *(segunda metade da linha 2 do roadmap)*
-- [ ] Com a função servida localmente (`deno serve` apontando `SUPABASE_URL` para o Supabase real) e um JWT de sessão: `POST` do caminho feliz devolve **`201`** com `id`, `source: "manual"`, `reconciliation_status: "pending"` e `amount` inteiro; **sem `Authorization`** devolve **`401`** com corpo `{"error":{"code":"unauthorized",...}}`.
-- [ ] O `401` sem `Authorization` é comprovadamente da função ou do roteador, **não do Kong**: a requisição vai com `apikey` e sem `Authorization`, e o corpo devolvido é o do contrato.
-- [ ] `select user_id, amount, source from public.transactions order by created_at desc limit 1` mostra o `user_id` do JWT mesmo quando o payload trouxe `user_id` alheio.
-- [ ] Job "Edge Functions" verde no CI do PR.
+- [x] `deno fmt --check`, `deno lint` e `deno task check` verdes em `supabase/functions/` (o `check` já listando os arquivos novos).
+- [x] `deno task test` verde, cobrindo valor não-inteiro (`45.5`) e `direction` fora de `in|out` virando `400`. *(linha 2 do DoD do roadmap)*
+- [x] **Cada teste de validação visto falhando sem a validação**: comentar a regra, rodar, colar o `FAILED`, restaurar. Um por regra, não uma amostra. *(segunda metade da linha 2 do roadmap)*
+- [x] Com a função servida localmente (`deno serve` apontando `SUPABASE_URL` para o Supabase real) e um JWT de sessão: `POST` do caminho feliz devolve **`201`** com `id`, `source: "manual"`, `reconciliation_status: "pending"` e `amount` inteiro; **sem `Authorization`** devolve **`401`** com corpo `{"error":{"code":"unauthorized",...}}`.
+- [x] O `401` sem `Authorization` é comprovadamente da função ou do roteador, **não do Kong**: a requisição vai com `apikey` e sem `Authorization`, e o corpo devolvido é o do contrato.
+- [x] `select user_id, amount, source from public.transactions order by created_at desc limit 1` mostra o `user_id` do JWT mesmo quando o payload trouxe `user_id` alheio.
+- [x] Job "Edge Functions" verde no CI do PR.
 
 **DoD da Fase 2 — depois do merge (bloqueia o início da Fase 3)**
 
-- [ ] `curl -sf https://supabase.ganza.bmjtech.duckdns.org/functions/v1/health` devolve `{"status":"ok","database":"reachable"}` — o restart do runtime não derrubou nada.
-- [ ] `curl -X POST https://supabase.ganza.bmjtech.duckdns.org/functions/v1/transactions` com `apikey` + JWT da conta **cria a linha e devolve `201`**; a mesma chamada **sem `Authorization`** devolve **`401`**. *(linha 3 do DoD do roadmap — só passa com a função no ar)*
-- [ ] `GET https://…/rest/v1/transactions` **anônimo** (só `apikey`) devolve `[]`; com o `Authorization` do dono devolve a transação criada acima. *(linha 4 do DoD do roadmap — a RLS provada pelo caminho real)*
+- [x] `curl -sf https://supabase.ganza.bmjtech.duckdns.org/functions/v1/health` devolve `{"status":"ok","database":"reachable"}` — o restart do runtime não derrubou nada.
+- [x] `curl -X POST https://supabase.ganza.bmjtech.duckdns.org/functions/v1/transactions` com `apikey` + JWT da conta **cria a linha e devolve `201`**; a mesma chamada **sem `Authorization`** devolve **`401`**. *(linha 3 do DoD do roadmap — só passa com a função no ar)*
+- [x] `GET https://…/rest/v1/transactions` **anônimo** (só `apikey`) devolve `[]`; com o `Authorization` do dono devolve a transação criada acima. *(linha 4 do DoD do roadmap — a RLS provada pelo caminho real)*
 
 A linha criada aqui **fica no banco de propósito**: é o dado que a Fase 3 vai exibir na tela.
 
@@ -281,8 +281,8 @@ Branch: `feature/GZ-18-testes-cadastro-manual`. **Só começa depois do E2E das 
 
 Legenda: `[ ]` não iniciada · `[-]` em andamento · `[x]` mergeada em `develop`.
 
-- [-] **Fase 1** — Migration + docs vivas · PR 1 — T1.1, T1.2 e T1.3 feitas; falta rodar o DoD por `fechar-etapa`, abrir o PR e mergear.
-- [ ] **Fase 2** — Edge Function + testes Deno + publicação · PR 2
-- [ ] **Fase 3** — Leitura: lista de transações · PR 3
+- [x] **Fase 1** — Migration + docs vivas · PR 1 — mergeada.
+- [x] **Fase 2** — Edge Function + testes Deno + publicação · PR 2 — mergeada (PR #17). DoD pré-PR e pós-merge verdes, função publicada na VPS. As migrations `0004`/`0005` chegaram ao banco de produção por `scripts/apply-migrations.sh --prod --apply`, com baseline das 0001–0003.
+- [-] **Fase 3** — Leitura: lista de transações · PR 3
 - [ ] **Fase 4** — Escrita: formulário → Edge Function · PR 4
 - [ ] **Fase 5** — Bateria automatizada + fechamento · PR 5
