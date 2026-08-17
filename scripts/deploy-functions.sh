@@ -30,9 +30,11 @@ DESTINO="/data/coolify/services/$SERVICO/volumes/functions"
 
 [ -d "$ORIGEM/main" ] || { echo "✗ $ORIGEM/main não existe — o runtime não sobe sem o serviço principal." >&2; exit 1; }
 
+FUNCOES="$(find "$ORIGEM" -maxdepth 1 -mindepth 1 -type d -printf '%f ' 2>/dev/null)"
+
 echo "→ origem:  $ORIGEM"
 echo "→ destino: $HOST:$DESTINO"
-echo "→ funções: $(find "$ORIGEM" -maxdepth 1 -mindepth 1 -type d -printf '%f ' 2>/dev/null)"
+echo "→ funções: $FUNCOES"
 echo
 
 if [ "${1:-}" = "--dry-run" ]; then
@@ -49,6 +51,51 @@ tar czf - -C "$ORIGEM" . | ssh "$HOST" "
   sudo find '$DESTINO' -mindepth 1 -delete
   sudo tar xzf - -C '$DESTINO'
 "
+
+# --- aquecer o cache do deno antes de reiniciar ---------------------------
+#
+# O worker do edge-runtime baixa dependência remota (jsr/npm/https) na
+# primeira vez que um import novo entra em produção. Isso não termina a
+# tempo do boot do worker, e o container reinicia antes — ciclo que nunca
+# fecha (visto em produção: a estreia de @supabase/supabase-js deixou só o
+# registry.json de cada pacote no volume de cache, nunca o tarball extraído,
+# e o edge-runtime caiu em restart loop). Rodar `deno cache` aqui, fora do
+# runtime, contra o mesmo volume nomeado que ele usa, garante que o download
+# termine antes do restart. Com o cache já quente (caso comum) isso não bate
+# rede nenhuma — é só checagem local, e leva menos de 1s.
+#
+# DENO_VERSION tem que acompanhar a versão embutida no edge-runtime; se
+# divergir, o cache fica num formato que o runtime não lê e o loop volta.
+# Revalidar com `docker exec supabase-edge-functions-$SERVICO edge-runtime
+# --version` sempre que a imagem supabase/edge-runtime for atualizada, e
+# confirmar que denoland/deno:<versão> publica manifesto arm64 com
+# `docker manifest inspect denoland/deno:<versão>` antes de trocar o número.
+DENO_VERSION="2.1.4"
+DENO_CACHE_VOLUME="${SERVICO}_deno-cache"
+
+ENTRYPOINTS=""
+for f in $FUNCOES; do
+  ENTRYPOINTS="$ENTRYPOINTS $f/index.ts"
+done
+
+echo "→ aquecendo cache do deno ($DENO_VERSION) antes de reiniciar o runtime"
+if ! ssh "$HOST" "
+  set -e
+  docker run --rm --platform linux/arm64 \
+    -e DENO_DIR=/root/.cache/deno \
+    -v '$DENO_CACHE_VOLUME':/root/.cache/deno \
+    -v '$DESTINO':/home/deno/functions:ro \
+    -w /home/deno/functions \
+    denoland/deno:$DENO_VERSION \
+    deno cache$ENTRYPOINTS
+"; then
+  echo "✗ falha ao aquecer o cache do deno — abortando antes de reiniciar o runtime." >&2
+  echo "  o runtime antigo continua no ar, nada foi derrubado. Investigue o erro acima" >&2
+  echo "  (rede até registry.npmjs.org/jsr.io, import novo quebrado, etc.) e rode o" >&2
+  echo "  deploy de novo — não force o restart com o cache frio." >&2
+  exit 1
+fi
+echo "✓ cache aquecido"
 
 echo "→ reiniciando o edge-runtime"
 ssh "$HOST" "docker restart supabase-edge-functions-$SERVICO" > /dev/null
