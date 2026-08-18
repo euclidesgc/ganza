@@ -8,11 +8,16 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash, mcp__dart__list_devices, mcp
 
 Objetivo: validar de ponta a ponta o que fizemos, **minimizando o passo manual** — quanto mais clique manual, mais chance de o dev testar errado e mascarar bug. A regra: **automatize tudo que a máquina consegue verificar; deixe ao humano só o que exige olho.** Esta fase não gera PR — tudo aqui é temporário.
 
-**O alvo primário é Android.** Não existe CDP para dirigir o app no celular; o driver é o `integration_test` do Flutter rodando num emulador, e a captura sai do próprio driver.
+**O alvo primário é Android.** O executor canônico é `patrol test`, sobre
+`patrolTest`, em um emulador. Ele mantém as asserções Dart e acrescenta
+automação de UI nativa; MCP é apenas ferramenta de exploração, nunca gate.
+Versione a ponte JUnit parametrizada em `android/app/src/androidTest/.../
+MainActivityTest.java`: ela chama `PatrolJUnitRunner.listDartTests()` e
+`runDartTest()`; sem ela um APK pode terminar com zero testes executados.
 
-## 1. Script de contrato — `docs/NN-<nome>/e2e.sh`
+## 1. Script de contrato — `scripts/e2e-local.sh NNN`
 
-Um script `sh` que sobe a stack local e valida o **máximo por API/CLI**, com `PASS/FAIL` explícito. Requisitos inegociáveis:
+Use `scripts/local-supabase.sh` para subir a stack e `scripts/e2e-local.sh NNN` para validar o **máximo por API/CLI**, com `PASS/FAIL` explícito. O roteiro específico fica em `docs/NNN_<nome>/`.
 
 - **Determinístico e idempotente.** Roda N vezes seguidas sem limpeza manual. Use **base efêmera**: `docker compose down -v` + `up` → o schema nasce das migrations, do zero. **Nunca** rode ação destrutiva contra o banco de produção; nunca aponte o script para o Supabase remoto.
 - **Cobre o contrato inteiro** que a feature toca: cada verbo/rota do backend, os campos de resposta, os invariantes, os erros do PRD e os casos de borda. Uma asserção por invariante.
@@ -23,14 +28,24 @@ Um script `sh` que sobe a stack local e valida o **máximo por API/CLI**, com `P
 - **Auto-limpante e rastreável.** Todo rastro (processos, containers, volumes, arquivos) é listado e removido por um subcomando `down`, e escrito no cabeçalho do script e no `test_plan.md`.
 - **Zero mudança de código-fonte** quando a stack real está pronta. Rode você mesmo e só entregue **verde**.
 
-## 2. Prints do app — `docs/NN-<nome>/e2e_shots.sh` (o QA gera, o humano confere)
+## 2. Prints do app — `docs/NNN_<nome>/e2e_shots.sh` (o QA gera, o humano confere)
 
 Regra: **o QA gera TODOS os prints; o dev humano só confere** — nunca opera o app à mão.
 
-- **Android (primário):** `integration_test` + `flutter drive`, contra um emulador headless (`emulator -no-window -no-audio`). A captura sai de `binding.takeScreenshot(name)` com `IntegrationTestWidgetsFlutterBinding`, salva em `evidencias/rodada_MM/`. O driver navega por `Key` — **não** por coordenada: no Android o layout muda com densidade e altura de barra, e print por coordenada quebra silenciosamente.
-- **Web (quando a fase tem alvo web):** o mesmo `integration_test` roda em `chromedriver`, ou o print sai por Chrome headless (`--screenshot`) nas rotas com deep link (o path strategy exige SPA fallback no servidor de teste).
+- **Android (primário):** `patrol` + `patrol_cli`, contra emulador headless
+  (`emulator -no-window -no-audio`). O teste solicita o print no ponto exato
+  ao servidor local de captura, que usa
+  `adb screencap` e salva PNG em `e2e/round_MM/`. Nenhum passo visual é
+  aprovado sem PNG correspondente. Configure `adb reverse` e use
+  `127.0.0.1` no callback: o loopback continua acessível quando o cenário
+  bloqueia o Supabase local. Para provar falha de rede, rejeite apenas o host
+  da stack local por `iptables`; não desligue Wi-Fi/dados e não aceite diálogos
+  do sistema como evidência.
+- **Web (quando a fase tem alvo web):** Patrol Web ou Playwright, com prints e
+  resultados em pasta de rodada. Não reutilize o executor Android para simular
+  navegador.
 - **Widget que precisa de `Key` para ser dirigido ganha `Key` no código de produção** — `Key` não é instrumentação, é API de teste; ela fica.
-- Cada `rodada_MM/` recebe um `README.md` emitido pelo script, com **cada imagem descrita**: o que aquele estado prova. É assim que o dev confere — abre o README e olha.
+- Cada `round_MM/` recebe um `report.md` emitido pelo script, com **cada imagem descrita**: passo, comando, resultado e o que aquele estado prova. É assim que o dev confere — abre o relatório e olha.
 
 **O que só o olho pega**, e por isso vai para o print e não para a asserção: hierarquia visual, contraste real da paleta, alvo de toque confortável na mão, e o principal — se a tela **parece** que está celebrando alguma coisa. Sem confete é regra de produto e se verifica olhando.
 
@@ -51,13 +66,16 @@ Se a stack real **não** está pronta, aí sim instrumente: fakes no DI do flavo
 ## 5. Rodadas e evidências
 
 ```
-docs/NN-<nome>/evidencias/rodada_01/   ← 1ª rodada
-docs/NN-<nome>/evidencias/rodada_02/   ← 2ª rodada (após correções)
+docs/NNN_<nome>/e2e/round_01/   ← 1ª rodada
+docs/NNN_<nome>/e2e/round_02/   ← 2ª rodada (após correções)
 ```
 
-Em cada `rodada_MM/`: o **snapshot dos scripts**, os **prints** e o **`README.md`** descrevendo cada imagem. O ciclo:
+Em cada `round_MM/`: o **snapshot dos scripts**, os **prints** e o **`report.md`** descrevendo cada imagem. O ciclo:
 
-1. O QA roda `e2e.sh` + `e2e_shots.sh`; o dev **confere** as imagens.
+1. O QA roda `scripts/e2e-local.sh NNN`, que chama `patrol test`; sem
+   `RODADA`, o executor reserva a primeira pasta disponível entre `01` e `03`
+   e recusa sobrescrever evidência. O dev **confere** as imagens e os logs.
+   Vídeos não são gerados.
 2. **Tudo passou** → wrap (limpeza + testes automatizados + DoD). Fim das rodadas.
 3. **Achou problema** → o time analisa logs, prints e código, corrige o que for código e **ajusta o script** se preciso. Só então avisa que a `rodada_MM+1` está pronta.
 

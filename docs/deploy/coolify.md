@@ -1,4 +1,4 @@
-# Deploy no Coolify — ganza
+# HML no Coolify — ganza
 
 Estado da infraestrutura do ganza no servidor compartilhado. O passo a passo de decisão está na skill `subir-supabase`; aqui fica **o que existe hoje**.
 
@@ -12,7 +12,7 @@ Estado da infraestrutura do ganza no servidor compartilhado. O passo a passo de 
 | SSH | usuário **`ubuntu`** (`root` recusa); já configurado em `~/.ssh/config`, então `ssh 64.181.165.16` basta |
 | Painel | `https://bmjtech.duckdns.org` (o `http://` faz 302 — sempre `https`) |
 | API | token em `.env` (`COOLIFY_TOKEN`), gitignored |
-| Projeto | **Ganza** · `djkdhce4d278jauiu7j3jo67` · ambiente `production` (`ftirflbtkyhksbminaxhq2dv`) |
+| Projeto | **Ganza** · `djkdhce4d278jauiu7j3jo67` · ambiente remoto de homologação (HML) |
 
 **RAM sobra, CPU é o recurso escasso.** Dois núcleos servem também os builds dos outros projetos.
 
@@ -28,7 +28,7 @@ Oito contêineres, todos `healthy` — bem abaixo dos ~2,5 GB que a stack comple
 | `supabase-rest` | `postgrest/postgrest:v14.6` | ~12 MB |
 | `supabase-storage` | `supabase/storage-api:v1.44.2` | ~131 MB |
 | `supabase-meta` | `supabase/postgres-meta:v0.95.2` | ~83 MB |
-| `supabase-studio` | `supabase/studio:2026.03.16` | ~173 MB |
+| `supabase-studio` | `supabase/studio:2026.03.16-sha-5528817` | ~173 MB |
 | `supabase-edge-functions` | `supabase/edge-runtime:v1.71.2` | ~60 MB |
 
 > ### O painel mostra "Degraded" — e isso é esperado

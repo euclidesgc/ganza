@@ -31,9 +31,9 @@ dist/
 .claude/RESUME.md
 .claude/settings.local.json
 .claude/RESUME.md
-.vscode/
 .idea/
 *.iml
+infra/local/.runtime.env
 
 # Evidências pesadas de E2E ficam versionadas (são a prova); logs temporários não
 *.log

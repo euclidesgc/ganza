@@ -1,29 +1,32 @@
-// E2E da listagem de transações — T3.8 da Fase 3 (docs/01-cadastro-manual).
+// E2E da listagem de transações — T3.8 da Fase 3
+// (docs/001_cadastro_manual).
 //
-// INSTRUMENTAÇÃO TEMPORÁRIA: este arquivo, `test_driver/integration_test.dart`
-// e as dev_dependencies `integration_test`/`flutter_driver` saem no wrap do
-// E2E. Nada aqui é compilado no binário de produção (fora de `lib/`).
+// INSTRUMENTAÇÃO TEMPORÁRIA: este arquivo e a dev_dependency `patrol` saem no
+// wrap do E2E. Nada aqui é compilado no binário de produção (fora de `lib/`).
 //
-// Não é chamado à mão: quem orquestra é `docs/01-cadastro-manual/e2e_shots.sh`,
-// que passa a cena por `--dart-define` e recolhe o print pelo driver.
+// Não é chamado à mão: quem orquestra é
+// `docs/001_cadastro_manual/e2e_shots.sh`, que passa a cena por
+// `--dart-define` e recolhe PNG e log pelo Patrol.
 //
 // A sessão entra por `recoverSession` com um JWT emitido fora do app, porque a
 // senha do dono não está (e não deve estar) ao alcance do QA. O caminho de
-// rede daqui para a frente é o real: PostgREST de produção, RLS de verdade.
+// rede daqui para a frente é o real: PostgREST local, RLS de verdade.
 
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ganza/app.dart';
 import 'package:ganza/core/config/app_config.dart';
 import 'package:ganza/injection.dart';
-import 'package:integration_test/integration_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:patrol/patrol.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 const _cena = String.fromEnvironment('E2E_CENA');
 const _arquivo = String.fromEnvironment('E2E_ARQUIVO');
+const _evidenceUrl = String.fromEnvironment('E2E_EVIDENCE_URL');
 const _jwt = String.fromEnvironment('E2E_JWT');
 const _userId = String.fromEnvironment('E2E_USER_ID');
 const _email = String.fromEnvironment('E2E_EMAIL');
@@ -31,10 +34,9 @@ const _email = String.fromEnvironment('E2E_EMAIL');
 const _vazio = 'Nenhuma transação registrada.';
 const _tentarDeNovo = 'Tentar de novo';
 
-Future<void> main() async {
-  final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
-
-  testWidgets('cena $_cena', (tester) async {
+void main() {
+  patrolTest('cena $_cena', ($) async {
+    final tester = $.tester;
     await _subirApp(tester);
     await _irParaTransacoes(tester);
 
@@ -92,15 +94,10 @@ Future<void> main() async {
         fail('cena desconhecida: "$_cena"');
     }
 
-    await binding.convertFlutterSurfaceToImage();
-    await tester.pumpAndSettle();
-    await binding.takeScreenshot(_arquivo);
+    await _capturarEvidencia(tester, _arquivo);
   });
 }
 
-/// Repete o que `bootstrap.dart` faz, menos o `runZonedGuarded` — o binding do
-/// integration_test já nasceu na zona raiz, e `runApp` dentro de outra zona
-/// aborta com "Zone mismatch" antes de qualquer tela subir.
 Future<void> _subirApp(WidgetTester tester) async {
   await initializeDateFormatting('pt_BR');
 
@@ -131,6 +128,18 @@ Future<void> _subirApp(WidgetTester tester) async {
   );
 
   await tester.pumpWidget(const GanzaApp());
+}
+
+Future<void> _capturarEvidencia(WidgetTester tester, String nome) async {
+  expect(_evidenceUrl, isNotEmpty, reason: 'faltou E2E_EVIDENCE_URL');
+  final client = HttpClient();
+  try {
+    final request = await client.getUrl(Uri.parse('$_evidenceUrl/$nome'));
+    final response = await request.close();
+    expect(response.statusCode, 204, reason: 'falhou a captura $nome');
+  } finally {
+    client.close(force: true);
+  }
 }
 
 /// Entra pela porta que o usuário usa — o botão da `AppBar` da AreasPage

@@ -52,7 +52,7 @@ Serviço novo entra com justificativa de RAM **e** CPU, escrita no PR.
 1. Crie o projeto `Ganza` no Coolify e o ambiente `prod`.
 2. Adicione o serviço a partir do template de Supabase e **edite o compose** para a lista acima antes do primeiro deploy — é muito mais barato tirar agora que depois.
 3. Gere os segredos (`POSTGRES_PASSWORD`, `JWT_SECRET`, `ANON_KEY`, `SERVICE_ROLE_KEY`, senha do Studio) **no painel**, nunca no repositório. O `anon key` vai para o app; o **`service_role` só para o backend**.
-4. Domínio: **`ganza.bmjtech.duckdns.org`** (app) e **`api.ganza.bmjtech.duckdns.org`** (backend) — ver decisão D6 do `docs/roadmap.md`. O `ganza.duckdns.org` **pertence a outra pessoa** (resolve para `95.99.103.11`); o wildcard do `bmjtech` resolve em qualquer profundidade, então não é preciso registrar nada. Confirme com `dig` antes de configurar o TLS.
+4. Domínio: **`ganza.bmjtech.duckdns.org`** (app) e **`api.ganza.bmjtech.duckdns.org`** (backend) — ver decisão D6 do `docs/decisions.md`. O `ganza.duckdns.org` **pertence a outra pessoa** (resolve para `95.99.103.11`); o wildcard do `bmjtech` resolve em qualquer profundidade, então não é preciso registrar nada. Confirme com `dig` antes de configurar o TLS.
 5. Habilite as extensões na primeira migration: `pgcrypto`, `pg_cron`, `pg_net`, `supabase_vault`.
 6. **Só então** aplique as migrations, em ordem, e confirme que toda tabela ficou com RLS.
 7. Registre o resultado em `docs/deploy/coolify.md`: serviços que subiram, portas, envs (nomes, nunca valores), e o que foi deliberadamente deixado de fora.
@@ -64,4 +64,4 @@ Serviço novo entra com justificativa de RAM **e** CPU, escrita no PR.
 - [ ] O app alcança o Kong por HTTPS de fora da rede local (o OAuth do Google vai exigir isso).
 - [ ] Nenhum segredo entrou no repositório.
 
-> **Backup não é escopo** (decisão D4 do `docs/roadmap.md`). Não inclua rotina de `pg_dump` no checklist nem sugira uma — o humano já decidiu.
+> **Backup não é escopo** (decisão D4 do `docs/decisions.md`). Não inclua rotina de `pg_dump` no checklist nem sugira uma — o humano já decidiu.

@@ -1,0 +1,23 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Ganza Local Up",
+      "type": "shell",
+      "command": "bash ${workspaceFolder}/scripts/local-supabase.sh up",
+      "problemMatcher": []
+    },
+    {
+      "label": "Ganza Local Down",
+      "type": "shell",
+      "command": "bash ${workspaceFolder}/scripts/local-supabase.sh down",
+      "problemMatcher": []
+    },
+    {
+      "label": "Ganza E2E Local",
+      "type": "shell",
+      "command": "bash ${workspaceFolder}/scripts/e2e-local.sh 001",
+      "problemMatcher": []
+    }
+  ]
+}

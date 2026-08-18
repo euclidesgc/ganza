@@ -28,14 +28,14 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   mocktail: ^1.0.4
+  patrol: ^4.9.0
 
-  # Instrumentação do E2E (T3.8/T4.7) — driver dos prints em emulador Android.
-  # Não vai para o binário: dev_dependency de `integration_test/` e
-  # `test_driver/`, ambos fora de `lib/`. Sai no wrap do E2E.
-  flutter_driver:
-    sdk: flutter
-  integration_test:
-    sdk: flutter
+patrol:
+  app_name: Ganzá dev
+  flavor: dev
+  test_directory: patrol_test
+  android:
+    package_name: br.com.ganza.ganza.dev
 
 flutter:
   uses-material-design: true

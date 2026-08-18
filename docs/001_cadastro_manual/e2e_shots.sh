@@ -1,63 +1,75 @@
 #!/usr/bin/env bash
 #
-# E2E da listagem de transações — Fase 3 (T3.8) de docs/01-cadastro-manual.
+# E2E da listagem de transações — Fase 3 (T3.8) de docs/001_cadastro_manual.
 # Gera TODOS os prints do DoD por máquina. Ao dev humano sobra conferir as
 # imagens; nenhum passo é operado à mão.
 #
-#   uso:  RODADA=01 ./docs/01-cadastro-manual/e2e_shots.sh
-#         ./docs/01-cadastro-manual/e2e_shots.sh down    # só limpa
+#   uso:  RODADA=01 ./docs/001_cadastro_manual/e2e_shots.sh
+#         ./docs/001_cadastro_manual/e2e_shots.sh down    # só limpa
 #
 # Pré-requisitos (exportados antes de rodar):
 #   SUPABASE_URL  ANON_KEY  JWT_DONO  USER_ID
 #
 # ── RASTRO QUE ESTE SCRIPT DEIXA (tudo removido por `down`, que também roda
 #    no trap EXIT) ───────────────────────────────────────────────────────────
-#   • emulador Android `Pixel_8_Pro` headless          → adb emu kill
-#   • ~/.gradle/init.d/ganza-e2e.gradle                → rm
-#   • rede do emulador desligada na cena 1             → svc wifi/data enable
+#   • emulador Android `Pixel_8_Pro` headless          → controller por PID
+#   • saída para o Supabase local bloqueada na cena 1  → iptables -D
 #   • app instalado no emulador (br.com.ganza.ganza)   → fica; morre com o AVD
-#   • processos `flutter drive`                        → pkill no trap
+#   • processos `patrol test`                          → pkill no trap
 #
-# ── O QUE ELE NÃO FAZ, E POR QUÊ ──────────────────────────────────────────────
-# A skill `instrumentar-e2e` manda subir base efêmera (`docker compose down -v`)
-# e jamais apontar para produção. Aqui não há base local: a D3/D7 travou um
-# único ambiente remoto. Consequência assumida e registrada: o script escreve
-# no Supabase de produção, mas só nas linhas da própria conta do dono, sempre
-# por id explícito, nunca por filtro amplo, com snapshot do estado anterior
-# salvo em `estado_inicial.json` antes de qualquer DELETE — e aborta se
-# encontrar mais linhas do que as que ele mesmo planta.
+# Este roteiro só aceita a stack local descartável iniciada por
+# `scripts/local-supabase.sh`. Dados de HML e produção nunca são alterados.
 
 set -uo pipefail
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 APP="$RAIZ/app"
 RODADA="${RODADA:-01}"
-DESTINO="$RAIZ/docs/01-cadastro-manual/evidencias/rodada_$RODADA"
+DESTINO="$RAIZ/docs/001_cadastro_manual/e2e/round_$RODADA"
 AVD="${AVD:-Pixel_8_Pro}"
 SERIAL="${SERIAL:-emulator-5554}"
-PACOTE="br.com.ganza.ganza"
-INIT_GRADLE="$HOME/.gradle/init.d/ganza-e2e.gradle"
 LOGS="$DESTINO/logs"
 FUSO="${FUSO:-America/Sao_Paulo}"
+EVIDENCE_PORT="${E2E_EVIDENCE_PORT:-8765}"
+EVIDENCE_PID=''
+PATROL_PID=''
+EMULATOR_OWNED=0
 
-export PATH="$PATH:${ANDROID_HOME:-$HOME/Android/Sdk}/platform-tools:${ANDROID_HOME:-$HOME/Android/Sdk}/emulator"
+export PATH="$PATH:$HOME/.puro/shared/pub_cache/bin:$HOME/.pub-cache/bin:${ANDROID_HOME:-$HOME/Android/Sdk}/platform-tools:${ANDROID_HOME:-$HOME/Android/Sdk}/emulator"
 
 falhas=0
 ok()   { printf 'PASS  %s\n' "$*"; }
 nok()  { printf 'FAIL  %s\n' "$*"; falhas=$((falhas + 1)); }
 etapa(){ printf '\n── %s\n' "$*"; }
 
+bloquear_supabase_local() {
+  adb -s "$SERIAL" root >/dev/null
+  adb -s "$SERIAL" wait-for-device
+  adb -s "$SERIAL" reverse "tcp:$EVIDENCE_PORT" "tcp:$EVIDENCE_PORT" >/dev/null
+  adb -s "$SERIAL" shell iptables -I OUTPUT -d 10.0.2.2 -j REJECT >/dev/null
+  adb -s "$SERIAL" shell iptables -C OUTPUT -d 10.0.2.2 -j REJECT >/dev/null
+}
+
+liberar_supabase_local() {
+  adb -s "$SERIAL" shell iptables -D OUTPUT -d 10.0.2.2 -j REJECT 2>/dev/null
+}
+
 # ─────────────────────────────────────────────────────────────── limpeza ──
 down() {
   etapa 'limpeza'
-  pkill -f 'flutter_tools.snapshot drive' 2>/dev/null
-  adb -s "$SERIAL" shell svc wifi enable  2>/dev/null
-  adb -s "$SERIAL" shell svc data enable  2>/dev/null
-  rm -f "$INIT_GRADLE"
-  adb -s "$SERIAL" emu kill 2>/dev/null
-  sleep 2
-  adb devices | grep -q "$SERIAL" && echo "  emulador ainda listado (encerrando)" || echo "  emulador encerrado"
-  echo "  init.d removido: $INIT_GRADLE"
+  if [ -n "$PATROL_PID" ]; then
+    kill -TERM -- "-$PATROL_PID" 2>/dev/null || true
+    wait "$PATROL_PID" 2>/dev/null || true
+  fi
+  if [ -n "$EVIDENCE_PID" ]; then
+    kill "$EVIDENCE_PID" 2>/dev/null || true
+    wait "$EVIDENCE_PID" 2>/dev/null || true
+  fi
+  if [ "$EMULATOR_OWNED" -eq 1 ]; then
+    adb -s "$SERIAL" reverse --remove "tcp:$EVIDENCE_PORT" 2>/dev/null
+    liberar_supabase_local
+    "$RAIZ/scripts/e2e-emulator.sh" stop
+  fi
 }
 
 if [ "${1:-run}" = 'down' ]; then down; exit 0; fi
@@ -68,12 +80,27 @@ etapa 'pré-requisitos'
 for var in SUPABASE_URL ANON_KEY JWT_DONO USER_ID; do
   [ -n "${!var:-}" ] || { nok "variável $var não exportada"; exit 1; }
 done
-for bin in adb emulator flutter curl python3; do
+case "$SUPABASE_URL" in
+  http://127.0.0.1:*|http://localhost:*|http://0.0.0.0:*) ;;
+  *) nok "SUPABASE_URL remoto recusado: $SUPABASE_URL"; exit 1 ;;
+esac
+for bin in adb emulator patrol curl python3; do
   command -v "$bin" >/dev/null || { nok "binário ausente: $bin"; exit 1; }
 done
 ok 'ambiente completo'
 
 mkdir -p "$DESTINO" "$LOGS"
+python3 "$RAIZ/scripts/capture-e2e-evidence.py" \
+  --port "$EVIDENCE_PORT" --serial "$SERIAL" --destination "$DESTINO" \
+  > "$LOGS/captura.log" 2>&1 &
+EVIDENCE_PID=$!
+for _ in $(seq 1 20); do
+  curl -fsS "http://127.0.0.1:$EVIDENCE_PORT/health" >/dev/null && break
+  sleep 1
+done
+curl -fsS "http://127.0.0.1:$EVIDENCE_PORT/health" >/dev/null \
+  && ok 'servidor de captura pronto' \
+  || { nok 'servidor de captura não iniciou'; exit 1; }
 
 api() { # <método> <caminho> [corpo]
   local metodo="$1" caminho="$2" corpo="${3:-}"
@@ -89,15 +116,16 @@ api() { # <método> <caminho> [corpo]
 
 # ───────────────────────────────────────────────────────────── emulador ──
 etapa 'emulador'
-if ! adb devices | grep -q "${SERIAL}[[:space:]]*device"; then
-  # `-timezone` no boot: a lista renderiza a data no fuso do aparelho, e a
-  # prova do fix de fuso (linha guardada em 01:30Z de 16/08, vivida às 22:30
-  # de 15/08) só existe se o emulador estiver em America/Sao_Paulo.
-  nohup emulator -avd "$AVD" -no-window -no-audio -no-boot-anim \
-    -timezone "$FUSO" \
-    -gpu swiftshader_indirect -no-snapshot > "$LOGS/emulador.log" 2>&1 &
-  adb wait-for-device
+# `-timezone` no boot: a lista renderiza a data no fuso do aparelho, e a
+# prova do fix de fuso (linha guardada em 01:30Z de 16/08, vivida às 22:30
+# de 15/08) só existe se o emulador estiver em America/Sao_Paulo.
+# O controller recusa um serial externo: a rodada não assume um AVD alheio.
+if ! "$RAIZ/scripts/e2e-emulator.sh" start "$AVD" "$SERIAL" "$FUSO" "$LOGS/emulador.log"; then
+  nok 'não foi possível reservar um emulador exclusivo para a rodada'
+  exit 1
 fi
+EMULATOR_OWNED=1
+adb wait-for-device
 for _ in $(seq 1 60); do
   [ "$(adb -s "$SERIAL" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = '1' ] && break
   sleep 5
@@ -106,8 +134,7 @@ done
   && ok "emulador $AVD pronto (API $(adb -s "$SERIAL" shell getprop ro.build.version.sdk | tr -d '\r'))" \
   || { nok 'emulador não subiu'; exit 1; }
 
-adb -s "$SERIAL" shell svc wifi enable >/dev/null 2>&1
-adb -s "$SERIAL" shell svc data enable >/dev/null 2>&1
+adb -s "$SERIAL" reverse "tcp:$EVIDENCE_PORT" "tcp:$EVIDENCE_PORT" >/dev/null
 
 # ─────────────────────────────────────────────────────── fuso do emulador ──
 # Não é detalhe de ambiente: é o que a cena 3 prova. Se o aparelho estivesse
@@ -127,9 +154,6 @@ else
   nok "fuso do emulador é '$(fuso_atual)', esperava $FUSO — a prova de fuso não valeria"
   exit 1
 fi
-
-install -D -m 644 "$RAIZ/docs/01-cadastro-manual/e2e_gradle_init.gradle" "$INIT_GRADLE"
-ok 'init.d do Gradle instalado (força espresso 3.6.1 — ver e2e_gradle_init.gradle)'
 
 # ────────────────────────────────────────────── contrato antes da tela ──
 # O que a máquina consegue afirmar sozinha fica aqui; a tela só é chamada
@@ -154,40 +178,35 @@ ok "estado anterior salvo em $(basename "$DESTINO")/estado_inicial.json"
 # precisa da tabela vazia.
 cena() { # <nome> <arquivo>
   local nome="$1" arquivo="$2"
-  ( cd "$APP" && E2E_DESTINO="$DESTINO" timeout 900 flutter drive \
-      --driver=test_driver/integration_test.dart \
-      --target=integration_test/lista_transacoes_test.dart \
-      -d "$SERIAL" --flavor prod \
-      --dart-define-from-file=config/prod.json \
+  ( cd "$APP" && exec setsid timeout --kill-after=30s 300 patrol test \
+      --target=patrol_test/lista_transacoes_test.dart \
+      --device "$SERIAL" --flavor dev \
+      --dart-define-from-file=config/local.json \
       --dart-define="E2E_CENA=$nome" \
       --dart-define="E2E_ARQUIVO=$arquivo" \
+      --dart-define="E2E_EVIDENCE_URL=http://127.0.0.1:$EVIDENCE_PORT" \
       --dart-define="E2E_JWT=$JWT_DONO" \
       --dart-define="E2E_USER_ID=$USER_ID" \
-      --dart-define="E2E_EMAIL=euclides.catunda@gmail.com" ) \
-    > "$LOGS/cena_$nome.log" 2>&1
+      --dart-define="E2E_EMAIL=e2e@ganza.local" ) \
+    > "$LOGS/cena_$nome.log" 2>&1 &
+  PATROL_PID=$!
+  wait "$PATROL_PID"
   local saida=$?
+  PATROL_PID=''
   if [ $saida -eq 0 ] && [ -s "$DESTINO/$arquivo.png" ]; then
-    ok "cena '$nome' — asserções verdes e print em $arquivo.png"
+    ok "cena '$nome' — Patrol verde e print em $arquivo.png"
   else
     nok "cena '$nome' — saída $saida; ver logs/cena_$nome.log"
   fi
 }
 
-etapa 'cena 1 · erro de leitura com a rede do emulador derrubada'
-adb -s "$SERIAL" shell svc wifi disable
-adb -s "$SERIAL" shell svc data disable
-sleep 5
-adb -s "$SERIAL" shell ping -c1 -W2 8.8.8.8 >/dev/null 2>&1 \
-  && nok 'emulador ainda tem rede — a cena de erro não provaria nada' \
-  || ok 'rede do emulador derrubada'
+etapa 'cena 1 · erro de leitura com Supabase local indisponível'
+bloquear_supabase_local \
+  && ok 'saída do emulador para o Supabase local bloqueada' \
+  || { nok 'não foi possível bloquear o Supabase local'; exit 1; }
 cena erro 01_erro_de_leitura
-adb -s "$SERIAL" shell svc wifi enable
-adb -s "$SERIAL" shell svc data enable
-for _ in $(seq 1 20); do
-  adb -s "$SERIAL" shell ping -c1 -W2 8.8.8.8 >/dev/null 2>&1 && break
-  sleep 3
-done
-ok 'rede do emulador restaurada'
+liberar_supabase_local
+ok 'saída para o Supabase local restaurada'
 
 # ───────────────────────────────────────────────── cena 2 · estado vazio ──
 etapa 'cena 2 · estado vazio (tabela da conta esvaziada por id)'
@@ -290,10 +309,8 @@ PY
 
 # ─────────────────────────────────────────────────────── snapshot + README ──
 etapa 'snapshot dos scripts na rodada'
-cp "$RAIZ/docs/01-cadastro-manual/e2e_shots.sh"            "$DESTINO/e2e_shots.sh.snapshot"
-cp "$RAIZ/docs/01-cadastro-manual/e2e_gradle_init.gradle"  "$DESTINO/e2e_gradle_init.gradle.snapshot"
-cp "$APP/integration_test/lista_transacoes_test.dart"      "$DESTINO/lista_transacoes_test.dart.snapshot"
-cp "$APP/test_driver/integration_test.dart"                "$DESTINO/integration_test_driver.dart.snapshot"
+cp "$RAIZ/docs/001_cadastro_manual/e2e_shots.sh"            "$DESTINO/e2e_shots.sh.snapshot"
+cp "$APP/patrol_test/lista_transacoes_test.dart"            "$DESTINO/lista_transacoes_test.dart.snapshot"
 ok 'scripts congelados na pasta da rodada'
 
 etapa 'README da rodada'
@@ -302,11 +319,11 @@ etapa 'README da rodada'
 cat > "$DESTINO/README.md" <<README
 # Rodada $RODADA — E2E da listagem de transações (Fase 3 · T3.8)
 
-Gerado por \`docs/01-cadastro-manual/e2e_shots.sh\` em $(date '+%d/%m/%Y %H:%M')
+Gerado por \`docs/001_cadastro_manual/e2e_shots.sh\` em $(date '+%d/%m/%Y %H:%M')
 — emulador \`$AVD\` (Android API $(adb -s "$SERIAL" shell getprop ro.build.version.sdk 2>/dev/null | tr -d '\r'),
-fuso \`$(fuso_atual)\`), build \`--flavor prod\` contra o Supabase de produção.
-Nenhum print foi tirado à mão: o app é dirigido por \`integration_test\` e a
-captura sai do driver.
+fuso \`$(fuso_atual)\`), build \`--flavor dev\` contra o Supabase local.
+Nenhum print foi tirado à mão: o teste Patrol pede o PNG no marcador exato e o
+servidor local o grava com \`adb screencap\`.
 
 O fuso do aparelho é parte da prova, não do ambiente: a lista formata a data
 no fuso de quem lê. O script fixa \`$FUSO\` no boot e **aborta** se não
@@ -318,9 +335,9 @@ conseguir — um print tirado num emulador em UTC não provaria o fuso.
 
 | arquivo | o que prova |
 | --- | --- |
-| \`01_erro_de_leitura.png\` | Com a rede do emulador derrubada (\`svc wifi/data disable\`), a lista mostra ícone de erro, mensagem e o botão **Tentar de novo**. O teste também afirma que o texto do estado vazio **não** aparece aqui. |
+| \`01_erro_de_leitura.png\` | Com a saída para o Supabase local bloqueada por \`iptables\`, a lista mostra ícone de erro, mensagem e o botão **Tentar de novo**. O teste também afirma que o texto do estado vazio **não** aparece aqui. |
 | \`02_estado_vazio.png\` | Conta sem nenhuma transação (todas apagadas por id, ver \`estado_inicial.json\`): **"Nenhuma transação registrada."**, sem ilustração e sem entusiasmo. O teste afirma que **"Tentar de novo" não aparece**. |
-| \`01\` + \`02\` juntos | Falha e vazio são telas **visivelmente diferentes** — o \`prd.md\` proíbe que um erro se disfarce de "nada aqui". Duas imagens, dois estados. |
+| \`01\` + \`02\` juntos | Falha e vazio são telas **visivelmente diferentes** — o \`01_prd.md\` proíbe que um erro se disfarce de "nada aqui". Duas imagens, dois estados. |
 | \`03_lista_carregada.png\` | Lista com as três linhas recriadas **pela Edge Function real** (\`POST /functions/v1/transactions\`, nunca por SQL). Prova quatro coisas na mesma imagem: **(a) fuso** — \`Venda de sábado à noite\` está guardada como \`2026-08-16T01:30:00+00:00\` (ver \`linhas_semeadas.json\`) e aparece como **\`15/08, sábado\`**, o dia que o usuário viveu às 22:30; formatada em UTC sairia \`16/08, domingo\`. **(b) entrada** — a mesma linha é \`direction: "in"\` e vem com **\`+\`** e a cor de entrada, ao lado de duas saídas em \`−\` e cor de saída. **(c) valor e data no formato do DoD** — \`Almoço\`, \`14/08, sexta\`, \`−R$ 45,00\` à direita, com o menos tipográfico (−, U+2212). **(d) volta** — a \`AppBar\` tem a seta de voltar para Áreas (rota empilhada por \`pushNamed\`). |
 | \`04_algarismos_tabulares.png\` | **Recorte ampliado 2× da mesma captura de \`03\`** (não é outra tela), na coluna de valores: \`+R\$ 1.234.567,89\` imediatamente acima de \`−R\$ 7,00\`, e \`−R\$ 45,00\` abaixo. O maior e o menor valor colados, com **sinais opostos**: é onde a coluna dançaria se a fonte não tivesse \`FontFeature.tabularFigures()\` (T3.2), e onde se vê se o \`+\` e o \`−\` ocupam a mesma largura. |
 | \`linhas_semeadas.json\` | O que o banco guardou nesta rodada — \`occurred_at\` em UTC ao lado do que o print mostra. É por aqui que se confere o fuso sem abrir o Postgres. |

@@ -1,10 +1,14 @@
-# F0.9 — Cadastro manual ponta a ponta · PRD
+# 001 - Cadastro manual ponta a ponta · PRD
 
-Enriquece `specs.md`. O que está lá não se repete aqui: este documento é o contrato do "pronto".
+Enriquece `02_specs.md`. O que está lá não se repete aqui: este documento é o contrato do "pronto".
+
+Decisões desta feature estão em [`decisions.md`](decisions.md). Desvios já
+resolvidos e a reconciliação documental correspondente estão em
+[`changes.md`](changes.md); este PRD descreve somente o estado final.
 
 ## 1. Resultado esperado
 
-Ao fim desta etapa, o dev abre o app na conta real, registra "Almoço, R$ 45,00, ontem" em menos de dez segundos e vê a linha na tela — e essa linha existe no Postgres de produção, protegida por RLS, tendo passado por uma Edge Function. Nenhum modelo de IA foi chamado.
+Ao fim desta etapa, o dev abre o app na conta local de teste, registra "Almoço, R$ 45,00, ontem" em menos de dez segundos e vê a linha na tela — e essa linha existe no Postgres local, protegida por RLS, tendo passado por uma Edge Function. Nenhum modelo de IA foi chamado.
 
 O que isso prova, e é o único motivo da etapa existir: **as cinco camadas se falam**. Flutter → Edge Function → Postgres → RLS → PostgREST → Flutter. Toda feature da Fase 1 em diante reusa esse trajeto; se ele estiver torto, o erro aparece com IA por cima e ninguém sabe de quem é a culpa.
 
@@ -111,9 +115,16 @@ Ordem do `CLAUDE.md`: E2E atestado primeiro, bateria automatizada depois.
 - *widget*: formulário — botão desabilitado com campo inválido, desabilitado durante o envio, dados preservados após erro
 - *widget*: **estado vazio da lista** (exigido no DoD)
 
-**E2E no emulador** (`docs/01-cadastro-manual/evidencias/rodada_01/`, atestado pelo dev)
+**E2E no emulador** (`patrol test`,
+`docs/001_cadastro_manual/e2e/round_01/`, atestado pelo dev)
 
-O print precisa mostrar, na mesma imagem: a transação registrada na lista, a data explícita no formato `15/08, sexta` e o valor alinhado com algarismos tabulares. Um segundo print do estado vazio antes do cadastro fecha o par. O `README.md` da rodada diz o que cada imagem prova.
+Patrol executa os cenários por uma ponte JUnit versionada em
+`androidTest`, e o roteiro captura um PNG no instante marcado pelo teste.
+Vídeo não é gerado: asserções, PNGs e logs são a evidência durável da rodada.
+O print precisa mostrar, na mesma imagem: a
+transação registrada na lista, a data explícita no formato `15/08, sexta` e o
+valor alinhado com algarismos tabulares. Um segundo print do estado vazio antes
+do cadastro fecha o par. O `report.md` liga cada passo ao PNG e ao log.
 
 **Prova de RLS pelo caminho real** (comando, saída literal)
 - `GET /rest/v1/transactions` anônimo → `[]`
@@ -122,7 +133,7 @@ O print precisa mostrar, na mesma imagem: a transação registrada na lista, a d
 
 ## 8. Dependências e riscos
 
-- **P5 (fontes)** bloqueia a verificação da última linha do DoD. Ver Pergunta P3 do `specs.md`.
-- **D3/D7**: o E2E roda contra produção, o único ambiente remoto. As linhas criadas no teste são dado real. Ver Pergunta P2 do `specs.md`.
+- **P5 (fontes)** bloqueia a verificação da última linha do DoD. Ver Pergunta P3 do `02_specs.md`.
+- **D3/D7**: o E2E roda exclusivamente na stack local descartável. HML não recebe escrita de teste.
 - **P8 (role dedicado no Postgres)** não bloqueia: a escrita desta etapa usa o JWT do usuário, não uma conexão de serviço.
 - **R1 (escopo)**: o maior risco desta etapa não é técnico. É o formulário crescer — categoria, conta, forma de pagamento, anexo — e a Fase 0 nunca fechar. A régua é o DoD: criada e listada.

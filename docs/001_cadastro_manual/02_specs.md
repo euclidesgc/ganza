@@ -1,6 +1,10 @@
-# F0.9 — Cadastro manual ponta a ponta · Specs
+# 001 - Cadastro manual ponta a ponta · Specs
 
-Último item da Fase 0. Fonte do "o quê": `docs/plano.md` §6.5, §6.7, §7, §11.4. Fronteira de escopo: o DoD do item no `docs/roadmap.md`.
+Primeiro item do roadmap por feature. Fonte do "o quê": `docs/plano.md` §6.5, §6.7, §7, §11.4. Fronteira de escopo: o `01_prd.md` e o `03_plan.md`.
+
+As decisões específicas estão em [`decisions.md`](decisions.md). O histórico
+append-only de desvios e as reconciliações está em [`changes.md`](changes.md);
+estas specs descrevem somente o estado final.
 
 ## 1. O que esta etapa entrega
 
@@ -168,7 +172,26 @@ Priorizadas. Cada uma muda o schema ou a tela; nenhuma tem resposta no `docs/pla
 
 ### P2 — Dá para apagar uma transação nesta etapa? (tela)
 
-O E2E roda contra **o único ambiente remoto, que é produção** (D3/D7). As transações de teste ficam lá para sempre e vão poluir o primeiro dashboard da Fase 3.
+O E2E roda exclusivamente contra a stack local descartável. Os roteiros recusam
+`SUPABASE_URL` remoto, aplicam bootstrap e migrations locais e removem dados ao
+encerrar; HML não recebe escrita de teste. O executor Android é `patrol test`,
+com `PatrolJUnitRunner`, orquestrador AndroidX e a ponte versionada
+`android/app/src/androidTest/java/br/com/ganza/ganza/MainActivityTest.java`.
+Ela lista os `patrolTest` do bundle e executa cada caso no emulador. Cada
+cenário produz asserções Dart, PNG capturado no ponto de evidência e logs.
+Vídeo não é gravado. O roteiro configura `adb reverse` para que o callback de
+captura em `127.0.0.1` funcione sem depender da rota de rede do emulador.
+O PNG é solicitado imediatamente após a asserção que estabiliza o estado, sem
+espera artificial que permita diálogos externos sobreporem a tela.
+Os alvos ficam em `app/patrol_test/`; o pacote Flutter `integration_test` não
+faz parte deste harness. `scripts/e2e-emulator.sh` grava PID, serial e AVD de
+cada rodada, recusa usar emulador externo e encerra apenas o processo que
+iniciou, inclusive no `trap` do executor pai.
+`scripts/e2e-local.sh` reserva a primeira `round_NN` inexistente entre `01` e
+`03`; uma pasta já existente nunca é sobrescrita.
+Para induzir falha de transporte, o roteiro bloqueia apenas a saída para o
+Supabase local (`10.0.2.2`) por `iptables`; ele não desliga a conectividade
+global do emulador.
 
 | Opção | O que custa | O que ganha |
 |---|---|---|

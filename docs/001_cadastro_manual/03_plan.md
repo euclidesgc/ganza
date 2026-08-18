@@ -1,24 +1,46 @@
-# F0.9 — Cadastro manual ponta a ponta · Plano
+# 001 - Cadastro manual ponta a ponta · Plano
 
-Fatiamento e execução. O "o quê" está em [`specs.md`](specs.md), o contrato do pronto em [`prd.md`](prd.md), a fronteira de escopo no DoD do item F0.9 do [`docs/roadmap.md`](../roadmap.md). **Este plano não inventa escopo: ele distribui aquele DoD entre as fases e acrescenta o que falta para cada fase se sustentar sozinha.**
+Fatiamento e execução. O "o quê" está em [`02_specs.md`](02_specs.md), o contrato do pronto em [`01_prd.md`](01_prd.md), as decisões desta feature em [`decisions.md`](decisions.md), os desvios em [`changes.md`](changes.md), e o item canônico está no [`docs/roadmap.md`](../roadmap.md). **Este plano não inventa escopo: ele distribui o DoD entre as fases e acrescenta o que falta para cada fase se sustentar sozinha.**
 
 Estado: **Fase 3 em andamento** · branch `feature/GZ-16-listar-transacoes` (de `develop`).
 
 ---
 
+## Gauntlet
+
+**Referência:** [`01_prd.md`](01_prd.md), [`02_specs.md`](02_specs.md),
+[`decisions.md`](decisions.md), [`changes.md`](changes.md), este plano,
+`CLAUDE.md` e as decisões transversais em [`docs/decisions.md`](../decisions.md).
+
+**Rubrica binária:** cada fase só passa quando contrato/DoD, arquitetura,
+invariantes de produto, segurança e evidência E2E aplicável estiverem `pass`.
+Resultado subjetivo, impressão geral ou nota não são critérios de aprovação.
+
+**Invariantes bloqueantes:** RLS comprovada, nenhuma credencial no cliente,
+dinheiro em centavos inteiros, função com JWT do usuário e nenhuma gravação sem
+confirmação quando a feature passar a ter ingestão por IA.
+
+**Provas:** cada crítico devolve `pass` ou `fail`, evidência reproduzível,
+arquivo/linha e ação corretiva. QA executa os comandos; CISO e crítico
+integrador revisam sem editar a fatia implementada.
+
+**Limites:** no máximo 3 rodadas e 45 minutos por fase. Uma reprovação retorna
+ao executor; ao atingir o limite, o tech-manager registra o dossiê e aguarda
+decisão humana. Depois de consolidar tarefas paralelas, o crítico integrador
+revisa as dependências cruzadas antes do fechamento.
+
+**Evidência E2E:** fica em `e2e/round_NN/`. Cada `report.md` liga cada passo a
+um print, log ou saída de comando. O E2E roda somente contra a stack
+local, por `patrol test`.
+
+---
+
 ## 1. Decisões travadas antes de começar
 
-| # | Decisão | Quem travou | Consequência no plano |
-|---|---|---|---|
-| A1 | **`transactions.area_id` existe (nulável, FK para `areas`), mas o formulário não pede a área.** Dinheiro não se compartimenta por área (`docs/plano.md` §6.3); forçar a escolha entre as 4 áreas padrão para registrar um almoço pede uma decisão que o produto não quer. | dev | A coluna entra na migration da Fase 1. `area_id` **não faz parte do payload** da Edge Function — o que também elimina o IDOR teórico (FK não respeita RLS). A Fase 1 do produto (chat) passa a preencher `area_id` sem migration nova. Resolve a **P1** do `specs.md` pela opção B. |
-| A2 | **Sem excluir transação nesta etapa.** Correção é F21, Fase 3. Limpeza do E2E é pelo Studio/psql. | recomendação do `specs.md` P2, opção A | Nenhuma tarefa de `delete` no plano. A política RLS já cobriria o `delete`; a ausência é de UI, não de banco. |
-| A3 | **As fontes Fraunces e IBM Plex Sans entram nesta feature.** | recomendação do `specs.md` P3, opção A | Tarefa **T3.2**. É o que fecha honestamente a linha "algarismos tabulares" do DoD do roadmap e encerra a **P5** das decisões pendentes. Sem isso a linha fecha com asterisco. |
-| A4 | **A escrita usa `supabase_flutter` → `client.functions.invoke('transactions', …)`, não o `Dio` de `core/network/`.** | tech-lead | O `Dio` atual tem `baseUrl: config.apiBaseUrl`, que hoje é `http://localhost:3333` — outro deployável. A Edge Function mora em `SUPABASE_URL/functions/v1/` e o Kong exige o header `apikey`; o `FunctionsClient` do `supabase_flutter` injeta `apikey` **e** `Authorization` sozinho, com a mesma sessão da leitura. Custo: `failureFromException` precisa aprender `FunctionException` (**T4.2**). |
-| A5 | **O contrato de erro do backend é `{"error":{"code":"…","message":"…"}}` em todo lugar, inclusive no roteador.** | tech-lead | `supabase/functions/main/index.ts` hoje devolve `{"error":"string"}`. Como `transactions` não é pública, o 401 por falta de `Authorization` pode ser emitido **pelo roteador**, não pelo handler — e a camada `data` do app quebraria ao ler `error.code`. Alinhar o roteador é tarefa **T2.4**, três linhas, e vale para o `health` também. |
-| A6 | **A home ganha um ponto de entrada para a lista, e só isso.** | tech-lead | `specs.md` §6.3 diz que a lista é alcançável a partir da home e que a home não muda. Concilia-se assim: uma ação na `AppBar` da `AreasPage`, sem dashboard, sem card, sem resumo — §11.4 continua reservando a tela inicial para "hoje e esta semana" (Fase 2). Tarefa **T3.7**, única linha que toca o `areas_module`. |
-| A7 | **Não há PRs simultâneos nesta feature.** | processo | 1 fase = 1 PR, e a fase seguinte só começa depois do merge da anterior. A skill `empilhar-prs` **não** se aplica aqui. |
-
-**No roadmap (T1.3):** A1 → **D13**, A2 → **D14**, A3 → **D15**. A4–A7 ficam só aqui: são escolhas de implementação e de processo desta feature, não travam decisão para o projeto. A **D12** nasceu durante a Fase 1 e não tem `A` correspondente — está descrita no desvio registrado no §5.
+As decisões A1–A7 e seus impactos são a fonte de verdade em
+[`decisions.md`](decisions.md). Decisões globais continuam em
+[`../decisions.md`](../decisions.md). Desvio posterior é registrado em
+[`changes.md`](changes.md) antes da reconciliação deste plano.
 
 ---
 
@@ -33,7 +55,7 @@ O que imitar, e onde. Levantado pelo grafo antes de escrever este plano.
 - Estado: `sealed class AreasState` + `final class` por estado, via `part of` no cubit; guarda `if (isClosed) return;` depois de todo `await`.
 - Página: `StatelessWidget` + `static Widget pageBuilder` — único ponto que toca o `get_it`.
 - Registro: `app/lib/injection.dart` (`registerDependencies`) e `app/lib/app_router.dart` (`routes: [...]`), que só importam barrels públicos.
-- Sessão: não existe wrapper. Token é `getIt<SupabaseClient>().auth.currentSession?.accessToken`; usuário é `getIt<GetCurrentUser>()()` → `AuthenticatedUser?`. A guarda de rota do `app_router.dart` já manda para `/entrar` quando a sessão cai — é o que atende o caso "JWT expirado durante o preenchimento" do `prd.md`.
+- Sessão: não existe wrapper. Token é `getIt<SupabaseClient>().auth.currentSession?.accessToken`; usuário é `getIt<GetCurrentUser>()()` → `AuthenticatedUser?`. A guarda de rota do `app_router.dart` já manda para `/entrar` quando a sessão cai — é o que atende o caso "JWT expirado durante o preenchimento" do `01_prd.md`.
 - Erros: `sealed class Failure` em `app/lib/core/error/failure.dart` (`NetworkFailure`, `NotFoundFailure`, `ValidationFailure`, `AuthFailure`, `PermissionFailure`, `UnexpectedFailure`). O tradutor único é a função de topo `failureFromException(Object)` em **`app/lib/core/network/failure_from_exception.dart`** (mora em `core/network`, não em `core/error`).
 - **Não existe formatador de moeda nem de data, nem helper de centavos.** `intl: ^0.20.2` está no `pubspec.yaml` e não é usado em uma única linha. Tudo isso nasce nesta feature.
 - Tema: `app/lib/core/theme/` com `AppSpacing`, `AppRadii`, `AppDurations`, `AppTypography`, `GanzaColors` (`ThemeExtension`) e a extensão de contexto (`.theme`, `.texts`, `.colors`, `.ganza`). `scripts/gates_guard.sh` reprova qualquer literal de estilo fora dessa pasta.
@@ -110,17 +132,20 @@ Escrito uma vez para não se repetir em cinco lugares. **Nenhuma fase avança se
 
 ### Fase 1 — Migration `transactions` + docs vivas · PR 1
 
-Branch: `feature/GZ-14-migration-transactions` (já criada). **A única peça irreversível em produção, sozinha em seu PR.**
+Branch: `feature/GZ-14-migration-transactions` (já criada). A migration fica
+isolada em seu PR e é provada primeiro em banco local vazio.
 
 **Tarefas**
 
 - [x] **T1.1** — `supabase/migrations/0004_criar_transactions.sql` conforme o §3 deste plano, via skill `criar-migration`. Zero comentário na mecânica; comentário só no *porquê* de `area_id` ser nulável e de `amount` ser `bigint`. · camada **migration** · `especialista-backend`
-- [x] **T1.2** — `docs/01-cadastro-manual/{specs.md,prd.md,plan.md}` entram neste PR. · camada **docs** · `tech-lead`
+- [x] **T1.2** — `docs/001_cadastro_manual/{02_specs.md,01_prd.md,03_plan.md}` entram neste PR. · camada **docs** · `tech-lead`
 - [x] **T1.3** — `docs/roadmap.md`: F0.9 para `[-]`, registro das decisões A1/A2/A3 na tabela de decisões travadas (viraram **D13**, **D14** e **D15**) e baixa da **P5** condicionada à T3.2. Fechou junto o que saiu das cancelas desta fase: **D12** (o stand-in de `auth.uid()`), a correção do texto da **P8**, a dívida de FK×RLS na Fase 1 do roadmap e o item de CORS na Fase 8. · camada **docs** · `tech-lead`
 
 Sequenciais. Não marco `[paralela]` aqui: são três tarefas curtas e duas escritas simultâneas na mesma working directory se atropelam — o custo de worktree não se paga.
 
-**Desvio aprovado nesta fase** — `supabase/ci-bootstrap.sql` entrou no PR sem tarefa que o previsse. O stand-in de `auth.uid()` lia `request.jwt.claim.sub` (chave escalar) enquanto o GoTrue lê `request.jwt.claims ->> 'sub'` (JSON): a linha 5 do DoD abaixo, escrita na forma real, teria falhado — e, pior, poderia "passar" pelo motivo errado, já que com `auth.uid()` NULL a RLS rejeita o próprio dono e a negação se confunde com a prova. Corrigir a função custou o mesmo que remendar o texto do DoD e não deixa a armadilha de pé para a próxima migration. Aprovado pelo dev, travado como **D12** no roadmap, e entra no `variance_report.md` da **T5.4**.
+O desvio da Fase 1 sobre o stand-in de `auth.uid()` está registrado como
+[`CHG-001`](changes.md#chg-001---stand-in-de-authuid-alinhado-ao-formato-real-do-gotrue).
+Este plano já descreve a prova corrigida.
 
 **DoD da Fase 1**
 
@@ -139,15 +164,17 @@ Sequenciais. Não marco `[paralela]` aqui: são três tarefas curtas e duas escr
 
 ### Fase 2 — Edge Function `transactions` + testes Deno + publicação · PR 2
 
-Branch: `feature/GZ-15-edge-function-transactions`. Contrato em `specs.md` §4.
+Branch: `feature/GZ-15-edge-function-transactions`. Contrato em `02_specs.md` §4.
 
 **Tarefas**
 
 - [x] **T2.1** — `supabase/functions/transactions/handler.ts`: `export default async function handler(req: Request): Promise<Response>`. Só `POST` (senão `405`). Checa `Authorization` na borda **antes de tocar no banco** (senão `401`, mesmo com `VERIFY_JWT` desligado). Cria o client com o **JWT do usuário**, nunca `service_role`. Valida `direction ∈ {in,out}`, `amount` número **inteiro** `> 0`, `description` string com 1..200 após `trim`, `occurred_at` opcional e ISO-8601 parseável. `201` com a linha criada. Nenhum `any` atravessa; `area_id` e `user_id` **não** fazem parte do payload aceito. · camada **backend** · `especialista-backend`
 - [x] **T2.2** — `supabase/functions/transactions/index.ts` com `Deno.serve(handler)` e nada mais. · camada **backend** · `especialista-backend`
 - [x] **T2.3** — `supabase/functions/transactions/handler_test.ts` cobrindo `201`, os seis `400` (`invalid_json`, `invalid_direction`, `invalid_amount` para não-inteiro e para `<= 0`, `invalid_description` vazia e >200, `invalid_occurred_at`), `401` e `405`, e o caso "payload com `user_id` alheio não muda o dono". **É a única bateria de teste escrita fora da fase final**, porque o DoD do roadmap a exige nominalmente. · camada **backend** · `especialista-backend`
-- [x] **T2.4** — Alinhar `supabase/functions/main/index.ts` ao contrato de erro `{"error":{"code","message"}}` (decisão **A5**) e acrescentar `transactions/index.ts` e `transactions/handler.ts` à task `check` do `deno.json`. · camada **backend** · `especialista-backend`
-- [x] **T2.5** — **Depois do merge**: `scripts/deploy-functions.sh` a partir de `develop`, publicando na VPS. Toca produção e reinicia o edge-runtime (o `/health` cai por segundos). · camada **infra** · `especialista-infra`
+- [x] **T2.4** — Alinhar `supabase/functions/main/index.ts` ao contrato de erro `{"error":{"code":"...","message":"..."}}` (decisão **A5**) e acrescentar `transactions/index.ts` e `transactions/handler.ts` à task `check` do `deno.json`. · camada **backend** · `especialista-backend`
+- [x] **T2.5** — Depois do merge em `develop`, publicar a função na HML pelo
+  fluxo de deploy. Isso não é prova E2E nem smoke remoto; a validação completa
+  ocorre localmente antes do PR. · camada **infra** · `especialista-infra`
 
 Sequenciais: T2.3 depende do handler; T2.5 depende do merge.
 
@@ -187,16 +214,23 @@ Consolidar as duas frentes na branch da fase antes de seguir. Daqui em diante é
 - [x] **T3.5** — `data/repositories/transactions_repository_impl.dart`: recebe o `SupabaseClient` no construtor, `from('transactions').select(...)` **sem filtro de `user_id`** (quem filtra é a RLS), `.order('occurred_at', ascending: false).order('created_at', ascending: false)`. Único `try/catch`, `failureFromException`. · camada **data** · `especialista-dados`
 - [x] **T3.6** — `presentation/transactions_list/`: `TransactionsListCubit` + estado `sealed` (`Loading`, `Loaded`, `Empty`, `LoadFailed`) via `part of`, guarda `isClosed`; `TransactionsListPage` (`StatelessWidget` + `static Widget pageBuilder`); `widgets/` com a linha da transação (descrição em uma linha com reticências, data explícita, valor à direita com algarismos tabulares e prefixo textual `−`/`+` **além** da cor), o estado vazio ("Nenhuma transação registrada.", sem ilustração e sem entusiasmo) e o estado de erro com "tentar de novo". Zero literal de estilo. · camada **presentation** · `especialista-apresentacao`
 - [x] **T3.7** — `transactions_routes.dart` (`/transacoes`), `transactions_injection.dart`, barrel `transactions_module.dart`, registro em `app/lib/injection.dart` e `app/lib/app_router.dart`, e o ponto de entrada na `AppBar` da `AreasPage` (decisão **A6** — só a ação, nada de dashboard). · camada **presentation/infra** · `especialista-apresentacao`
-- [x] **T3.8** — E2E: QA roda `instrumentar-e2e` (gate do CISO **antes**), prints em `docs/01-cadastro-manual/evidencias/rodada_01/` com `README.md` dizendo o que cada imagem prova. · `qa` + `ciso`
+- [x] **T3.8** — E2E: QA roda `instrumentar-e2e` (gate do CISO **antes**) por
+  `patrol test`, com `PatrolJUnitRunner`, AndroidX Orchestrator e
+  `MainActivityTest.java` versionado em `androidTest`; cada cenário salva
+  asserções, print e log no marcador exato, encaminhado por `adb reverse`
+  inclusive na indisponibilidade do Supabase local por `iptables`,
+  imediatamente após a asserção visual, em
+  `docs/001_cadastro_manual/e2e/round_01/`, com `README.md` descrevendo a
+  evidência. · `qa` + `ciso`
 
 **DoD da Fase 3**
 
 - [ ] `dart format --set-exit-if-changed`, `flutter analyze` e `scripts/gates_guard.sh` verdes; `flutter test -r compact` continua verde com a suíte que já existe (nenhum teste novo nesta fase).
-- [x] `evidencias/rodada_01/` — print do **estado vazio** da lista, numa conta sem transação, mostrando "Nenhuma transação registrada.". *(`02_estado_vazio.png`)*
-- [x] `evidencias/rodada_01/` — print da lista **com a transação criada pelo `curl` da Fase 2**, na mesma imagem: descrição, data no formato `15/08, sexta` e valor `−R$ 45,00` alinhado à direita. *(linhas 6 e 7 do DoD do roadmap; `03_lista_carregada.png` — datas reais `14/08, sexta` e `15/08, sábado` cobrem as duas metades da forma, ver README da rodada)*
-- [x] `evidencias/rodada_01/` — print com um valor grande (`R$ 1.234.567,89`) e um de dois dígitos **na mesma lista**, provando que a coluna de valores não dança entre linhas. É o teste real dos algarismos tabulares, e não fecha sem a T3.2. *(`04_algarismos_tabulares.png`)*
-- [x] `evidencias/rodada_01/` — **erro de leitura e lista vazia em prints distintos**, provando que os dois estados são visualmente diferentes: o `prd.md` exige que uma falha nunca se disfarce de "nada aqui". Induzido derrubando a rede do emulador. *(`01_erro_de_leitura.png` + `02_estado_vazio.png`)*
-- [ ] O E2E é atestado pelo **dev humano**, não pelo QA. O `README.md` da rodada nomeia cada arquivo e o que ele prova.
+- [x] `e2e/round_01/` — print do **estado vazio** da lista, numa conta sem transação, mostrando "Nenhuma transação registrada.". *(`02_estado_vazio.png`)*
+- [x] `e2e/round_01/` — print da lista **com a transação criada pelo `curl` da Fase 2**, na mesma imagem: descrição, data no formato `15/08, sexta` e valor `−R$ 45,00` alinhado à direita. *(linhas 6 e 7 do DoD do roadmap; `03_lista_carregada.png` — datas reais `14/08, sexta` e `15/08, sábado` cobrem as duas metades da forma, ver README da rodada)*
+- [x] `e2e/round_01/` — print com um valor grande (`R$ 1.234.567,89`) e um de dois dígitos **na mesma lista**, provando que a coluna de valores não dança entre linhas. É o teste real dos algarismos tabulares, e não fecha sem a T3.2. *(`04_algarismos_tabulares.png`)*
+- [x] `e2e/round_01/` — **erro de leitura e lista vazia em prints distintos**, provando que os dois estados são visualmente diferentes: o `01_prd.md` exige que uma falha nunca se disfarce de "nada aqui". Induzido derrubando a rede do emulador. *(`01_erro_de_leitura.png` + `02_estado_vazio.png`)*
+- [ ] O E2E é atestado pelo **dev humano**, não pelo QA. O `report.md` da rodada nomeia cada passo, comando e evidência.
 - [ ] Job "App" verde no CI do PR.
 
 ---
@@ -205,26 +239,29 @@ Consolidar as duas frentes na branch da fase antes de seguir. Daqui em diante é
 
 Branch: `feature/GZ-17-registrar-transacao`. Fecha o ciclo: a mesma tela que lê passa a escrever.
 
-- [ ] **T4.1** `[paralela · frente A · worktree]` — `app/lib/core/format/cents_input.dart`: acumulação de dígitos → centavos (`"4500"` → `4500`), máximo 9 dígitos inteiros. **Nunca `double.parse(x) * 100`** — é a invariante nº 2 do `specs.md` e o bug que só aparece meses depois num total que não bate. · camada **core** · `especialista-infra`
+- [ ] **T4.1** `[paralela · frente A · worktree]` — `app/lib/core/format/cents_input.dart`: acumulação de dígitos → centavos (`"4500"` → `4500`), máximo 9 dígitos inteiros. **Nunca `double.parse(x) * 100`** — é a invariante nº 2 do `02_specs.md` e o bug que só aparece meses depois num total que não bate. · camada **core** · `especialista-infra`
 - [ ] **T4.2** `[paralela · frente A · worktree]` — `app/lib/core/network/failure_from_exception.dart` aprende `FunctionException`: `400` → `ValidationFailure`, `401` → `AuthFailure`, `403` → `PermissionFailure`, demais → `UnexpectedFailure`; falha de transporte continua `NetworkFailure`. Decisão **A4**. · camada **core** · `especialista-infra`
 - [ ] **T4.3** `[paralela · frente B · worktree]` — `domain/`: entidade de entrada `NewTransaction`, método `create(NewTransaction)` no contrato do repositório e use case `CreateTransaction`. · camada **domain** · `especialista-dominio`
 
 Consolidar; daqui em diante sequencial.
 
 - [ ] **T4.4** — `TransactionModel.toPayload(NewTransaction)` (só `direction`, `amount`, `description`, `occurred_at`; **nunca** `user_id` nem `area_id`) e o `create` no `TransactionsRepositoryImpl` via `client.functions.invoke('transactions', body: …)`, com o `201` voltando pelo mesmo `safeParse` da leitura. · camada **data** · `especialista-dados`
-- [ ] **T4.5** — `presentation/new_transaction/`: cubit + estado `sealed`, e a página com os quatro campos na ordem do `specs.md` §6.1 — seletor **Despesa**/**Receita** com rótulo textual sempre visível (default Despesa), campo monetário pt-BR com dígitos entrando pela direita, descrição de até 200 caracteres travada na digitação, e seletor de data com default hoje e **futuro bloqueado na UI** (a função aceita; a Fase 3 do produto não pode herdar a trava). Botão **Registrar** desabilitado enquanto inválido **e** enquanto o envio está em voo. Em erro, o formulário **preserva o que foi digitado**. Rebuild escopado — o campo de valor não reconstrói a tela a cada tecla. · camada **presentation** · `especialista-apresentacao`
+- [ ] **T4.5** — `presentation/new_transaction/`: cubit + estado `sealed`, e a página com os quatro campos na ordem do `02_specs.md` §6.1 — seletor **Despesa**/**Receita** com rótulo textual sempre visível (default Despesa), campo monetário pt-BR com dígitos entrando pela direita, descrição de até 200 caracteres travada na digitação, e seletor de data com default hoje e **futuro bloqueado na UI** (a função aceita; a Fase 3 do produto não pode herdar a trava). Botão **Registrar** desabilitado enquanto inválido **e** enquanto o envio está em voo. Em erro, o formulário **preserva o que foi digitado**. Rebuild escopado — o campo de valor não reconstrói a tela a cada tecla. · camada **presentation** · `especialista-apresentacao`
 - [ ] **T4.6** — Navegação e refetch: rota `/transacoes/nova`, entrada a partir da lista, e o retorno ao `201` **refazendo a leitura** pelo PostgREST em vez de inserir o item localmente — o refetch é a prova do caminho de volta. · camada **presentation** · `especialista-apresentacao`
-- [ ] **T4.7** — E2E rodada 2 (gate do CISO antes), prints em `evidencias/rodada_02/`. · `qa` + `ciso`
+- [ ] **T4.7** — E2E Patrol rodada 2 (gate do CISO antes), pela mesma ponte
+  JUnit versionada e callback de captura por `adb reverse`, com asserções,
+  prints e logs imediatamente posteriores à asserção; a falha de transporte
+  bloqueia o Supabase local por `iptables`, em `e2e/round_02/`. · `qa` + `ciso`
 
 **DoD da Fase 4**
 
 - [ ] `dart format`, `flutter analyze`, `gates_guard.sh` e `flutter test -r compact` verdes.
-- [ ] `evidencias/rodada_02/` — sequência do caminho feliz: formulário preenchido (`Almoço`, `R$ 45,00`, data de ontem) → lista com a linha nova no topo. Registrada **pelo app**, não por `curl`.
+- [ ] `e2e/round_02/` — sequência do caminho feliz: formulário preenchido (`Almoço`, `R$ 45,00`, data de ontem) → lista com a linha nova no topo. Registrada **pelo app**, não por `curl`.
 - [ ] `select amount, source, direction, user_id, area_id from public.transactions order by created_at desc limit 1` logo após o print: `amount` inteiro em centavos (`4500`, nunca `4499`), `source = 'manual'`, `user_id` da conta e **`area_id` nulo** — a decisão A1 verificada, não assumida.
-- [ ] `evidencias/rodada_02/` — **cada modo de falha em estado visualmente distinto**: (a) envio sem rede → mensagem curta **com os campos ainda preenchidos**; (b) sessão expirada → o app vai para o login, não mostra erro genérico. Dois prints, dois estados diferentes.
-- [ ] `evidencias/rodada_02/` — print do botão **Registrar** desabilitado durante o envio. Toque duplo não gera duas linhas: confirmado por `select count(*)` antes e depois.
+- [ ] `e2e/round_02/` — **cada modo de falha em estado visualmente distinto**: (a) envio sem rede → mensagem curta **com os campos ainda preenchidos**; (b) sessão expirada → o app vai para o login, não mostra erro genérico. Dois prints, dois estados diferentes.
+- [ ] `e2e/round_02/` — print do botão **Registrar** desabilitado durante o envio. Toque duplo não gera duas linhas: confirmado por `select count(*)` antes e depois.
 - [ ] Nenhuma transação foi gravada sem toque explícito em Registrar — invariante nº 1 do `CLAUDE.md`, verificada com `select count(*)` antes de abrir o formulário e depois de abandoná-lo preenchido.
-- [ ] E2E atestado pelo **dev humano**; `README.md` da rodada nomeando o que cada imagem prova.
+- [ ] E2E atestado pelo **dev humano**; `report.md` da rodada nomeando cada passo e o que cada imagem prova.
 - [ ] Job "App" verde no CI do PR.
 
 ---
@@ -234,9 +271,11 @@ Consolidar; daqui em diante sequencial.
 Branch: `feature/GZ-18-testes-cadastro-manual`. **Só começa depois do E2E das Fases 3 e 4 atestado pelo dev.** É aqui que os testes Dart nascem — não antes.
 
 - [ ] **T5.1** — Segundo gate do CISO (depois da limpeza do E2E). · `ciso`
-- [ ] **T5.2** — `escrever-testes`, conforme o inventário do `prd.md` §7: *domain* (use cases devolvendo `Either`), *data* (`safeParse` com payload válido, `amount` como string, `direction` desconhecida, `area_id` nulo), *core* (dígitos→centavos, centavos→`R$`, formatador de data com e sem ano), *cubit* (`bloc_test` de envio e de listagem, os três desfechos cada), *widget* (formulário: desabilitado inválido, desabilitado em voo, dados preservados após erro) e *widget* (**estado vazio da lista**). `test/` espelha `lib/`; `mocktail` + `bloc_test`; zero `build_runner`. · camada **testes** · `qa`
+- [ ] **T5.2** — `escrever-testes`, conforme o inventário do `01_prd.md` §7: *domain* (use cases devolvendo `Either`), *data* (`safeParse` com payload válido, `amount` como string, `direction` desconhecida, `area_id` nulo), *core* (dígitos→centavos, centavos→`R$`, formatador de data com e sem ano), *cubit* (`bloc_test` de envio e de listagem, os três desfechos cada), *widget* (formulário: desabilitado inválido, desabilitado em voo, dados preservados após erro) e *widget* (**estado vazio da lista**). `test/` espelha `lib/`; `mocktail` + `bloc_test`; zero `build_runner`. · camada **testes** · `qa`
 - [ ] **T5.3** — `manter-docs-vivas`: `final_report.md`, roadmap (F0.9 → `[x]`, P5 baixada), `CHANGELOG.md`, `README`. · camada **docs** · `qa`
-- [ ] **T5.4** — `variance_report.md` **se e só se** houve desvio aprovado pelo dev durante as fases. Sem desvio, o arquivo não existe. · `tech-lead`
+- [ ] **T5.4** — atualizar `changes.md` para cada desvio aprovado durante as
+  fases e reconciliar PRD, specs e plano na mesma tarefa. Sem novo desvio, não
+  há nova entrada. · `tech-lead`
 
 **DoD da Fase 5**
 
@@ -254,10 +293,10 @@ Branch: `feature/GZ-18-testes-cadastro-manual`. **Só começa depois do E2E das 
 |---|---|---|
 | 1 | `0004_criar_transactions.sql` aplica limpo no CI, com RLS e política — job "Banco" verde | **1** |
 | 2 | `deno task test` cobre a função; valor não-inteiro e `direction` inválida viram 400, com os testes vistos falhando | **2** (pré-PR) |
-| 3 | `curl -X POST …/functions/v1/transactions` com JWT cria e devolve 201; sem `Authorization` devolve 401 | **2** (pós-merge, no domínio) |
-| 4 | `GET /rest/v1/transactions` anônimo devolve `[]` e com a sessão do dono devolve a transação | **2** (pós-merge, no domínio) |
+| 3 | `curl -X POST …/functions/v1/transactions` com JWT cria e devolve 201; sem `Authorization` devolve 401 | **2** (pré-PR, stack local) |
+| 4 | `GET /rest/v1/transactions` anônimo devolve `[]` e com a sessão do dono devolve a transação | **2** (pré-PR, stack local) |
 | 5 | `flutter test -r compact` verde, incluindo widget test do formulário e do estado vazio | **5** |
-| 6 | E2E no emulador com print da transação na lista, em `evidencias/rodada_01/`, atestado pelo dev | **3** (rodada_01) e reforçada na **4** (rodada_02, registro feito pelo app) |
+| 6 | E2E no emulador com print da transação na lista, em `e2e/round_01/`, atestado pelo dev | **3** (rodada_01) e reforçada na **4** (rodada_02, registro feito pelo app) |
 | 7 | Valor com algarismos tabulares e data explícita, conferido no print | **3** |
 
 ---
@@ -269,10 +308,10 @@ Branch: `feature/GZ-18-testes-cadastro-manual`. **Só começa depois do E2E das 
 | X1 | **Sem CORS em nenhuma Edge Function.** Não há `OPTIONS` nem `Access-Control-Allow-*` no repo. O app é Android **e** Web (D2 — um `lib/`, dois alvos). No emulador Android o POST passa; no Chrome ele morre no preflight. | Fase 2, e só aparece quando alguém rodar `flutter run -d chrome` | **Não tratado nesta feature** — o E2E é Android e ampliar aqui é escopo novo. **Já registrado**: virou o primeiro item da Fase 8 (Web) do `docs/roadmap.md`, bloqueando o resto daquela fase. |
 | X2 | **O `401` pode vir do Kong, não da função.** O gateway do Supabase self-hosted exige `apikey`; uma requisição sem nenhum header devolve `401` do Kong e a prova fecharia pelo motivo errado. | Fase 2 | Virou linha explícita do DoD da Fase 2: a chamada vai **com `apikey` e sem `Authorization`**, e o corpo tem que ser o do contrato. |
 | X3 | **`deno task check` lista arquivos um a um.** Função nova esquecida na task passa pelo CI sem checagem de tipo nenhuma. | Fase 2 | Tarefa T2.4. |
-| X4 | **Sem idempotência de servidor.** O botão desabilitado cobre o toque duplo, mas se a resposta se perder na rede a duplicata é possível. | Fase 4 | Limitação **conhecida e aceita** (`prd.md` §4). Não vira tarefa; vira linha do `final_report.md`. |
+| X4 | **Sem idempotência de servidor.** O botão desabilitado cobre o toque duplo, mas se a resposta se perder na rede a duplicata é possível. | Fase 4 | Limitação **conhecida e aceita** (`01_prd.md` §4). Não vira tarefa; vira linha do `final_report.md`. |
 | X5 | **`updated_at` não é atualizado por nada** — nem aqui nem nas tabelas existentes. | F21, Fase 3 do produto | Fora de escopo por consistência com o repo. Registrado para quando a edição existir. |
-| X6 | **O E2E escreve em produção.** D3/D7: é o único ambiente remoto. As linhas de teste são dado real e vão poluir o primeiro dashboard da Fase 3. | Fases 2, 3 e 4 | Aceito (decisão A2). A limpeza é manual, por `psql`, na T5.1, e o `final_report.md` registra quantas linhas foram criadas e removidas. |
-| X7 | **`scripts/deploy-functions.sh` reinicia o edge-runtime da VPS compartilhada.** Não é auto-deploy: é `ssh` + `docker restart`, e o `/health` cai por alguns segundos. | Fase 2, T2.5 | O DoD pós-merge da Fase 2 checa o `/health` **depois** do restart. A VPS é do ganza, então segue sem perguntar — mas nunca durante uma verificação de outra fase. |
+| X6 | **O E2E pode apontar acidentalmente para HML.** Isso escreveria dados de teste fora do ambiente descartável. | Fases 2, 3 e 4 | `scripts/e2e-local.sh` e os roteiros específicos recusam host não local; `reset` e `down` removem containers, volumes e dados da rodada. |
+| X7 | **O deploy da função pode reiniciar o edge-runtime da HML.** Não é prova de feature e pode indisponibilizar o endpoint por segundos. | Fase 2, T2.5 | O deploy ocorre apenas após merge em `develop`; não há smoke remoto obrigatório nesta rodada. |
 | X8 | **`intl` nunca foi inicializado neste app.** `DateFormat('EEEE', 'pt_BR')` sem `initializeDateFormatting` lança em runtime, e o widget test passaria mesmo assim se o teste inicializar por conta própria. | Fase 3 | Embutido na T3.1, e o print do E2E é o que prova de verdade — um `LocaleDataException` apareceria na tela, não no teste. |
 
 ---
@@ -282,7 +321,9 @@ Branch: `feature/GZ-18-testes-cadastro-manual`. **Só começa depois do E2E das 
 Legenda: `[ ]` não iniciada · `[-]` em andamento · `[x]` mergeada em `develop`.
 
 - [x] **Fase 1** — Migration + docs vivas · PR 1 — mergeada.
-- [x] **Fase 2** — Edge Function + testes Deno + publicação · PR 2 — mergeada (PR #17). DoD pré-PR e pós-merge verdes, função publicada na VPS. As migrations `0004`/`0005` chegaram ao banco de produção por `scripts/apply-migrations.sh --prod --apply`, com baseline das 0001–0003.
+- [x] **Fase 2** — Edge Function + testes Deno · PR 2 — mergeada (PR #17).
+  DoD pré-PR verde na stack local; o merge em `develop` alimenta a HML sem
+  E2E com escrita ou smoke remoto obrigatório.
 - [-] **Fase 3** — Leitura: lista de transações · PR 3
 - [ ] **Fase 4** — Escrita: formulário → Edge Function · PR 4
 - [ ] **Fase 5** — Bateria automatizada + fechamento · PR 5

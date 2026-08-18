@@ -1,0 +1,136 @@
+name: ganza-local
+
+services:
+  db:
+    image: supabase/postgres:15.8.1.085
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    command: postgres -c listen_addresses='*' -c shared_preload_libraries=pgsodium,pg_stat_statements,pg_net,pgaudit,pg_cron -c cron.database_name=postgres
+    ports:
+      - '54322:5432'
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d postgres']
+      interval: 3s
+      timeout: 3s
+      retries: 30
+    volumes:
+      - db-data:/var/lib/postgresql/data
+
+  auth:
+    image: supabase/gotrue:v2.186.0
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      GOTRUE_API_HOST: 0.0.0.0
+      GOTRUE_API_PORT: '9999'
+      API_EXTERNAL_URL: http://127.0.0.1:54321/auth/v1
+      GOTRUE_DB_DRIVER: postgres
+      GOTRUE_DB_DATABASE_URL: postgres://supabase_auth_admin:postgres@db:5432/postgres?sslmode=disable
+      GOTRUE_SITE_URL: http://127.0.0.1:3000
+      GOTRUE_URI_ALLOW_LIST: http://127.0.0.1:3000
+      GOTRUE_JWT_SECRET: local-development-jwt-secret-with-at-least-32-characters
+      GOTRUE_JWT_ADMIN_ROLES: service_role,supabase_admin
+      GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated
+      GOTRUE_DISABLE_SIGNUP: 'false'
+      GOTRUE_MAILER_AUTOCONFIRM: 'true'
+
+  rest:
+    image: postgrest/postgrest:v14.6
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGRST_DB_URI: postgres://authenticator:local-authenticator-password@db:5432/postgres
+      PGRST_DB_SCHEMAS: public
+      PGRST_DB_ANON_ROLE: anon
+      PGRST_JWT_SECRET: local-development-jwt-secret-with-at-least-32-characters
+      PGRST_DB_USE_LEGACY_GUCS: 'false'
+
+  functions:
+    image: supabase/edge-runtime:v1.71.2
+    depends_on:
+      db:
+        condition: service_healthy
+    command: start --main-service /home/deno/functions/main
+    environment:
+      SUPABASE_URL: http://kong:8000
+      SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlIiwiZXhwIjo0MTAyNDQ0ODAwfQ.d_J3h-niwnX-XrnSujE0e_cZZ0qlybVYqi1dzzBAiGk
+      SUPABASE_JWT_SECRET: local-development-jwt-secret-with-at-least-32-characters
+      SUPABASE_DB_URL: postgres://postgres:postgres@db:5432/postgres
+      VERIFY_JWT: 'false'
+    volumes:
+      - ../../supabase/functions:/home/deno/functions:ro
+      - deno-cache:/root/.cache/deno
+
+  storage:
+    image: supabase/storage-api:v1.44.2
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlIiwiZXhwIjo0MTAyNDQ0ODAwfQ.d_J3h-niwnX-XrnSujE0e_cZZ0qlybVYqi1dzzBAiGk
+      SERVICE_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIiwiaXNzIjoic3VwYWJhc2UiLCJleHAiOjQxMDI0NDQ4MDB9.ydGRVN9AnmAGxWzlW1sP9Iqx3g_q7xifaK_gF48rUeA
+      POSTGREST_URL: http://rest:3000
+      PGRST_JWT_SECRET: local-development-jwt-secret-with-at-least-32-characters
+      DATABASE_URL: postgres://postgres:postgres@db:5432/postgres
+      FILE_SIZE_LIMIT: '52428800'
+      STORAGE_BACKEND: file
+      FILE_STORAGE_BACKEND_PATH: /var/lib/storage
+      TENANT_ID: stub
+      REGION: local
+    volumes:
+      - storage-data:/var/lib/storage
+
+  meta:
+    image: supabase/postgres-meta:v0.95.2
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PG_META_PORT: '8080'
+      PG_META_DB_HOST: db
+      PG_META_DB_PORT: '5432'
+      PG_META_DB_NAME: postgres
+      PG_META_DB_USER: postgres
+      PG_META_DB_PASSWORD: postgres
+
+  studio:
+    # O registry publica imagens de Studio com o SHA do build.
+    image: supabase/studio:2026.03.16-sha-5528817
+    depends_on:
+      kong:
+        condition: service_started
+    environment:
+      STUDIO_PG_META_URL: http://meta:8080
+      SUPABASE_URL: http://kong:8000
+      SUPABASE_PUBLIC_URL: http://127.0.0.1:54321
+      SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlIiwiZXhwIjo0MTAyNDQ0ODAwfQ.d_J3h-niwnX-XrnSujE0e_cZZ0qlybVYqi1dzzBAiGk
+      SUPABASE_SERVICE_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIiwiaXNzIjoic3VwYWJhc2UiLCJleHAiOjQxMDI0NDQ4MDB9.ydGRVN9AnmAGxWzlW1sP9Iqx3g_q7xifaK_gF48rUeA
+    ports:
+      - '54323:3000'
+
+  kong:
+    image: kong/kong:3.9.1
+    depends_on:
+      rest:
+        condition: service_started
+      auth:
+        condition: service_started
+      functions:
+        condition: service_started
+    environment:
+      KONG_DATABASE: 'off'
+      KONG_DECLARATIVE_CONFIG: /kong.yml
+      KONG_DNS_ORDER: LAST,A,CNAME
+      KONG_PLUGINS: bundled
+    volumes:
+      - ./kong.yml:/kong.yml:ro
+    ports:
+      - '54321:8000'
+
+volumes:
+  db-data:
+  deno-cache:
+  storage-data:
