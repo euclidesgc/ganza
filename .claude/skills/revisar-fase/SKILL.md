@@ -8,9 +8,37 @@ allowed-tools: Read, Glob, Grep, Bash, mcp__code-review-graph__detect_changes_to
 
 Objetivo: dado o diff da fase, conferir item a item se o que foi feito bate com o que estava planejado — o caminho inverso da `criar-modulo`.
 
+Esta revisão é **gate de fase, não tarefa supervisionada**: não é despachada com
+bloco DoD nem passa pelo `supervisor-dod` — é ela que confere os vereditos das
+tarefas, não mais um deles.
+
 Confira, nesta ordem:
 
-1. **DoD da etapa — antes de tudo.** Cada linha foi **executada** e a saída bate com o esperado? Teste automatizado no DoD foi visto **falhar sem a mudança**? Linha que envolve serviço no ar foi verificada **contra o domínio**, não contra `localhost`? Linha não verificada = etapa não fechada. A skill `fechar-etapa` conduz isso.
+1. **DoD — dois níveis, antes de tudo.** O DoD **de tarefa** já foi julgado pelo
+   `supervisor-dod`, cego ao plano: aqui se confere que **toda tarefa da fase tem
+   veredito `CUMPRIDO` registrado na sua própria linha do `03_plan.md`**, no
+   campo `**DoD: CUMPRIDO**` — não há outro artefato de veredito para procurar.
+   A conferência é mecânica, não visual — para a fase `N` da feature
+   `NNN_<nome>`:
+
+   ```bash
+   grep -c '^- \[.\] \*\*T<N>\.' docs/NNN_<nome>/03_plan.md
+   grep -c '^- \[.\] \*\*T<N>\..*DoD: CUMPRIDO' docs/NNN_<nome>/03_plan.md
+   grep -n '^- \[.\] \*\*T<N>\.' docs/NNN_<nome>/03_plan.md | grep -v 'DoD: CUMPRIDO'
+   ```
+
+   Os dois números — tarefas da fase e vereditos `CUMPRIDO` — têm de ser
+   **iguais**, e o terceiro comando não pode imprimir nada. O prefixo `DoD: `
+   existe para `CUMPRIDO` não casar com `NÃO CUMPRIDO`, então o que sobra na
+   terceira linha é exatamente a tarefa por julgar, `NÃO CUMPRIDO` ou
+   `DOD INVÁLIDO`. Tarefa sem veredito ali é fase não
+   fechada, tão grave quanto linha não verificada — e comportamento entregue
+   que nenhum DoD de tarefa cobria
+   é lacuna de critério, volta ao tech-lead. O DoD **da fase** é o que a skill
+   `fechar-etapa` conduz: cada linha **executada** com a saída batendo com o
+   esperado, teste automatizado visto **falhar sem a mudança**, linha que envolve
+   serviço no ar verificada **contra o domínio**, não contra `localhost`. Linha não
+   verificada = etapa não fechada.
 
 2. **Plano.** Cada tarefa da fase no `docs/NNN_<nome>/03_plan.md` foi feita?
    Algo foi feito que **não** estava no plano? É `fail` até haver registro
@@ -39,7 +67,12 @@ Confira, nesta ordem:
 
 10. **Cancela de máquina — o piso.** `dart format`, `flutter analyze` e `flutter test` verdes; `deno fmt`/`lint`/`check`/`test` verdes; `gates_guard.sh` e `validar-workflows.sh` limpos. **Rode — não confie no relato.** Isto é pré-requisito, não o "pronto": o pronto é o item 1.
 
-11. **Docs.** O 03_plan.md foi marcado com o progresso? PRD/specs/plano
+11. **Docs.** O 03_plan.md foi marcado com o progresso — cada tarefa traz o
+    campo `**DoD: <veredito>**` na própria linha, e só está `[x]` a que saiu
+    `CUMPRIDO`, nunca a que foi apenas entregue? O desalinho aparece rodando
+    `grep -n '^- \[x\] \*\*T' docs/NNN_<nome>/03_plan.md | grep -v 'DoD: CUMPRIDO'`
+    sobre o plano inteiro: qualquer linha impressa é tarefa marcada `[x]` sem o
+    veredito que autoriza a marca. PRD/specs/plano
     continuam dizendo a verdade? `decisions.md` contém somente decisões da
     feature? Todo desvio está em `changes.md` e referencia a reconciliação? O
     roadmap reflete o estado?
