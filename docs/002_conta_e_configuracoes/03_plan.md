@@ -412,7 +412,7 @@ contrato de auth — é por isso que ele cabe numa frente paralela. Esta fase p�
 
 **Tarefas**
 
-- [ ] **T1.1** — Medir a persistência da sessão no aparelho, antes de qualquer implementação: instalar o APK dev, entrar, encerrar o app e reabrir, reiniciar o aparelho e reabrir; registrar a evidência em `docs/002_conta_e_configuracoes/e2e/round_01/`. · camada **testes** · `qa`
+- [x] **T1.1** — Medir a persistência da sessão no aparelho, antes de qualquer implementação: instalar o APK dev, entrar, encerrar o app e reabrir, reiniciar o aparelho e reabrir; registrar a evidência em `docs/002_conta_e_configuracoes/e2e/round_01/`. · camada **testes** · `qa` · **DoD: CUMPRIDO**
 
   **DoD da tarefa**
   - `docs/002_conta_e_configuracoes/e2e/round_01/report.md` existe e, para cada passo, nomeia o comando executado e o arquivo de imagem correspondente no mesmo diretório.
@@ -421,7 +421,7 @@ contrato de auth — é por isso que ele cabe numa frente paralela. Esta fase p�
   - O `report.md` nomeia o arquivo de preferências onde a sessão foi encontrada, obtido por `adb shell run-as br.com.ganza.ganza.dev ls /data/data/br.com.ganza.ganza.dev/shared_prefs/`, e diz qual chave o guarda. **Nenhum valor de token, senha ou refresh token aparece no `report.md` nem em imagem alguma da rodada** — conferir com `rtk proxy grep -rniE 'eyJ|refresh_token|password' docs/002_conta_e_configuracoes/e2e/round_01/`, que não devolve nenhuma linha.
   - A última linha do `report.md` responde, em uma frase, se a sessão sobreviveu aos dois casos. Se não sobreviveu, ela nomeia o passo exato em que caiu e cola o trecho de `adb logcat` daquele instante.
 
-- [ ] **T1.2** — Registrar as decisões que esta fase revoga e o descarte da abordagem de senha em claro: entradas novas em `docs/decisions.md` e em `docs/002_conta_e_configuracoes/decisions.md`, e correção da seção "Autenticação" de `docs/deploy/coolify.md`. · camada **docs** · `tech-lead`
+- [x] **T1.2** — Registrar as decisões que esta fase revoga e o descarte da abordagem de senha em claro: entradas novas em `docs/decisions.md` e em `docs/002_conta_e_configuracoes/decisions.md`, e correção da seção "Autenticação" de `docs/deploy/coolify.md`. · camada **docs** · `tech-lead` · **DoD: CUMPRIDO**
 
   **DoD da tarefa**
   - `docs/decisions.md` ganha uma entrada que declara **revogada** a decisão **D11** ("conta única, cadastro fechado") e outra que declara **revogada** a pendência **P4** ("SMTP — só necessário para recuperação de senha; nada bloqueia hoje"), cada uma com data e arquivo de referência. As linhas originais de D11 e P4 continuam no arquivo, marcadas como revogadas — `rtk proxy grep -n 'D11\|P4' docs/decisions.md` devolve tanto a linha original quanto a revogação.
@@ -430,25 +430,25 @@ contrato de auth — é por isso que ele cabe numa frente paralela. Esta fase p�
   - `docs/002_conta_e_configuracoes/decisions.md` registra, com a razão escrita, o descarte da abordagem que guarda a senha do usuário em claro em `flutter_secure_storage` sob a chave `ganza.credentials.secret` e a devolve para a camada de apresentação.
   - `rtk proxy grep -rn 'flutter_secure_storage\|ganza.credentials.secret' app/lib app/pubspec.yaml` não devolve nenhuma linha, e `app/lib/core/security/` não existe.
 
-- [ ] **T1.3** `[paralela · frente A · worktree]` — Ampliar o contrato e os use cases em `app/lib/modules/auth_module/domain/`: `signUp`, `resetPasswordForEmail`, `verifyRecoveryCode` e `updatePassword` no `AuthRepository`, um arquivo de use case por operação. · camada **domain** · `especialista-dominio`
+- [x] **T1.3** `[paralela · frente A · worktree]` — Ampliar o contrato e os use cases em `app/lib/modules/auth_module/domain/`: `signUp`, `resetPasswordForEmail`, `verifyRecoveryCode` e `updatePassword` no `AuthRepository`, um arquivo de use case por operação. · camada **domain** · `especialista-dominio` · **DoD: CUMPRIDO**
 
   **DoD da tarefa**
   - `app/lib/modules/auth_module/domain/repositories/auth_repository.dart` declara, além dos quatro membros que já existiam (`observeCurrentUser`, `currentUser`, `signIn`, `signOut`), os métodos `signUp`, `resetPasswordForEmail`, `verifyRecoveryCode` e `updatePassword`, cada um devolvendo `Future<Either<Failure, …>>`.
   - Existe exatamente um arquivo por operação nova em `app/lib/modules/auth_module/domain/usecases/` — `sign_up.dart`, `reset_password_for_email.dart`, `verify_recovery_code.dart`, `update_password.dart` —, cada um com uma única classe cujo único método público é `call()`.
-  - Nenhum arquivo sob `app/lib/modules/auth_module/domain/` importa `package:flutter`, `package:supabase_flutter`, `package:flutter_secure_storage` ou qualquer caminho contendo `/data/`: `rtk proxy grep -rn "^import" app/lib/modules/auth_module/domain/` devolve só `package:fpdart` e caminhos relativos dentro de `domain/` ou de `core/error/`.
+  - Nenhum arquivo sob `app/lib/modules/auth_module/domain/` importa `package:flutter`, `package:supabase_flutter`, `package:flutter_secure_storage` ou qualquer caminho contendo `/data/`: `rtk proxy grep -rn "^import" app/lib/modules/auth_module/domain/` não devolve nenhuma linha com esses quatro alvos. Pacote Dart puro fora dessa lista de proibições (`package:fpdart`, `package:equatable`) não viola a linha.
   - `cd app && dart format --set-exit-if-changed lib/modules/auth_module/domain` e `flutter analyze lib/modules/auth_module/domain` terminam com código de saída `0`. O analyze é escopado à pasta de propósito: a implementação do contrato ainda não existe neste momento e acusaria erro fora dela.
   - Apagar temporariamente um dos quatro métodos novos de `app/lib/modules/auth_module/domain/repositories/auth_repository.dart` faz `flutter analyze lib/modules/auth_module/domain` acusar erro no use case correspondente; provar rodando, colar a saída e restaurar.
 
-- [ ] **T1.4** `[paralela · frente B · worktree]` — Criar `app/lib/core/session/password_recovery_scope.dart` (Dart puro, sem conhecer rota nem Supabase) com barrel `session.dart`, e registrá-lo em `app/lib/injection.dart`. · camada **core** · `especialista-infra`
+- [x] **T1.4** `[paralela · frente B · worktree]` — Criar `app/lib/core/session/password_recovery_scope.dart` (Dart puro, sem conhecer rota nem Supabase) com barrel `session.dart`, e registrá-lo em `app/lib/injection.dart`. · camada **core** · `especialista-infra` · **DoD: CUMPRIDO**
 
   **DoD da tarefa**
   - `app/lib/core/session/password_recovery_scope.dart` declara uma classe com um estado booleano de recuperação em andamento, um método que o liga, um que o desliga, e notificação de mudança para um ouvinte externo.
   - O arquivo não importa `package:supabase_flutter`, `package:go_router` nem nada sob `app/lib/modules/`: `rtk proxy grep -n "^import" app/lib/core/session/password_recovery_scope.dart` devolve só `package:flutter/foundation.dart` ou equivalente de mesma natureza.
   - `app/lib/core/session/session.dart` exporta o arquivo, e `app/lib/injection.dart` registra a classe como singleton — `rtk proxy grep -n 'PasswordRecoveryScope' app/lib/injection.dart` devolve pelo menos uma linha de registro.
   - `cd app && dart format --set-exit-if-changed lib` e `flutter analyze lib/core` terminam com código de saída `0`.
-  - Da raiz do repositório, `scripts/gates_guard.sh; echo $?` imprime `0`.
+  - Da raiz do repositório, `bash scripts/gates_guard.sh; echo $?` imprime `0`.
 
-- [ ] **T1.5** `[paralela · frente C · worktree]` — Instalar um capturador de e-mail na stack local (`infra/local/docker-compose.yml`), apontar o GoTrue local para ele e documentar em `infra/local/README.md` como ler o código de recuperação. É o que desacopla o E2E desta fase da decisão humana sobre SMTP. · camada **infra** · `especialista-infra`
+- [x] **T1.5** `[paralela · frente C · worktree]` — Instalar um capturador de e-mail na stack local (`infra/local/docker-compose.yml`), apontar o GoTrue local para ele e documentar em `infra/local/README.md` como ler o código de recuperação. É o que desacopla o E2E desta fase da decisão humana sobre SMTP. · camada **infra** · `especialista-infra` · **DoD: CUMPRIDO**
 
   **DoD da tarefa**
   - `infra/local/docker-compose.yml` declara um serviço de captura de e-mail e o serviço de auth aponta para ele: `rtk proxy grep -n 'GOTRUE_SMTP_HOST\|GOTRUE_SMTP_PORT\|GOTRUE_SMTP_ADMIN_EMAIL\|GOTRUE_SMTP_SENDER_NAME' infra/local/docker-compose.yml` devolve as quatro linhas.
@@ -456,6 +456,7 @@ contrato de auth — é por isso que ele cabe numa frente paralela. Esta fase p�
   - A mensagem chega ao capturador e o corpo traz um código de **seis dígitos**: o comando de leitura documentado devolve a mensagem, e o código extraído casa com `^[0-9]{6}$`.
   - `infra/local/README.md` traz o endereço da caixa de entrada e o comando de leitura acima; o comando foi executado **copiado e colado do README**, sem edição, e devolveu a mensagem — colar a saída. Nenhuma frase vizinha do README ficou falsa: a lista de serviços e de portas do arquivo inclui o serviço novo.
   - `scripts/local-supabase.sh down` seguido de `scripts/local-supabase.sh up` reproduz os dois passos anteriores sem nenhuma edição manual de contêiner.
+  - `infra/local/docker-compose.yml` passa a declarar `GOTRUE_MAILER_AUTOCONFIRM: 'false'` — `rtk proxy grep -n 'GOTRUE_MAILER_AUTOCONFIRM' infra/local/docker-compose.yml` devolve a linha com `'false'` e nenhuma com `'true'`. Com a stack no ar, um `POST` para `/auth/v1/signup` de um e-mail novo devolve usuário com `email_confirmed_at` nulo, e a mensagem de confirmação aparece no capturador: colar as duas evidências. Sem isto o E2E confirmaria a conta sozinho e não provaria a confirmação de posse do e-mail que a decisão da P10 exige.
 
 Frentes A, B e C são disjuntas de verdade: a A só escreve sob
 `app/lib/modules/auth_module/domain/`, a B só sob `app/lib/core/session/` mais o
@@ -485,7 +486,7 @@ a camada data implementa o contrato que a frente A acabou de fechar.
   - `app/lib/modules/auth_module/presentation/sign_up/sign_up_cubit.dart` declara o estado `sealed` no mesmo arquivo via `part of`, com um `final class` por desfecho, e nenhum `import` contendo `/data/` aparece em nenhum arquivo sob `app/lib/modules/auth_module/presentation/sign_up/`.
   - Todo `emit` posterior a um `await` é precedido de `if (isClosed) return;` — conferir com `rtk proxy grep -n 'await\|isClosed\|emit' app/lib/modules/auth_module/presentation/sign_up/sign_up_cubit.dart`.
   - O botão de criar conta fica desabilitado enquanto o formulário é inválido **e** enquanto o envio está em voo, e um erro de servidor **preserva o que foi digitado** nos campos — provar por `flutter run` no emulador com dois prints, em `docs/002_conta_e_configuracoes/e2e/round_02/`, um por estado.
-  - `cd app && dart format --set-exit-if-changed lib/modules/auth_module` e `flutter analyze lib/modules/auth_module/presentation/sign_up` terminam com código de saída `0`; da raiz, `scripts/gates_guard.sh; echo $?` imprime `0`.
+  - `cd app && dart format --set-exit-if-changed lib/modules/auth_module` e `flutter analyze lib/modules/auth_module/presentation/sign_up` terminam com código de saída `0`; da raiz, `bash scripts/gates_guard.sh; echo $?` imprime `0`.
   - Remover um `final class` do `sealed` faz `flutter analyze lib/modules/auth_module/presentation/sign_up` acusar `non_exhaustive_switch`, o que prova que o `switch` sobre o estado não tem `default`; provar rodando e restaurando.
 
 - [ ] **T1.8** `[paralela · frente E · worktree]` — Criar `app/lib/modules/auth_module/presentation/password_recovery/`: a tela que pede o e-mail e a tela que recebe o código de seis dígitos e a nova senha, cada uma com o seu cubit e estado `sealed`. · camada **presentation** · `especialista-apresentacao`
@@ -495,7 +496,7 @@ a camada data implementa o contrato que a frente A acabou de fechar.
   - O campo de código aceita **apenas seis dígitos** e o botão de confirmar fica desabilitado enquanto não houver seis — provar com dois prints em `docs/002_conta_e_configuracoes/e2e/round_02/`: cinco dígitos com o botão desabilitado, seis com ele habilitado.
   - Depois de trocar a senha com sucesso, o escopo de recuperação de `app/lib/core/session/password_recovery_scope.dart` é desligado pela própria tela — `rtk proxy grep -n 'PasswordRecoveryScope' app/lib/modules/auth_module/presentation/password_recovery/` devolve tanto a chamada que liga quanto a que desliga.
   - Todo `emit` posterior a um `await` é precedido de `if (isClosed) return;` nos dois cubits — conferir com `rtk proxy grep -n 'await\|isClosed\|emit'` em cada arquivo.
-  - `cd app && dart format --set-exit-if-changed lib/modules/auth_module` e `flutter analyze lib/modules/auth_module/presentation/password_recovery` terminam com código de saída `0`; da raiz, `scripts/gates_guard.sh; echo $?` imprime `0`.
+  - `cd app && dart format --set-exit-if-changed lib/modules/auth_module` e `flutter analyze lib/modules/auth_module/presentation/password_recovery` terminam com código de saída `0`; da raiz, `bash scripts/gates_guard.sh; echo $?` imprime `0`.
 
 As frentes D e E escrevem em pastas irmãs e disjuntas
 (`presentation/sign_up/` e `presentation/password_recovery/`), nenhuma importa a
@@ -543,7 +544,7 @@ harness com a rodada em curso.
 **DoD da Fase 1**
 
 - [ ] Todas as tarefas de T1.1 a T1.11 com `DoD: CUMPRIDO` na própria linha: `rtk proxy grep -c 'DoD: CUMPRIDO' docs/002_conta_e_configuracoes/03_plan.md` cobre as onze, e `rtk proxy grep -c 'DoD: NÃO CUMPRIDO' docs/002_conta_e_configuracoes/03_plan.md` imprime `0`.
-- [ ] `cd app && dart format --set-exit-if-changed lib patrol_test test`, `flutter analyze` e `flutter test -r compact` verdes; da raiz, `scripts/gates_guard.sh; echo $?` imprime `0`.
+- [ ] `cd app && dart format --set-exit-if-changed lib patrol_test test`, `flutter analyze` e `flutter test -r compact` verdes; da raiz, `bash scripts/gates_guard.sh; echo $?` imprime `0`.
 - [ ] `docs/002_conta_e_configuracoes/e2e/round_01/report.md` responde se a sessão sobrevive a restart e a reboot, e o `03_plan.md` registra a consequência: se sobrevive, a feature de "lembrar login" sai do escopo por escrito; se não sobrevive, o passo em que cai vira tarefa nomeada.
 - [ ] `docs/002_conta_e_configuracoes/e2e/round_02/` — cadastro e recuperação ponta a ponta, **atestados pelo dev humano**, não pelo QA. O `report.md` nomeia cada passo, comando e evidência.
 - [ ] `rtk proxy grep -rn 'flutter_secure_storage' app/lib app/pubspec.yaml` não devolve nenhuma linha, e nenhum arquivo sob `app/lib/modules/auth_module/domain/` importa pacote de plataforma — a violação de camada da branch `feature/GZ-20-lembrar-login` não entrou.
@@ -616,7 +617,7 @@ emulador. Daí a T2.6 e a T2.7 existirem separadas.
   - O `DrawerThemeData` tem `elevation: 0` e cor de superfície vinda de token, sem *surface tint*: material humilde é o princípio que o `appBarTheme` e o `cardTheme` do mesmo arquivo já seguem com `elevation: 0`.
   - O `ListTileThemeData` fixa altura mínima de toque a partir de `AppSpacing.touchTarget`, que vale `48.0` em `app/lib/core/theme/app_spacing.dart` — nenhum número cru aparece na declaração.
   - As três entradas valem para as duas variantes: `AppTheme.light` e `AppTheme.dark` passam pelo mesmo `_build`, e nenhum valor de cor é escrito fora dos tokens de `app/lib/core/theme/`.
-  - `cd app && dart format --set-exit-if-changed lib/core/theme` e `flutter analyze lib/core/theme` terminam com código de saída `0`; da raiz, `scripts/gates_guard.sh; echo $?` imprime `0`.
+  - `cd app && dart format --set-exit-if-changed lib/core/theme` e `flutter analyze lib/core/theme` terminam com código de saída `0`; da raiz, `bash scripts/gates_guard.sh; echo $?` imprime `0`.
 
 As frentes A e B escrevem em arquivos diferentes da mesma pasta
 (`app_icons.dart` e `app_theme.dart`), sem se importarem: o tema não consome
@@ -628,7 +629,7 @@ outra. Consolidar antes do bloco seguinte: as frentes C e D consomem as duas.
 
   **DoD da tarefa**
   - `app/lib/core/widgets/navigation/` contém o drawer e os seus itens, **um widget por arquivo** em `snake_case`, com barrel `navigation.dart`; `app/lib/core/widgets/widgets.dart` exporta o barrel novo além de `brand/brand.dart` e `pulse/pulse.dart`.
-  - Nenhum arquivo da pasta declara função ou método que devolva `Widget` fora do `build()` override — cada pedaço de interface é uma classe própria recebendo dados pelo construtor: da raiz, `scripts/gates_guard.sh; echo $?` imprime `0`.
+  - Nenhum arquivo da pasta declara função ou método que devolva `Widget` fora do `build()` override — cada pedaço de interface é uma classe própria recebendo dados pelo construtor: da raiz, `bash scripts/gates_guard.sh; echo $?` imprime `0`.
   - Nenhum arquivo da pasta importa caminho sob `app/lib/modules/`: `rtk proxy grep -rn "modules/" app/lib/core/widgets/navigation/` não devolve nenhuma linha — o drawer recebe destinos e callbacks pelo construtor.
   - Todo item do drawer tem rótulo textual visível **e** `Semantics`/tooltip, e nenhum item usa cor como único sinal de estado — conferir lendo os arquivos e o print em `docs/002_conta_e_configuracoes/e2e/round_03/01_drawer_aberto.png`.
   - O item de chat aparece **desabilitado, com o motivo em texto visível** e anunciado por `Semantics`, e o estado desabilitado chega **pelo construtor**: nenhum arquivo da pasta consulta configuração, sessão ou `get_it` para decidir isso — conferir lendo os arquivos e o mesmo print.
@@ -641,7 +642,7 @@ outra. Consolidar antes do bloco seguinte: as frentes C e D consomem as duas.
   - `app/lib/modules/settings_module/settings_routes.dart` declara `/configuracoes` com constante de `path` **e** de `name`, e nenhuma rota do arquivo usa `extra:`.
   - A home lista as três seções e cada uma navega para um destino que ainda não tem conteúdo, sem travar nem lançar: print em `docs/002_conta_e_configuracoes/e2e/round_03/02_configuracoes_home.png` mostrando as três entradas com rótulo textual e ícone.
   - Nenhum arquivo sob `app/lib/modules/settings_module/presentation/` importa caminho contendo `/data/`, e o único ponto que toca o `get_it` é um `static Widget pageBuilder` — `rtk proxy grep -rn 'getIt' app/lib/modules/settings_module/` só devolve linhas de `pageBuilder` ou de `settings_injection.dart`.
-  - `cd app && dart format --set-exit-if-changed lib/modules/settings_module` e `flutter analyze lib/modules/settings_module` terminam com código de saída `0`; da raiz, `scripts/gates_guard.sh; echo $?` imprime `0`.
+  - `cd app && dart format --set-exit-if-changed lib/modules/settings_module` e `flutter analyze lib/modules/settings_module` terminam com código de saída `0`; da raiz, `bash scripts/gates_guard.sh; echo $?` imprime `0`.
 
 As frentes C e D escrevem em árvores separadas — `app/lib/core/widgets/` e
 `app/lib/modules/settings_module/` — e nenhuma importa a outra: o drawer é
@@ -659,7 +660,7 @@ Consolidar as duas frentes antes de seguir.
   - Nenhum `Scaffold` de página de topo deixa o `leading:` para o framework preencher: `rtk proxy grep -rn 'drawer:' app/lib` mostra o `Scaffold` do shell, e o mesmo `Scaffold` declara `leading:` com token de `app/lib/core/theme/app_icons.dart`. Sem isso o Flutter injeta um `DrawerButton` com glifo do Material, que `scripts/gates_guard.sh` não detecta porque procura o literal `Icons.`.
   - `rtk proxy grep -rn 'Icons\.' app/lib` não devolve nenhuma linha, e os arquivos `app/lib/modules/areas_module/presentation/areas/widgets/transactions_button.dart` e `.../sign_out_button.dart` não existem mais — as duas ações estão no drawer.
   - Abrir o app, tocar no ícone de menu, ir para transações pelo drawer e voltar funciona sem perder a pilha: print da sequência em `docs/002_conta_e_configuracoes/e2e/round_03/03_navegacao_pelo_drawer.png`.
-  - `cd app && dart format --set-exit-if-changed lib`, `flutter analyze` e `flutter test -r compact` terminam com código de saída `0`; da raiz, `scripts/gates_guard.sh; echo $?` imprime `0`.
+  - `cd app && dart format --set-exit-if-changed lib`, `flutter analyze` e `flutter test -r compact` terminam com código de saída `0`; da raiz, `bash scripts/gates_guard.sh; echo $?` imprime `0`.
 
 - [ ] **T2.6** — Instrumentar: atualizar `app/patrol_test/lista_transacoes_test.dart` e `app/patrol_test/registro_transacao_test.dart` para navegar pelo drawer, e escrever a cena nova que abre o drawer e chega a `/configuracoes`. · camada **testes** · `qa`
 
@@ -687,7 +688,7 @@ esbarrou em outra coisa".
 **DoD da Fase 2**
 
 - [ ] Todas as tarefas de T2.1 a T2.7 com `DoD: CUMPRIDO` na própria linha, e `rtk proxy grep -c 'DoD: NÃO CUMPRIDO' docs/002_conta_e_configuracoes/03_plan.md` imprimindo `0`.
-- [ ] `cd app && dart format --set-exit-if-changed lib patrol_test test`, `flutter analyze` e `flutter test -r compact` verdes; da raiz, `scripts/gates_guard.sh; echo $?` imprime `0`.
+- [ ] `cd app && dart format --set-exit-if-changed lib patrol_test test`, `flutter analyze` e `flutter test -r compact` verdes; da raiz, `bash scripts/gates_guard.sh; echo $?` imprime `0`.
 - [ ] `rtk proxy grep -rn 'Icons\.' app/lib` não devolve nenhuma linha — o glifo do Material não voltou pelo `DrawerButton` que o `Scaffold` injeta.
 - [ ] `docs/002_conta_e_configuracoes/e2e/round_03/` — os **três** roteiros verdes na mesma rodada, provando que a mudança de navegação não quebrou o E2E herdado da feature 001.
 - [ ] E2E atestado pelo **dev humano**; o `report.md` da rodada nomeia cada passo e o que cada imagem prova.
@@ -808,7 +809,7 @@ que estas duas acabaram de fechar.
   - O campo de e-mail é somente leitura e a tela mostra, em **texto visível**, por que o e-mail não se troca ali — print em `docs/002_conta_e_configuracoes/e2e/round_04/01_conta.png`.
   - Salvar com o nome vazio é impedido antes do envio, e um erro de servidor **preserva o que foi digitado**: dois prints em `docs/002_conta_e_configuracoes/e2e/round_04/`, um por estado.
   - Todo `emit` posterior a um `await` é precedido de `if (isClosed) return;` — conferir com `rtk proxy grep -n 'await\|isClosed\|emit' app/lib/modules/settings_module/presentation/account/account_cubit.dart`.
-  - `cd app && dart format --set-exit-if-changed lib/modules/settings_module` e `flutter analyze lib/modules/settings_module` terminam com código de saída `0`; da raiz, `scripts/gates_guard.sh; echo $?` imprime `0`.
+  - `cd app && dart format --set-exit-if-changed lib/modules/settings_module` e `flutter analyze lib/modules/settings_module` terminam com código de saída `0`; da raiz, `bash scripts/gates_guard.sh; echo $?` imprime `0`.
 
 - [ ] **T3.7** `[paralela · frente D · worktree]` — Criar `app/lib/modules/auth_module/presentation/change_password/`: cubit com estado `sealed` via `part of` e a página que pede senha atual, nova e confirmação. · camada **presentation** · `especialista-apresentacao`
 
@@ -817,7 +818,7 @@ que estas duas acabaram de fechar.
   - A tela pede **senha atual**, nova e confirmação, e o botão fica desabilitado enquanto a nova e a confirmação diferem — print com as duas diferentes e o botão desabilitado em `docs/002_conta_e_configuracoes/e2e/round_04/`.
   - Os três campos nascem com `obscureText: true` e nenhum estado da tela exibe as três senhas em claro ao mesmo tempo: `rtk proxy grep -rn 'obscureText' app/lib/modules/auth_module/presentation/change_password/` devolve três linhas.
   - Senha atual errada produz mensagem curta e **preserva os campos de senha nova e confirmação** — print em `docs/002_conta_e_configuracoes/e2e/round_04/`.
-  - `cd app && dart format --set-exit-if-changed lib/modules/auth_module` e `flutter analyze lib/modules/auth_module/presentation/change_password` terminam com código de saída `0`; da raiz, `scripts/gates_guard.sh; echo $?` imprime `0`.
+  - `cd app && dart format --set-exit-if-changed lib/modules/auth_module` e `flutter analyze lib/modules/auth_module/presentation/change_password` terminam com código de saída `0`; da raiz, `bash scripts/gates_guard.sh; echo $?` imprime `0`.
 
 As frentes C e D escrevem em módulos diferentes e nenhuma importa a outra: a
 tela de conta navega para a de senha **pelo nome da rota**, que é público, não
@@ -834,7 +835,7 @@ Consolidar as duas frentes antes de seguir.
   - As duas rotas ficam **fora** do `ShellRoute` de `app/lib/app_router.dart`, para a `AppBar` de cada uma manter o botão de voltar: abrir `/configuracoes/conta/senha`, voltar duas vezes e chegar à lista de áreas, com print da sequência em `docs/002_conta_e_configuracoes/e2e/round_04/`.
   - `rtk proxy grep -c 'GetUserProfile\|UpdateDisplayName' app/lib/modules/settings_module/settings_injection.dart` imprime pelo menos `2`, e `rtk proxy grep -c 'ChangePassword' app/lib/modules/auth_module/auth_injection.dart` imprime pelo menos `1`.
   - Nenhum barrel ganhou export novo: `app/lib/modules/auth_module/auth_module.dart` e `app/lib/modules/settings_module/settings_module.dart` continuam exportando só rota e DI, mais os três símbolos de sessão já documentados no do auth — conferir lendo os dois arquivos inteiros.
-  - `cd app && dart format --set-exit-if-changed lib`, `flutter analyze` e `flutter test -r compact` terminam com código de saída `0`; da raiz, `scripts/gates_guard.sh; echo $?` imprime `0`.
+  - `cd app && dart format --set-exit-if-changed lib`, `flutter analyze` e `flutter test -r compact` terminam com código de saída `0`; da raiz, `bash scripts/gates_guard.sh; echo $?` imprime `0`.
 
 - [ ] **T3.9** — Instrumentar o E2E da fase: roteiro `patrol` que edita o nome, confere que o e-mail não é editável e troca a senha com a senha atual certa e com a errada. · camada **testes** · `qa`
 
@@ -860,7 +861,7 @@ sempre: quem escreve o driver é quem o depura quando a rodada falha.
 **DoD da Fase 3**
 
 - [ ] Todas as tarefas de T3.1 a T3.10 com `DoD: CUMPRIDO` na própria linha, e `rtk proxy grep -c 'DoD: NÃO CUMPRIDO' docs/002_conta_e_configuracoes/03_plan.md` imprimindo `0`.
-- [ ] `cd app && dart format --set-exit-if-changed lib patrol_test test`, `flutter analyze` e `flutter test -r compact` verdes; da raiz, `scripts/gates_guard.sh; echo $?` imprime `0`.
+- [ ] `cd app && dart format --set-exit-if-changed lib patrol_test test`, `flutter analyze` e `flutter test -r compact` verdes; da raiz, `bash scripts/gates_guard.sh; echo $?` imprime `0`.
 - [ ] Job "Banco — migrations aplicam limpo e RLS está ligada" verde no CI do PR da migration, e o PR da migration mergeado **antes** de o PR da fase abrir.
 - [ ] `docs/002_conta_e_configuracoes/e2e/round_04/` — nome salvo, e-mail não editável e troca de senha ponta a ponta, **atestados pelo dev humano**. O `report.md` nomeia cada passo, comando e evidência.
 - [ ] `docs/002_conta_e_configuracoes/decisions.md` registra, com a razão escrita, que a troca de e-mail fica fora desta feature enquanto `GOTRUE_MAILER_AUTOCONFIRM` valer `'true'` e não houver SMTP.
@@ -1005,7 +1006,7 @@ duas migrations são do mesmo agente em fila — `0008` depende de `0007` existi
   - `rtk proxy grep -rn "^import" app/lib/core/session/` não devolve nenhuma linha com `package:supabase_flutter`, `package:go_router` ou caminho sob `app/lib/modules/` — a fonte concreta é injetada, o core não conhece módulo.
   - `app/lib/core/session/capabilities_cubit.dart` tem estado `sealed` no mesmo arquivo via `part of` e **falha fechada**: uma fonte que devolva `Left` resulta em IA configurada `false`, nunca `true`. Provar com teste em `app/test/core/session/` que injeta essa fonte e assere `false`; inverter o padrão no cubit faz o teste falhar — provar invertendo e restaurando.
   - `app/lib/core/session/session.dart` exporta os três arquivos novos além do que já exportava, e `rtk proxy grep -n 'CapabilitiesCubit' app/lib/injection.dart` mostra o registro com `registerLazySingleton`, não `registerFactory`: router e drawer precisam da **mesma** instância, senão o gate e o menu discordam.
-  - `cd app && dart format --set-exit-if-changed lib test` e `flutter analyze lib/core` terminam com código de saída `0`; da raiz, `scripts/gates_guard.sh; echo $?` imprime `0`.
+  - `cd app && dart format --set-exit-if-changed lib test` e `flutter analyze lib/core` terminam com código de saída `0`; da raiz, `bash scripts/gates_guard.sh; echo $?` imprime `0`.
 
 - [ ] **T4.7** `[paralela · frente C · worktree]` — Criar `app/lib/core/widgets/forms/secret_field.dart` com barrel `forms.dart` e export em `app/lib/core/widgets/widgets.dart`. · camada **core/presentation** · `especialista-apresentacao`
 
@@ -1013,7 +1014,7 @@ duas migrations são do mesmo agente em fila — `0008` depende de `0007` existi
   - `app/lib/core/widgets/forms/secret_field.dart` declara um único widget que recebe rótulo, controlador e callbacks **pelo construtor**; `app/lib/core/widgets/forms/forms.dart` o exporta e `app/lib/core/widgets/widgets.dart` exporta o barrel novo além de `brand/brand.dart` e `pulse/pulse.dart`.
   - O campo nasce com `obscureText: true` e **não** declara `autofillHints`: `rtk proxy grep -n 'obscureText\|autofillHints' app/lib/core/widgets/forms/secret_field.dart` mostra `obscureText` e nenhuma linha de `autofillHints` — chave de API não é senha de site e não deve ir para o gerenciador de senhas do sistema.
   - O botão de revelar tem `Semantics` próprio cujo rótulo muda entre revelar e ocultar, e nenhum estado do campo usa cor como único sinal — conferir lendo o arquivo e o print `docs/002_conta_e_configuracoes/e2e/round_05/00_secret_field.png`, que mostra os dois estados lado a lado.
-  - Nenhum arquivo da pasta declara função ou método que devolva `Widget` fora do `build()` override, e nenhum literal de cor, espaçamento, raio ou tipografia aparece neles: da raiz, `scripts/gates_guard.sh; echo $?` imprime `0`.
+  - Nenhum arquivo da pasta declara função ou método que devolva `Widget` fora do `build()` override, e nenhum literal de cor, espaçamento, raio ou tipografia aparece neles: da raiz, `bash scripts/gates_guard.sh; echo $?` imprime `0`.
   - `cd app && dart format --set-exit-if-changed lib/core/widgets` e `flutter analyze lib/core/widgets` terminam com código de saída `0`.
 
 - [ ] **T4.8** `[paralela · frente D · worktree]` — Criar a camada domain de credencial de IA em `app/lib/modules/settings_module/domain/`: entidade da credencial exibível, entidade do provedor do catálogo, contrato e um use case por operação. · camada **domain** · `especialista-dominio`
@@ -1050,7 +1051,7 @@ Consolidar as três frentes antes de seguir.
   - A tela é **write-only para a chave**: em nenhum estado ela carrega ou exibe o valor gravado — com credencial existente, mostra provedor, modelo, os quatro últimos dígitos e a marca de configurada. Print em `docs/002_conta_e_configuracoes/e2e/round_05/01_ia_configurada.png`.
   - O campo da chave é o `SecretField` de `app/lib/core/widgets/forms/secret_field.dart`, e o botão de salvar fica desabilitado com o campo vazio e enquanto o envio está em voo; um erro de servidor **preserva o que foi digitado** — dois prints em `docs/002_conta_e_configuracoes/e2e/round_05/`, um por estado.
   - Todo `emit` posterior a um `await` é precedido de `if (isClosed) return;` — conferir com `rtk proxy grep -n 'await\|isClosed\|emit' app/lib/modules/settings_module/presentation/ai/ai_settings_cubit.dart`.
-  - `cd app && dart format --set-exit-if-changed lib/modules/settings_module` e `flutter analyze lib/modules/settings_module` terminam com código de saída `0`; da raiz, `scripts/gates_guard.sh; echo $?` imprime `0`.
+  - `cd app && dart format --set-exit-if-changed lib/modules/settings_module` e `flutter analyze lib/modules/settings_module` terminam com código de saída `0`; da raiz, `bash scripts/gates_guard.sh; echo $?` imprime `0`.
 
 - [ ] **T4.11** — Aplicar o gating nos três pontos: `redirect` e `refreshListenable` em `app/lib/app_router.dart`, `BlocSelector` no item de chat do drawer em `app/lib/core/widgets/navigation/`, e a rota `/configuracoes/ia` com o registro do DI. · camada **infra/presentation** · `especialista-infra`
 
@@ -1088,7 +1089,7 @@ para escrever.
 **DoD da Fase 4**
 
 - [ ] Todas as tarefas de T4.1 a T4.13 com `DoD: CUMPRIDO` na própria linha, e `rtk proxy grep -c 'DoD: NÃO CUMPRIDO' docs/002_conta_e_configuracoes/03_plan.md` imprimindo `0`.
-- [ ] `cd app && dart format --set-exit-if-changed lib patrol_test test`, `flutter analyze` e `flutter test -r compact` verdes; `cd supabase/functions && deno fmt --check && deno lint && deno task check && deno task test` verde; da raiz, `scripts/gates_guard.sh; echo $?` imprime `0`.
+- [ ] `cd app && dart format --set-exit-if-changed lib patrol_test test`, `flutter analyze` e `flutter test -r compact` verdes; `cd supabase/functions && deno fmt --check && deno lint && deno task check && deno task test` verde; da raiz, `bash scripts/gates_guard.sh; echo $?` imprime `0`.
 - [ ] `rtk proxy grep -rniE 'AIza|sk-|apiKey' app/lib` não devolve nenhuma linha — nenhuma chave de terceiro, nem placeholder, entrou no binário.
 - [ ] `rtk proxy grep -rln 'aiConfigured' app/lib` devolve só arquivos sob `app/lib/core/session/`, `app/lib/core/widgets/navigation/` e `app/lib/app_router.dart` — o gate mora no router, não no corpo de página.
 - [ ] `docs/002_conta_e_configuracoes/e2e/round_05/report.md` traz a prova de isolamento entre dois usuários **e** a prova de RLS no banco, com comandos e saídas literais, reproduzidas pelo QA independentemente do executor da fase.
@@ -1255,7 +1256,7 @@ fora" só é barato para quem escreveu o roteiro.
 **DoD da Fase 5**
 
 - [ ] Todas as tarefas de T5.1 a T5.8 com `DoD: CUMPRIDO` na própria linha, e `rtk proxy grep -c 'DoD: NÃO CUMPRIDO' docs/002_conta_e_configuracoes/03_plan.md` imprimindo `0`.
-- [ ] `cd app && dart format --set-exit-if-changed lib patrol_test test`, `flutter analyze` e `flutter test -r compact` verdes; `cd supabase/functions && deno fmt --check && deno lint && deno task check && deno task test` verde; da raiz, `scripts/gates_guard.sh; echo $?` imprime `0`.
+- [ ] `cd app && dart format --set-exit-if-changed lib patrol_test test`, `flutter analyze` e `flutter test -r compact` verdes; `cd supabase/functions && deno fmt --check && deno lint && deno task check && deno task test` verde; da raiz, `bash scripts/gates_guard.sh; echo $?` imprime `0`.
 - [ ] `rtk proxy grep -rni 'pluggy' app/lib` não devolve nenhuma linha — quem fala com a Pluggy é a Edge Function, e isso é invariante de arquitetura, não estilo.
 - [ ] `rtk proxy grep -rniE 'PLUGGY_CLIENT_SECRET=[^$]' .` não devolve nenhuma linha em nenhum arquivo versionado.
 - [ ] `docs/002_conta_e_configuracoes/e2e/round_06/` — conectar, ver status e desconectar contra a sandbox, **atestados pelo dev humano**, com os quatro estados de conexão em prints distintos.

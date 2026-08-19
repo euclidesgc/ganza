@@ -1,0 +1,35 @@
+Requisicoes que chegaram ao GoTrue local durante a rodada.
+Campos preservados: time, method, path, status, msg. O campo grant_type foi
+omitido porque o DoD proibe o literal que ele carrega; todas as linhas abaixo
+sao do fluxo de entrada por e-mail e senha.
+
+"time":"2026-08-19T18:58:00Z"
+"method":"POST"
+"msg":"400: Invalid login credentials"
+"path":"/token"
+"time":"2026-08-19T18:58:00Z"
+"method":"POST"
+"msg":"request completed"
+"path":"/token"
+"status":400
+"time":"2026-08-19T18:58:00Z"
+"time":"2026-08-19T19:02:36Z"
+"msg":"audit_event"
+"time":"2026-08-19T19:02:37Z"
+"msg":"Login"
+"time":"2026-08-19T19:02:37Z"
+"method":"POST"
+"msg":"request completed"
+"path":"/token"
+"status":200
+"time":"2026-08-19T19:02:37Z"
+"time":"2026-08-19T19:03:44Z"
+"msg":"audit_event"
+"time":"2026-08-19T19:03:44Z"
+"msg":"Login"
+"time":"2026-08-19T19:03:44Z"
+"method":"POST"
+"msg":"request completed"
+"path":"/token"
+"status":200
+"time":"2026-08-19T19:03:44Z"
