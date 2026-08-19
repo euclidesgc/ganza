@@ -2,7 +2,7 @@
 
 Fatiamento e execução. O "o quê" está em [`02_specs.md`](02_specs.md), o contrato do pronto em [`01_prd.md`](01_prd.md), as decisões desta feature em [`decisions.md`](decisions.md), os desvios em [`changes.md`](changes.md), e o item canônico está no [`docs/roadmap.md`](../roadmap.md). **Este plano não inventa escopo: ele distribui o DoD entre as fases e acrescenta o que falta para cada fase se sustentar sozinha.**
 
-Estado: **Fase 4 em revisão** · branch `feature/GZ-17-registrar-transacao` (de `develop`) · T4.1–T4.7 concluídas, E2E da rodada 02 verde e atestado pelo dev; **próximo passo: PR 4 verde e mergeado, então a Fase 5**.
+Estado: **Fase 4 aguardando merge** · branch `feature/GZ-17-registrar-transacao` (de `develop`) · T4.1–T4.7 concluídas, E2E da rodada 02 verde e atestado pelo dev, DoD fechado e [PR #20](https://github.com/euclidesgc/ganza/pull/20) com os cinco jobs verdes; **próximo passo: mergear o PR 4 e começar a Fase 5**.
 
 ---
 
@@ -262,7 +262,7 @@ Consolidar; daqui em diante sequencial.
 - [x] `e2e/round_02/` — print do botão **Registrar** desabilitado durante o envio. Toque duplo não gera duas linhas: confirmado por `select count(*)` antes e depois.
 - [x] Nenhuma transação foi gravada sem toque explícito em Registrar — invariante nº 1 do `CLAUDE.md`, verificada com `select count(*)` antes de abrir o formulário e depois de abandoná-lo preenchido.
 - [x] E2E atestado pelo **dev humano**; `report.md` da rodada nomeando cada passo e o que cada imagem prova.
-- [ ] Job "App" verde no CI do PR.
+- [x] Job "App" verde no CI do PR. *(PR #20 — os cinco jobs verdes)*
 
 ---
 
@@ -344,7 +344,7 @@ Legenda: `[ ]` não iniciada · `[-]` em andamento · `[x]` mergeada em `develop
   harness Patrol local.
 - [-] **Fase 4** — Escrita: formulário → Edge Function · PR 4 — T4.1–T4.7
   concluídas. E2E da rodada 02 verde em 30 min 33 s, com as dez cenas e o
-  atestado do dev; DoD fechado exceto a linha do CI, que depende do PR.
+  atestado do dev; DoD fechado, PR #20 com os cinco jobs do CI verdes.
   **Ressalva:** o gate do CISO desta fase não deixou veredito registrado — o
   diff de T4.1–T4.6 não tem revisão de segurança documentada, e o D19 do
   `../decisions.md` veio do gate de uma fase anterior.
