@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../../core/format/format.dart';
+import '../../../../../core/theme/theme.dart';
 
 /// `lastDate: today` é a trava de futuro — só de UI, como pede o `specs.md`
 /// §8 P8: a Edge Function aceita data futura de propósito para o chat da
@@ -25,7 +26,7 @@ class OccurredAtField extends StatelessWidget {
       label: 'Data da transação, $label',
       child: OutlinedButton.icon(
         onPressed: () => _pickDate(context, today),
-        icon: const Icon(Icons.event),
+        icon: const Icon(AppIcons.dateField),
         label: Align(alignment: Alignment.centerLeft, child: Text(label)),
       ),
     );

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../../core/theme/theme.dart';
 import '../../../transactions_routes.dart';
 import '../transactions_list_cubit.dart';
 
@@ -15,7 +16,7 @@ class NewTransactionFab extends StatelessWidget {
       child: FloatingActionButton(
         tooltip: 'Registrar transação',
         onPressed: () => _openForm(context),
-        child: const Icon(Icons.add),
+        child: const Icon(AppIcons.addAction),
       ),
     );
   }
