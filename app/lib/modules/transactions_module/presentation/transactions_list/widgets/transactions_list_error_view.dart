@@ -19,7 +19,7 @@ class TransactionsListErrorView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.error_outline, color: context.ganza.overdue),
+            Icon(AppIcons.errorState, color: context.ganza.overdue),
             const SizedBox(height: AppSpacing.md),
             Text(message, textAlign: TextAlign.center),
             const SizedBox(height: AppSpacing.lg),
