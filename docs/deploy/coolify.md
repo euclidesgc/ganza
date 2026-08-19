@@ -92,13 +92,18 @@ Verificado: `GET /functions/v1/health` com `apikey` devolve `{"status":"ok","dat
 
 ## Autenticação
 
-Conta única (`euclides.catunda@gmail.com`), criada com `ENABLE_EMAIL_AUTOCONFIRM=true` e **cadastro fechado em seguida** com `DISABLE_SIGNUP=true` — o app é monousuário por desenho, e endpoint de signup aberto na internet é convite sem porteiro. Verificado: a tentativa devolve `422 signup_disabled`.
+**A configuração que vale passa a ser cadastro aberto pelo app, com confirmação de e-mail obrigatória:** `DISABLE_SIGNUP=false` e `ENABLE_EMAIL_AUTOCONFIRM=false` — a HML ainda roda a anterior, e a virada está listada em "Ainda por fazer". O ganzá deixou de ser monousuário — passa a ser multiusuário por isolamento, cada conta enxergando só os próprios dados pela RLS (**D28** em [`../decisions.md`](../decisions.md), que revoga a D11 e, com ela, o `422 signup_disabled` que esta seção verificava). A conta criada sob a D11 (`euclides.catunda@gmail.com`) continua válida — deixa de ser a única, não some.
+
+As duas variáveis mudam **juntas**, e a ordem importa nos dois sentidos: com a confirmação automática ligada, qualquer endereço inventado vira conta confirmada sem prova de posse do e-mail; com ela desligada e sem e-mail saindo, ninguém confirma conta nenhuma e o cadastro tranca. Por isso a virada entra no mesmo redeploy do SMTP (**D26**).
+
+No serviço do Coolify as chaves se chamam `DISABLE_SIGNUP` e `ENABLE_EMAIL_AUTOCONFIRM`; o template do Supabase as repassa ao GoTrue como `GOTRUE_DISABLE_SIGNUP` e `GOTRUE_MAILER_AUTOCONFIRM`, que são os nomes escritos em [`../../infra/local/docker-compose.yml`](../../infra/local/docker-compose.yml). Procurar só um dos dois pares dá falso negativo.
 
 > **Ao mexer em env do GoTrue, espere o redeploy terminar antes de testar.** O contêiner antigo continua servindo durante a troca: um teste feito no meio da janela mostrou signup funcionando com a config nova já salva. A stack tem **oito** contêineres — conte-os antes de concluir qualquer coisa.
 
-Redefinir senha, enquanto não há SMTP: pelo Studio, em `https://supabase.ganza.bmjtech.duckdns.org`.
+Redefinir senha é pelo fluxo de recuperação do próprio app: pede-se o e-mail, o GoTrue envia um código de seis dígitos e a pessoa o digita (`FD-003` em [`../002_conta_e_configuracoes/decisions.md`](../002_conta_e_configuracoes/decisions.md)). Depende do SMTP — ver "Ainda por fazer". Na stack local o e-mail não sai para a internet: a Fase 1 da feature 002 instala um capturador em `infra/local/`, e é dele que o código é lido.
 
 ## Ainda por fazer
 
-- **SMTP** para os e-mails de autenticação — `SMTP_HOST`/`SMTP_USER`/`SMTP_PASS` estão vazios. Sem isso, confirmação de e-mail e recuperação de senha não saem.
+- **SMTP** para os e-mails de autenticação. Hoje `SMTP_HOST`, `SMTP_USER` e `SMTP_PASS` estão vazios e nenhum e-mail sai. O provedor está decidido (**D26**): Gmail com App Password, porque o domínio é DuckDNS e ali SPF/DKIM/DMARC são impossíveis. Cinco variáveis: `SMTP_HOST=smtp.gmail.com`, `SMTP_PORT=587` (STARTTLS), `SMTP_USER`, `SMTP_PASS` (a App Password, de conta com 2FA — não a senha da conta) e `SMTP_ADMIN_EMAIL`.
+- **Virar o GoTrue para cadastro aberto com confirmação**, `DISABLE_SIGNUP=false` e `ENABLE_EMAIL_AUTOCONFIRM=false`, **no mesmo redeploy do SMTP** — o serviço ainda roda a configuração da conta única (`DISABLE_SIGNUP=true`, `ENABLE_EMAIL_AUTOCONFIRM=true`), e desligar a confirmação automática antes de o e-mail sair trancaria todo cadastro novo.
 - Front web em `ganza.bmjtech.duckdns.org` (Fase 8).
