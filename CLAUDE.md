@@ -57,7 +57,7 @@ Regras do `docs/plano.md` que viram gate de código:
 - Acessibilidade: cor nunca é o único sinal de informação; controles com `Semantics`/tooltip; alvos de toque grandes (o app se usa com uma mão).
 - Arquivos `snake_case`, classes `PascalCase`, **uma classe/widget por arquivo**; código em inglês, UI e docs em pt-BR. Única exceção: o estado `sealed` do cubit mora no mesmo arquivo do cubit via `part of`.
 - **Zero comentário — o código se explica por nomes.** Vale para Dart, TypeScript e SQL. **Não escreva** comentário que diga o que a linha faz, que repita o nome do identificador logo abaixo, cabeçalho decorativo de seção, nem nota de autoria/histórico ("antes era X", "adicionado na F2") — para isso existe o git. Legibilidade se conquista **extraindo** variável/função/widget com nome descritivo. **Única exceção:** o **porquê** que o código não tem como mostrar — decisão de arquitetura, workaround de bug externo, restrição de plataforma ou invariante não óbvia; e aí o comentário explica a **razão**, nunca a mecânica. Ao editar arquivo já comentado, limpe o que não passa nesse teste.
-- Cancela de máquina: **`flutter analyze` verde + testes passando é o mínimo, não o "pronto".** O pronto é o DoD da etapa — ver "DoD por etapa". Nunca opinião.
+- Cancela de máquina: **`flutter analyze` verde + testes passando é o mínimo, não o "pronto".** O pronto é o DoD — ver "DoD em três níveis". Nunca opinião.
 
 ## Design system e organização de widgets (inegociável)
 
@@ -95,6 +95,7 @@ Cada agente declara suas `tools` no frontmatter. **A restrição é a regra de f
 | `product-manager` | opus | `01_prd.md` | **sem `Bash` e sem grafo** — não roda comando nem varre código |
 | `tech-lead` | opus | `02_specs.md`, `03_plan.md`, `decisions.md`, `changes.md`, fatiamento | **único com `Agent`** (delega varredura) + grafo completo |
 | `qa` | opus | validação de fase, E2E, testes, docs | `Skill` (encadeia as próprias skills) + `run_tests` |
+| `supervisor-dod` | opus | veredito do DoD de uma tarefa | **sem `Write`/`Edit`** (só lê e roda) e **cego ao plano por desenho** — recebe só o bloco DoD e um ponteiro para o trabalho, porque quem lê o plano confere intenção no lugar de critério |
 | `ciso` | sonnet | segurança e privacidade | **sem `Write`/`Edit`** — cancela não conserta o que revisa |
 | `critico-integrador` | sonnet | integração entre fatias consolidadas | **sem `Write`/`Edit`** — só devolve `pass` ou `fail` fundamentado |
 | `especialista-dominio` | sonnet | entidades, contratos, use cases | fatia fechada: sem `Agent`, sem web |
@@ -111,16 +112,22 @@ Toda skill declara `allowed-tools` e **todas são auto-invocáveis pelo modelo**
 |---|---|---|
 | `tech-manager` | sim | orquestra o gauntlet a partir de um item numerado do roadmap. |
 | `criar-modulo` · `criar-migration` | sim | gabarito de módulo Flutter e de migration com RLS |
-| `fechar-etapa` | sim | **verifica o DoD rodando, antes de abrir PR — é o gate de avanço** |
+| `fechar-etapa` | sim | **verifica o DoD da fase rodando, antes de abrir PR — é o gate de avanço** |
 | `revisar-fase` · `instrumentar-e2e` · `escrever-testes` · `manter-docs-vivas` | sim | o ciclo do QA |
 | `iniciar-feature` · `iniciar-bugfix` · `iniciar-hotfix` · `empilhar-prs` · `publicar-release` | sim | GitFlow por situação (a decisão de *começar* hotfix/release continua humana — está no corpo da skill) |
 | `subir-supabase` | sim | a stack self-hosted enxuta, com a razão de cada serviço que fica de fora |
 
-## DoD por etapa — a regra que governa o avanço
+## DoD em três níveis — a regra que governa o avanço
 
-**Cada etapa do plano tem a sua própria Definition of Done, escrita antes de a etapa começar.** Não é uma seção no fim do documento: é uma lista por etapa, e ela é o que autoriza o avanço.
+**Nada começa sem a sua Definition of Done escrita antes.** Não é uma seção no fim do documento: são três níveis, e cada um decide uma coisa diferente.
 
-**O ciclo é fechado:** etapa implementada → **DoD verificada, rodando de verdade** → PR aberto → merge → próxima etapa. Sem DoD atingida não se abre PR, não se mergeia, e não se começa a etapa seguinte. "Acho que está pronto" não move nada.
+| Nível | O que decide | Quem verifica |
+|---|---|---|
+| **Plano** | a rubrica do gauntlet da feature inteira | `tech-lead` escreve; o `qa` cobra no fechamento |
+| **Fase** | o que autoriza abrir PR | skill `fechar-etapa`, rodando cada prova |
+| **Tarefa** | o que dá a tarefa por concluída — é a unidade de despacho | `supervisor-dod`, cego ao plano, a cada tarefa concluída |
+
+**O ciclo é fechado:** tarefa implementada → `CUMPRIDO` do supervisor → fase completa → **DoD da fase verificada, rodando de verdade** → PR aberto → merge → próxima fase. Sem DoD atingida não se abre PR, não se mergeia, e não se começa a fase seguinte. "Acho que está pronto" não move nada.
 
 **Toda linha do DoD é uma prova executável, de um destes três tipos:**
 
@@ -128,11 +135,17 @@ Toda skill declara `allowed-tools` e **todas são auto-invocáveis pelo modelo**
 |---|---|
 | **Teste automatizado** | O teste existe, passa, **e falha sem a mudança**. Teste que nunca foi visto falhar não prova nada — verifique revertendo. |
 | **Saída de comando** | O comando e a saída esperada, literais: `curl .../health` devolve `200` com `{"status":"ok"}`. Quem lê reproduz sem perguntar nada. |
-| **Evidência de E2E** | `patrol test` na stack local, com PNG e log em `docs/NNN_<nome>/e2e/round_NN/`; o `report.md` descreve passo, comando, resultado e imagem. |
+| **Evidência de E2E** | `patrol test` na stack local, com PNG e log em `docs/NNN_<nome>/e2e/round_NN/`; o `report.md` traz os rótulos que `scripts/verify-gauntlet.sh` cobra e ao menos um PNG referenciado. |
 
-**Escreva o DoD no nível do que a etapa promete, não do que é fácil medir.** Esta sessão custou três deploys quebrados porque o "pronto" do backend era *"os testes passam"* — e o que importava era *"o `/health` responde 200 no domínio"*. CI verde com serviço fora do ar é DoD mal escrito, não azar.
+**Escreva o DoD no nível do que o trabalho promete, não do que é fácil medir.** Esta sessão custou três deploys quebrados porque o "pronto" do backend era *"os testes passam"* — e o que importava era *"o `/health` responde 200 no domínio"*. CI verde com serviço fora do ar é DoD mal escrito, não azar.
 
-**O E2E entra no DoD da etapa que entrega comportamento visível ao usuário**, e é atestado pelo dev humano: o QA instrumenta, o humano confere os prints, a evidência fica na rodada. O roteiro exercita o que a etapa **promete**, não o caminho feliz — se a etapa corrige uma falha silenciosa, prova que cada modo de falha produz estado **visualmente distinto**.
+**Régua do bloco DoD de tarefa: apague todos os parênteses de referência — a linha ainda tem de se sustentar.** Quem vai ler esse bloco é o `supervisor-dod`, e **ele não terá o plano em mãos**. Quatro restrições: **caminho completo a partir da raiz do repositório**, nunca "o formatador"; **cada linha diz como se prova** — qual comando, qual teste, qual print; **critério observável já ao fim da tarefa** — nada que dependa de fase futura ou de aceite humano posterior, que é DoD de fase; **três a seis linhas**. Se a condição mora numa decisão numerada do plano, o DoD **reescreve a condição por extenso** e cita a referência **depois**, como procedência — nunca como ponteiro a resolver.
+
+**Três vereditos, em precedência: `NÃO CUMPRIDO` > `DOD INVÁLIDO` > `CUMPRIDO`.** `DOD INVÁLIDO` é linha não verificável: o defeito está no critério, não no trabalho, e por isso não reprova a tarefa e **não consome cota**. `NÃO CUMPRIDO` volta ao executor **duas vezes por tarefa**; na terceira, escala ao humano. O teto do gauntlet (3 rodadas / 45 minutos) continua **por fase**.
+
+**O veredito volta sempre ao orquestrador, nunca direto ao executor.** `NÃO CUMPRIDO` ele devolve ao executor. `DOD INVÁLIDO` tem **três saídas**, e a escolha é dele: (1) **corrigir a forma do critério sozinho** — ambíguo, contagem errada, referência que não resolve, caminho não completo a partir da raiz, bloco fora das três a seis linhas; (2) **acionar o `tech-lead`** quando reescrever o critério exige saber o que o plano pretendia — aí a correção não é de forma, é de conteúdo; (3) **levar ao humano** quando muda a **exigência** — sempre. **Afrouxar o DoD para a tarefa passar é proibido.** O veredito é registrado pelo orquestrador na própria linha da tarefa no `03_plan.md` da feature, e a tarefa só é marcada `[x]` com `CUMPRIDO`.
+
+**O E2E entra no DoD da fase que entrega comportamento visível ao usuário**, e é atestado pelo dev humano: o QA instrumenta o driver e o executa — naturezas diferentes, que podem virar tarefas distintas —, quem gera os prints é sempre a máquina, o humano confere e atesta, e a evidência fica na rodada. O roteiro exercita o que a fase **promete**, não o caminho feliz — se ela corrige uma falha silenciosa, prova que cada modo de falha produz estado **visualmente distinto**.
 
 **No PR, o DoD vai no corpo, com o resultado de cada linha.** É o que o revisor lê primeiro.
 
@@ -154,6 +167,7 @@ O humano pediu **o mínimo de interação**. Isso é autorização durável, nã
 **O contexto da conversa principal é o recurso mais escasso do projeto.** Ele se enche de saída de comando, diff e log, e quando enche o trabalho perde a memória do que foi decidido. Por isso a execução mora nos sub-agentes.
 
 - **Toda tarefa de implementação vai para um `especialista-*`**, via a tool `Agent` — não se escreve código na conversa principal, nem "só esse ajuste rápido". Um ajuste rápido custa o diff inteiro no contexto de quem deveria estar orquestrando.
+- **A unidade de despacho é a tarefa com o seu bloco DoD**, não a fase — o bloco já é o pacote inteiro "o que fazer + como se prova". Contra a intuição, **escopo menor não sai mais caro: retomar um agente que já tem contexto carregado custa 3 a 5× menos que abrir um novo** (medido: um executor levou 15 min no primeiro ciclo e 2,4–3 min nos quatro seguintes; outro, 6 min e depois 3,5 e 2,2). O caro é carregar contexto, não trabalhar — logo despache pequeno e refine com o mesmo agente, em vez de empacotar a fase num despacho grande.
 - **Varredura de código vai para sub-agente** (ou para o grafo do CRG). O que volta é a conclusão, não o arquivo.
 - **A conversa principal guarda:** o estado do fluxo, as decisões, o que o humano precisa decidir e os resumos que os agentes devolvem. Nada de código-fonte varrido, spec inteira ou log.
 - **Quando a execução for genuinamente independente**, dispare os agentes em paralelo (ver "Ritmo de teste e paralelismo"). Em fila só o que tem dependência real.
@@ -169,16 +183,25 @@ Exceção honesta: correção de uma linha óbvia, apontada por erro de CI, não
 
 **Paralelize implementação genuinamente independente.** Quando o trabalho se divide em partes que tocam arquivos disjuntos e não dependem do resultado uma da outra, dispare um agente por parte em vez de um agente fazendo tudo em fila. **Isole cada agente** (worktree próprio) quando eles vão escrever ao mesmo tempo. Consolide e **só então** rode a suíte completa na branch integrada. O que tem dependência real continua sequencial — não force paralelismo onde uma tarefa precisa do resultado da anterior.
 
+**A regra vale igualmente para as fases finais** — bateria automatizada, documentação, validação/E2E —, e é justamente ali que ela some: a fase de fechamento do `docs/001_cadastro_manual/03_plan.md` não tem uma única marca `[paralela]`, enquanto fases de implementação da mesma feature decompõem em frentes. Ali existe uma distinção real: **instrumentar** (escrever o driver do E2E — trabalho de código) e **executar** (rodar contra o ambiente — espera de parede) são naturezas diferentes, mas quem escreve o driver é quem melhor o depura quando a rodada falha. Se viram duas tarefas do mesmo agente ou dois agentes é **escolha a ser escrita com a razão**, não cerimônia obrigatória.
+
 **Duas escritas na mesma working directory se atropelam.** Com um agente rodando sem isolamento na pasta principal, não edite nada ali enquanto ele estiver ativo — nem mudança "sem relação" com o que ele faz. Ou espere, ou isole a sua também.
 
 ## Economia de tokens (obrigatório)
 
-Custo de token é regra, não preferência. Duas ferramentas estão ativas neste repositório — **use-as**:
+Custo de token é regra, não preferência. Três ferramentas estão ativas neste repositório — **use-as**:
 
 - **rtk** reescreve `git`/`grep`/`ls`/… via hook e enxuga a saída.
 - **O grafo do CRG** (`.code-review-graph/`, ignorado pelo git) é atualizado por hook a cada `Edit`/`Write`. O repo está registrado com o alias **`ganza`**. Ele **só enxerga arquivo versionado**: código novo ainda não commitado não aparece no grafo — nesse caso, `Read` mesmo.
+- **O índice de docs** (`scripts/docs_index.py`, banco em `.docs-index/index.db`, local e ignorado pelo git) indexa os `.md` por seção — heading, faixa exata de linhas e trilha de títulos — e busca por FTS5/BM25 em vez de `grep` cego seguido de leitura às escuras. Toda consulta reindexa o que mudou antes de responder, então o resultado nunca mente mesmo se o hook de atualização falhar ou não existir. Da raiz do repositório:
+  - `python3 scripts/docs_index.py search "termo"` — devolve caminho, faixa de linhas e trilha por seção, rankeado.
+  - `python3 scripts/docs_index.py label GZ-17` — busca exata de identificador (`T4.1`, `D4`, `R9`, `F0.9`, `§11`, `GZ-17`, `#19`, …), separando onde é **definido** de onde é só citado.
+  - `python3 scripts/docs_index.py outline docs/plano.md` — sumário do arquivo com faixa por seção, sem abrir o arquivo inteiro.
+  - `python3 scripts/docs_index.py index --quiet` — reindexação manual (o hook já faz isso a cada `Edit`/`Write`).
 
-- **Grafo antes de grep/read cru.** Para explorar código, consulte primeiro os tools do MCP `code-review-graph` (`query_graph`, `get_review_context`, `detect_changes`, `semantic_search_nodes`, `get_impact_radius`). Só caia em `Grep`/`Read` quando o grafo não cobrir. (Vale para subagentes — inclua isso no prompt deles.)
+  **O que ele não resolve:** acha *onde* a informação está, não se ela *continua verdadeira* — um ponteiro `arquivo:linha` escrito numa doc não é verificado por ele. O hook que mantém o índice fresco está versionado em `.claude/settings.json`; se o mesmo comando existir também no settings da máquina, ele roda **duas vezes, em paralelo** — hooks de escopos diferentes somam, não se sobrescrevem.
+
+- **Grafo antes de grep/read cru em código.** Para explorar código, consulte primeiro os tools do MCP `code-review-graph` (`query_graph`, `get_review_context`, `detect_changes`, `semantic_search_nodes`, `get_impact_radius`). Só caia em `Grep`/`Read` quando o grafo não cobrir. **Índice antes de grep/read cru em docs longas** (`docs/`, `.claude/`, `*.md` da raiz) — use `search`/`label`/`outline` em vez de abrir o arquivo inteiro para achar uma seção. (Vale para subagentes — inclua isso no prompt deles.)
 - **Saída de comando enxuta.** Testes com `-r compact` (`flutter test -r compact`) e/ou `| tail`; nunca despejar log linha a linha.
 - **`rtk proxy <cmd>` quando o filtro atrapalha.** O hook reescreve `grep`/`ls`/`git`… e embaralha saídas com números soltos. Precisa da saída crua? `rtk proxy grep -n …`.
 - **Não reler** arquivo recém-editado (o harness rastreia o estado) nem redescrever o que já foi estabelecido.

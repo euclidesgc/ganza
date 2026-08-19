@@ -18,7 +18,7 @@ class TransactionsButton extends StatelessWidget {
           minHeight: AppSpacing.touchTarget,
         ),
         onPressed: () => TransactionsRoutes.pushNamed(context),
-        icon: const Icon(Icons.receipt_long),
+        icon: const Icon(AppIcons.transactions),
       ),
     );
   }

@@ -84,7 +84,7 @@ while read -r id; do
       [ "$evidence_count" -gt 0 ] || error "$id: $(basename "$round") report.md sem PNG referenciado"
     done < <(find "$feature/e2e" -mindepth 1 -maxdepth 1 -type d -name 'round_[0-9][0-9]' | sort)
   fi
-done < <(awk '$1 ~ /^\[(x|-)\]$/ && $2 ~ /^[0-9][0-9][0-9]$/ { print $2 }' "$ROADMAP")
+done < <(sed -nE 's/^[[:space:]]*-?[[:space:]]*\[[x-]\][[:space:]]+([0-9]{3})[[:space:]].*/\1/p' "$ROADMAP")
 
 if [ "$fail" -ne 0 ]; then
   exit 1

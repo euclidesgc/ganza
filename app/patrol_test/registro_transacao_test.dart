@@ -27,6 +27,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ganza/app.dart';
 import 'package:ganza/core/config/app_config.dart';
+import 'package:ganza/core/theme/theme.dart';
 import 'package:ganza/injection.dart';
 import 'package:ganza/modules/transactions_module/presentation/new_transaction/widgets/new_transaction_error_banner.dart';
 import 'package:ganza/modules/transactions_module/presentation/new_transaction/widgets/new_transaction_form.dart';
@@ -304,7 +305,7 @@ Finder get _botaoRegistrar =>
 Finder get _botaoEmVoo => _noFormulario(find.byType(FilledButton));
 
 Finder get _botaoDaData =>
-    _noFormulario(find.widgetWithIcon(OutlinedButton, Icons.event));
+    _noFormulario(find.widgetWithIcon(OutlinedButton, AppIcons.dateField));
 
 Finder _rotuloDaData(String dataDeOntem) =>
     find.descendant(of: _botaoDaData, matching: find.text(dataDeOntem));

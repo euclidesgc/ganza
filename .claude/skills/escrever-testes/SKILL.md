@@ -1,6 +1,6 @@
 ---
 name: escrever-testes
-description: Escreve a bateria automatizada do ganza (unit + widget + golden + backend) — por último, após o E2E atestado e o segundo gate do CISO. Usada pelo QA na etapa final do fluxo.
+description: Escreve a bateria automatizada do ganza (unit + widget + golden + backend) — por último, após o E2E atestado e o segundo gate do CISO. Usada pelo QA na etapa final do fluxo, decomposta em uma frente por camada, cada uma com o seu bloco DoD.
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, mcp__dart__run_tests, mcp__dart__analyze_files
 ---
 
@@ -22,6 +22,23 @@ O que escrever, por camada:
 4. **Golden** — captura de referência dos estados visuais estáveis. Gere com `flutter test --update-goldens` e commite.
 5. **Backend** — endpoints (DTO inválido → 400), a camada de IA com provedor fake (inclusive o **fallback** disparando), e o parser de parcelamento com a matriz de descrições reais ("PARC 03/12", "3/12", "PARCELA 3 DE 12", e as que **não** são parcelamento).
 
+## A bateria se decompõe por frente disjunta
+
+**"Escrever os testes" soa como uma coisa só e não é.** Vale aqui a mesma regra
+da implementação — e é justamente aqui que ela costuma ser esquecida, o que
+transforma a bateria no segundo maior executor da sessão. As cinco camadas acima
+já nomeiam as frentes naturais: use cases, cubits, widget, golden e backend
+escrevem arquivos de teste disjuntos e nenhuma espera o resultado da outra.
+Quando for esse o caso, **um agente por frente, em paralelo**, com worktree
+próprio, porque vão escrever ao mesmo tempo. O que tem dependência real continua
+em fila: helper compartilhado (fixture, `registerFallbackValue` de tipo custom,
+harness de pump) nasce numa frente só, antes das demais.
+
+**Cada frente é uma tarefa com bloco DoD próprio**, marcada
+`[paralela · frente X · worktree]` no `03_plan.md` e julgada ao fim pelo
+`supervisor-dod` (`.claude/agents/supervisor-dod.md`). Consolide as frentes e
+**só então** rode a suíte completa na branch integrada.
+
 ## O que este produto exige que não é padrão
 
 - **Matemática financeira tem teste por caso, com valor esperado ao centavo.** Price e SAC, saldo devedor, quitação antecipada nos dois cenários (reduzir prazo × reduzir parcela). Número de juros sem teste é número errado esperando a vez. Inclua o caso de borda: última parcela, quitação no primeiro mês, taxa zero.
@@ -35,4 +52,4 @@ O que escrever, por camada:
 
 **Rode escopado enquanto escreve, suíte inteira antes de fechar.** Ver "Ritmo de teste e paralelismo" no `CLAUDE.md`.
 
-Pirâmide: muito domínio/cubit, alguns widget, poucos integração. DoD: **tudo verde** — e só então a tarefa fecha.
+Pirâmide: muito domínio/cubit, alguns widget, poucos integração. **Tudo verde na suíte consolidada é o DoD da fase** — o que autoriza o PR, verificado pela `fechar-etapa`. Ele não substitui o bloco DoD de cada frente: uma tarefa fecha pelo bloco dela, com os arquivos que ela escreveu passando.

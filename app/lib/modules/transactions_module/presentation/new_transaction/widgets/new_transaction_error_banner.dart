@@ -27,7 +27,7 @@ class NewTransactionErrorBanner extends StatelessWidget {
             ),
             child: Row(
               children: [
-                Icon(Icons.error_outline, color: context.ganza.overdue),
+                Icon(AppIcons.errorState, color: context.ganza.overdue),
                 const SizedBox(width: AppSpacing.sm),
                 Expanded(child: Text(message, style: context.texts.bodyMedium)),
               ],
