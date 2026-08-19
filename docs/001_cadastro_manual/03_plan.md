@@ -2,7 +2,7 @@
 
 Fatiamento e execução. O "o quê" está em [`02_specs.md`](02_specs.md), o contrato do pronto em [`01_prd.md`](01_prd.md), as decisões desta feature em [`decisions.md`](decisions.md), os desvios em [`changes.md`](changes.md), e o item canônico está no [`docs/roadmap.md`](../roadmap.md). **Este plano não inventa escopo: ele distribui o DoD entre as fases e acrescenta o que falta para cada fase se sustentar sozinha.**
 
-Estado: **Fase 4 em andamento** · branch `feature/GZ-17-registrar-transacao` (de `develop`) · T4.1–T4.6 implementadas e commitadas; **próximo passo: T4.7, a começar pelo gate do CISO sobre o diff da fase**.
+Estado: **Fase 4 em revisão** · branch `feature/GZ-17-registrar-transacao` (de `develop`) · T4.1–T4.7 concluídas, E2E da rodada 02 verde e atestado pelo dev; **próximo passo: PR 4 verde e mergeado, então a Fase 5**.
 
 ---
 
@@ -248,20 +248,20 @@ Consolidar; daqui em diante sequencial.
 - [x] **T4.4** — `TransactionModel.toPayload(NewTransaction)` (só `direction`, `amount`, `description`, `occurred_at`; **nunca** `user_id` nem `area_id`) e o `create` no `TransactionsRepositoryImpl` via `client.functions.invoke('transactions', body: …)`, com o `201` voltando pelo mesmo `safeParse` da leitura. · camada **data** · `especialista-dados`
 - [x] **T4.5** — `presentation/new_transaction/`: cubit + estado `sealed`, e a página com os quatro campos na ordem do `02_specs.md` §6.1 — seletor **Despesa**/**Receita** com rótulo textual sempre visível (default Despesa), campo monetário pt-BR com dígitos entrando pela direita, descrição de até 200 caracteres travada na digitação, e seletor de data com default hoje e **futuro bloqueado na UI** (a função aceita; a Fase 3 do produto não pode herdar a trava). Botão **Registrar** desabilitado enquanto inválido **e** enquanto o envio está em voo. Em erro, o formulário **preserva o que foi digitado**. Rebuild escopado — o campo de valor não reconstrói a tela a cada tecla. · camada **presentation** · `especialista-apresentacao`
 - [x] **T4.6** — Navegação e refetch: rota `/transacoes/nova`, entrada a partir da lista, e o retorno ao `201` **refazendo a leitura** pelo PostgREST em vez de inserir o item localmente — o refetch é a prova do caminho de volta. · camada **presentation** · `especialista-apresentacao`
-- [ ] **T4.7** — E2E Patrol rodada 2 (gate do CISO antes), pela mesma ponte
+- [x] **T4.7** — E2E Patrol rodada 2 (gate do CISO antes), pela mesma ponte
   JUnit versionada e callback de captura por `adb reverse`, com asserções,
   prints e logs imediatamente posteriores à asserção; a falha de transporte
   bloqueia o Supabase local por `iptables`, em `e2e/round_02/`. · `qa` + `ciso`
 
 **DoD da Fase 4**
 
-- [ ] `dart format`, `flutter analyze`, `gates_guard.sh` e `flutter test -r compact` verdes.
-- [ ] `e2e/round_02/` — sequência do caminho feliz: formulário preenchido (`Almoço`, `R$ 45,00`, data de ontem) → lista com a linha nova no topo. Registrada **pelo app**, não por `curl`.
-- [ ] `select amount, source, direction, user_id, area_id from public.transactions order by created_at desc limit 1` logo após o print: `amount` inteiro em centavos (`4500`, nunca `4499`), `source = 'manual'`, `user_id` da conta e **`area_id` nulo** — a decisão A1 verificada, não assumida.
-- [ ] `e2e/round_02/` — **cada modo de falha em estado visualmente distinto**: (a) envio sem rede → mensagem curta **com os campos ainda preenchidos**; (b) sessão expirada → o app vai para o login, não mostra erro genérico. Dois prints, dois estados diferentes.
-- [ ] `e2e/round_02/` — print do botão **Registrar** desabilitado durante o envio. Toque duplo não gera duas linhas: confirmado por `select count(*)` antes e depois.
-- [ ] Nenhuma transação foi gravada sem toque explícito em Registrar — invariante nº 1 do `CLAUDE.md`, verificada com `select count(*)` antes de abrir o formulário e depois de abandoná-lo preenchido.
-- [ ] E2E atestado pelo **dev humano**; `report.md` da rodada nomeando cada passo e o que cada imagem prova.
+- [x] `dart format`, `flutter analyze`, `gates_guard.sh` e `flutter test -r compact` verdes.
+- [x] `e2e/round_02/` — sequência do caminho feliz: formulário preenchido (`Almoço`, `R$ 45,00`, data de ontem) → lista com a linha nova no topo. Registrada **pelo app**, não por `curl`.
+- [x] `select amount, source, direction, user_id, area_id from public.transactions order by created_at desc limit 1` logo após o print: `amount` inteiro em centavos (`4500`, nunca `4499`), `source = 'manual'`, `user_id` da conta e **`area_id` nulo** — a decisão A1 verificada, não assumida.
+- [x] `e2e/round_02/` — **cada modo de falha em estado visualmente distinto**: (a) envio sem rede → mensagem curta **com os campos ainda preenchidos**; (b) sessão expirada → o app vai para o login, não mostra erro genérico. Dois prints, dois estados diferentes.
+- [x] `e2e/round_02/` — print do botão **Registrar** desabilitado durante o envio. Toque duplo não gera duas linhas: confirmado por `select count(*)` antes e depois.
+- [x] Nenhuma transação foi gravada sem toque explícito em Registrar — invariante nº 1 do `CLAUDE.md`, verificada com `select count(*)` antes de abrir o formulário e depois de abandoná-lo preenchido.
+- [x] E2E atestado pelo **dev humano**; `report.md` da rodada nomeando cada passo e o que cada imagem prova.
 - [ ] Job "App" verde no CI do PR.
 
 ---
@@ -342,7 +342,10 @@ Legenda: `[ ]` não iniciada · `[-]` em andamento · `[x]` mergeada em `develop
   [`CHG-008`](changes.md#chg-008---evidência-da-rodada-01-precede-o-harness-patrol-local)
   registra como rodada histórica, cuja prova visual a rodada 02 refaz sob o
   harness Patrol local.
-- [-] **Fase 4** — Escrita: formulário → Edge Function · PR 4 — T4.1–T4.6
-  implementadas e commitadas em `feature/GZ-17-registrar-transacao`; falta a
-  T4.7 (gate do CISO, depois E2E rodada 02) e o DoD da fase.
+- [-] **Fase 4** — Escrita: formulário → Edge Function · PR 4 — T4.1–T4.7
+  concluídas. E2E da rodada 02 verde em 30 min 33 s, com as dez cenas e o
+  atestado do dev; DoD fechado exceto a linha do CI, que depende do PR.
+  **Ressalva:** o gate do CISO desta fase não deixou veredito registrado — o
+  diff de T4.1–T4.6 não tem revisão de segurança documentada, e o D19 do
+  `../decisions.md` veio do gate de uma fase anterior.
 - [ ] **Fase 5** — Bateria automatizada + fechamento · PR 5

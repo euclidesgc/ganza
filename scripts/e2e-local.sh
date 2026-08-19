@@ -54,24 +54,56 @@ export SUPABASE_URL ANON_KEY JWT_DONO USER_ID
 export RODADA
 
 mkdir -p "$ROUND/logs"
-"$ROOT/docs/$DIRECTORY/e2e_shots.sh" 2>&1 | tee "$ROUND/logs/listagem.log"
-"$ROOT/docs/$DIRECTORY/e2e_registro_shots.sh" 2>&1 | tee "$ROUND/logs/registro.log"
+STATUS=0
+if ! "$ROOT/docs/$DIRECTORY/e2e_shots.sh" 2>&1 | tee "$ROUND/logs/listagem.log"; then STATUS=1; fi
+if [ "$STATUS" = '0' ]; then
+  if ! "$ROOT/docs/$DIRECTORY/e2e_registro_shots.sh" 2>&1 | tee "$ROUND/logs/registro.log"; then STATUS=1; fi
+fi
+
+# O report descreve o que o log registrou. Um template com PASS fixo descreve
+# o que se esperava, e um dia diverge do que aconteceu sem ninguém notar.
+linhas_de_cena() {
+  grep -hE "^(PASS|FAIL)[[:space:]]+cena '" \
+    "$ROUND/logs/listagem.log" "$ROUND/logs/registro.log" 2>/dev/null || true
+}
+
+evidencia_da_linha() {
+  printf '%s' "$1" | grep -oE '[0-9]{2}_[a-z_]+(\.png)?' | sort -u | while read -r arquivo; do
+    case "$arquivo" in *.png) ;; *) arquivo="$arquivo.png" ;; esac
+    printf '[%s](%s) ' "$arquivo" "$arquivo"
+  done
+}
 
 REPORT="$ROUND/report.md"
 {
   printf '# Round %s - E2E local da feature %s\n\n' "$RODADA" "$FEATURE"
   printf '## Contexto\n\n'
   printf 'Stack local descartável em `%s`; commit `%s`.\n\n' "$SUPABASE_URL" "$(git -C "$ROOT" rev-parse --short HEAD)"
-  printf '## Passos executados\n\n'
-  printf '| Cenário | Expectativa | Resultado | Evidência |\n| --- | --- | --- | --- |\n'
-  printf '| Erro de leitura | Estado de erro distinto do vazio | PASS | [PNG](01_erro_de_leitura.png) · [log](logs/listagem.log) |\n'
-  printf '| Estado vazio | Lista sem transações não se confunde com falha | PASS | [PNG](02_estado_vazio.png) · [log](logs/listagem.log) |\n'
-  printf '| Lista e RLS | Linhas do dono aparecem após leitura local | PASS | [PNG](03_lista_carregada.png) · [log](logs/listagem.log) |\n'
-  printf '| Abandono | Formulário sem Registrar não cria linha | PASS | [PNG](06_formulario_abandonado.png) · [log](logs/registro.log) |\n'
-  printf '| Criação pelo app | Registrar cria exatamente uma linha no topo | PASS | [PNG](02_lista_com_a_linha_nova.png) · [log](logs/registro.log) |\n'
-  printf '| Toque duplo | Dois toques criam uma única linha | PASS | [PNG](05_botao_desabilitado_durante_envio.png) · [log](logs/registro.log) |\n'
-  printf '| Falha de rede | Campos permanecem e nada é gravado | PASS | [PNG](03_sem_rede_campos_preservados.png) · [log](logs/registro.log) |\n'
-  printf '| Sessão expirada | Sessão inválida retorna ao login | PASS | [PNG](04_sessao_expirada_login.png) · [log](logs/registro.log) |\n'
+  if [ "$STATUS" = '0' ]; then
+    printf 'Resultado: **VERDE** — %s cenas, nenhuma falha.\n\n' "$(linhas_de_cena | grep -c '^PASS' || true)"
+  else
+    printf 'Resultado: **FALHA** — a rodada não pode ser usada como evidência de DoD.\n'
+    printf 'Cenas que não constam da tabela abaixo não chegaram a rodar; o motivo\n'
+    printf 'está no fim de [`logs/listagem.log`](logs/listagem.log) ou de\n'
+    printf '[`logs/registro.log`](logs/registro.log).\n\n'
+  fi
+  printf '## Cenas executadas\n\n'
+  printf '| Cena | Resultado | Evidência |\n| --- | --- | --- |\n'
+  if [ -z "$(linhas_de_cena)" ]; then
+    printf '| — | nenhuma cena chegou a rodar | [log](logs/listagem.log) |\n'
+  else
+    linhas_de_cena | while IFS= read -r linha; do
+      printf '| %s | %s | %s|\n' \
+        "$(printf '%s' "$linha" | sed -n "s/.*cena '\([^']*\)'.*/\1/p")" \
+        "${linha%% *}" \
+        "$(evidencia_da_linha "$linha")"
+    done
+  fi
+  if [ -f "$ROUND/contagens.json" ]; then
+    printf '\nContagens da tabela antes e depois de cada cena, como o roteiro as\n'
+    printf 'leu do banco: [`contagens.json`](contagens.json). A linha criada pelo\n'
+    printf 'app está em [`linha_registrada.json`](linha_registrada.json).\n'
+  fi
   printf '\n## Ambiente e comandos\n\n'
   printf -- '- Stack local descartável: `%s`\n' "$SUPABASE_URL"
   printf -- '- `scripts/e2e-emulator.sh start|cleanup` controla exclusivamente o AVD desta rodada.\n'
@@ -80,3 +112,5 @@ REPORT="$ROUND/report.md"
   printf -- '- `docs/%s/e2e_registro_shots.sh`\n' "$DIRECTORY"
   printf '\nLogs e ressalvas ficam em [`logs/`](logs/). Não são gravados vídeos.\n'
 } > "$REPORT"
+
+exit "$STATUS"
