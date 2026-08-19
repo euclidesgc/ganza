@@ -10,7 +10,7 @@ O nome no repositório, no `applicationId`, nos pacotes e na URL é **`ganza`, s
 - `supabase/functions/` — **Edge Functions em Deno**. Toda a lógica de servidor: `ingest`, `sync-finance`, `finance-math`, `notify`, `calendar`. **Dona exclusiva de toda chave de terceiro** (Gemini, Pluggy, Google, FCM). `main/index.ts` roteia `/functions/v1/<nome>`; publicar é `scripts/deploy-functions.sh`.
 - `supabase/migrations/` — SQL versionado. Schema, RLS, `pg_cron`.
 - `infra/coolify/` — compose e variáveis de ambiente da stack self-hosted.
-- `docs/NN-<nome>/` — docs vivas de cada feature (`specs.md`, `prd.md`, `plan.md`, `variance_report.md`, `test_plan.md`, `final_report.md`, `evidencias/rodada_MM/`). **`NN`** é o número de sequência com dois dígitos na ordem de desenvolvimento (`01`, `02`, …). Pastas de referência (`deploy/`, `specs/`) **não** são numeradas.
+- `docs/NNN_<nome>/` — documentação de uma feature do roadmap: `01_prd.md`, `02_specs.md`, `03_plan.md`, `decisions.md`, `changes.md` e `e2e/round_NN/report.md`. **`NNN`** é a numeração de três dígitos do roadmap (`001`, `002`, …). Decisões técnicas globais vivem em `docs/decisions.md`; decisões da feature vivem na própria pasta.
 
 **Um app, sem packages.** O produto é um app só — módulo mora em `app/lib/modules/<nome>_module/`, não em pacote separado. Extrair para `packages/` só quando um segundo consumidor existir de verdade; cerimônia de monorepo sem segundo consumidor é custo sem retorno.
 
@@ -84,7 +84,7 @@ Os tokens saem da identidade do `docs/plano.md` §11 — paleta de couro/palha/o
 
 ## Método de trabalho (time de IA)
 
-O usuário invoca **`/tech-manager <pedido>`** (skill em `.claude/skills/tech-manager/`, que roda na própria conversa e orquestra os agentes de `.claude/agents/`; não é sub-agente) — o fluxo completo mora lá. Regras que valem sempre: 1 fase = 1 PR; **só então** testes automatizados, depois do E2E atestado; desvio do plano só entra com aprovação do humano e registro em `variance_report.md`.
+O usuário invoca **`/tech-manager <pedido>`** (skill em `.claude/skills/tech-manager/`, que roda na própria conversa e orquestra os agentes de `.claude/agents/`; não é sub-agente) — o fluxo completo mora lá. Regras que valem sempre: 1 fase = 1 PR; **só então** testes automatizados, depois do E2E atestado; desvio do plano exige registro prévio em `changes.md` e reconciliação de PRD, specs e plano.
 
 ### O time e o que cada um alcança
 
@@ -92,10 +92,11 @@ Cada agente declara suas `tools` no frontmatter. **A restrição é a regra de f
 
 | Agente | Modelo | Fatia | Alcance notável |
 |---|---|---|---|
-| `product-manager` | opus | discovery, `specs.md`, `prd.md` | **sem `Bash` e sem grafo** — não roda comando nem varre código |
-| `tech-lead` | opus | `plan.md`, fatiamento, depuração do E2E | **único com `Agent`** (delega varredura) + grafo completo |
+| `product-manager` | opus | `01_prd.md` | **sem `Bash` e sem grafo** — não roda comando nem varre código |
+| `tech-lead` | opus | `02_specs.md`, `03_plan.md`, `decisions.md`, `changes.md`, fatiamento | **único com `Agent`** (delega varredura) + grafo completo |
 | `qa` | opus | validação de fase, E2E, testes, docs | `Skill` (encadeia as próprias skills) + `run_tests` |
 | `ciso` | sonnet | segurança e privacidade | **sem `Write`/`Edit`** — cancela não conserta o que revisa |
+| `critico-integrador` | sonnet | integração entre fatias consolidadas | **sem `Write`/`Edit`** — só devolve `pass` ou `fail` fundamentado |
 | `especialista-dominio` | sonnet | entidades, contratos, use cases | fatia fechada: sem `Agent`, sem web |
 | `especialista-dados` | sonnet | models, repositórios, Supabase/Dio | **sem `WebFetch`** — quem fala com o mundo é o backend |
 | `especialista-apresentacao` | sonnet | cubits, páginas, tema | **único com app rodando** (`hot_reload`, `get_widget_tree`) |
@@ -108,7 +109,7 @@ Toda skill declara `allowed-tools` e **todas são auto-invocáveis pelo modelo**
 
 | Skill | Auto? | Para quê |
 |---|---|---|
-| `tech-manager` | **não** (`disable-model-invocation`) | é o ponto de entrada do humano e dispara o time inteiro; auto-invocar tomaria o controle da conversa e custaria caro. Vira automática apagando uma linha do frontmatter. |
+| `tech-manager` | sim | orquestra o gauntlet a partir de um item numerado do roadmap. |
 | `criar-modulo` · `criar-migration` | sim | gabarito de módulo Flutter e de migration com RLS |
 | `fechar-etapa` | sim | **verifica o DoD rodando, antes de abrir PR — é o gate de avanço** |
 | `revisar-fase` · `instrumentar-e2e` · `escrever-testes` · `manter-docs-vivas` | sim | o ciclo do QA |
@@ -127,7 +128,7 @@ Toda skill declara `allowed-tools` e **todas são auto-invocáveis pelo modelo**
 |---|---|
 | **Teste automatizado** | O teste existe, passa, **e falha sem a mudança**. Teste que nunca foi visto falhar não prova nada — verifique revertendo. |
 | **Saída de comando** | O comando e a saída esperada, literais: `curl .../health` devolve `200` com `{"status":"ok"}`. Quem lê reproduz sem perguntar nada. |
-| **Evidência de E2E** | Print ou log em `docs/NN-<nome>/evidencias/rodada_MM/`, com o `README.md` da rodada dizendo o que aquela imagem prova. |
+| **Evidência de E2E** | `patrol test` na stack local, com PNG e log em `docs/NNN_<nome>/e2e/round_NN/`; o `report.md` descreve passo, comando, resultado e imagem. |
 
 **Escreva o DoD no nível do que a etapa promete, não do que é fácil medir.** Esta sessão custou três deploys quebrados porque o "pronto" do backend era *"os testes passam"* — e o que importava era *"o `/health` responde 200 no domínio"*. CI verde com serviço fora do ar é DoD mal escrito, não azar.
 
@@ -135,7 +136,7 @@ Toda skill declara `allowed-tools` e **todas são auto-invocáveis pelo modelo**
 
 **No PR, o DoD vai no corpo, com o resultado de cada linha.** É o que o revisor lê primeiro.
 
-**Roadmap vivo (`docs/roadmap.md`).** Fonte única de rastreabilidade — o que foi feito, o que está em andamento, o que falta, **ordenado por dependência**, com status `[ ]` não iniciada · `[-]` em andamento · `[x]` concluída. **A tabela de decisões travadas do roadmap sobrepõe o `docs/plano.md`** onde os dois conflitarem: o plano é a intenção de origem, a decisão é o que ficou valendo. **Mantido atualizado pela IA** no fechamento de cada trabalho. Ao surgir item novo, a IA pode **reescrever o texto** para dar clareza e **reordená-lo** para o ponto de precedência correto. Decisão pendente do humano é **estado** e mora no roadmap, junto do item que a espera.
+**Roadmap vivo (`docs/roadmap.md`).** É a lista curta e ordenada de features: `[ ] NNN - descrição`. Cada item aponta para uma pasta `docs/NNN_descricao/`; o estado detalhado fica em `03_plan.md`. Decisões da feature ficam em `decisions.md`; decisões transversais ou pendências humanas ficam em `docs/decisions.md`, que sobrepõe `docs/plano.md` quando houver conflito.
 
 **A ordem das fases é uma decisão de produto, não de conveniência:** rotina vem antes de finanças. É a rotina que faz o app ser aberto todo dia e é o domínio mais barato para construir a máquina de ocorrência, estado terminal, log de eventos e notificação em dupla via. **Se a fase N não estiver em uso diário, não comece a N+1.**
 
@@ -145,7 +146,7 @@ O humano pediu **o mínimo de interação**. Isso é autorização durável, nã
 
 - **Siga sem perguntar** em tudo que é aditivo e reversível dentro do escopo do ganza: criar branch, abrir PR, escrever código e docs, criar recursos **novos** do ganza no Coolify, aplicar migration em banco local, marcar o roadmap.
 - **Pare e pergunte** só quando: a ação toca recurso de **outro projeto** no servidor compartilhado (driva, love-secret, Garage, o próprio Coolify); é **destrutiva ou irreversível** (apagar volume, derrubar serviço alheio, aplicar migration em produção com dado real, `push --force`); ou exige **conta externa** dele (DuckDNS, Google/Firebase, Pluggy, cartão).
-- **Decida sozinho** o que tem resposta óbvia ou é reversível de graça — e **registre a decisão** na tabela do `docs/roadmap.md` em vez de trazê-la para a conversa. Registro vale mais que pergunta: sobrevive à sessão.
+- **Decida sozinho** o que tem resposta óbvia ou é reversível de graça — e **registre a decisão** no `decisions.md` da feature; use `docs/decisions.md` apenas quando a decisão for transversal. Registro vale mais que pergunta: sobrevive à sessão.
 - Quando parar for inevitável, **entregue tudo que não dependia da resposta primeiro** e pergunte uma coisa só.
 
 ## Quem executa é sub-agente — a conversa principal orquestra
@@ -182,8 +183,8 @@ Custo de token é regra, não preferência. Duas ferramentas estão ativas neste
 - **`rtk proxy <cmd>` quando o filtro atrapalha.** O hook reescreve `grep`/`ls`/`git`… e embaralha saídas com números soltos. Precisa da saída crua? `rtk proxy grep -n …`.
 - **Não reler** arquivo recém-editado (o harness rastreia o estado) nem redescrever o que já foi estabelecido.
 - **Respostas diretas**: sem tabela decorativa nem recapitulação longa; o que muda a decisão do humano, e só.
-- **Sessão nova a cada entrega.** Ao fechar um item do roadmap, **recomende ao humano iniciar uma sessão nova** — o roadmap e as docs vivas dão a continuidade, e o histórico acumulado (caro por reenvio) zera. Nunca no meio de uma tarefa. Junto, **entregue um "prompt de retomada" pronto para colar** em bloco de código: o próximo item do roadmap, os ponteiros vivos (`docs/NN-<nome>/`) e a **primeira ação concreta**.
-  - **O prompt aponta, não recita.** É *self-contained* no sentido de não depender do histórico da conversa — **não** no de repetir o que já está no repo. Decisão travada mora no `plan.md`; estado de fase, no `roadmap.md`; regra de processo, aqui ou no `GITFLOW.md`; evidência, em `evidencias/`. Prompt de setenta linhas é sintoma: **o que ele carregava deveria ter virado texto no repo.**
+- **Sessão nova a cada entrega.** Ao fechar um item do roadmap, **recomende ao humano iniciar uma sessão nova** — o roadmap e as docs vivas dão a continuidade, e o histórico acumulado (caro por reenvio) zera. Nunca no meio de uma tarefa. Junto, **entregue um "prompt de retomada" pronto para colar** em bloco de código: o próximo item do roadmap, os ponteiros vivos (`docs/NNN_<nome>/`) e a **primeira ação concreta**.
+  - **O prompt aponta, não recita.** É *self-contained* no sentido de não depender do histórico da conversa — **não** no de repetir o que já está no repo. Decisão travada mora no `03_plan.md`; estado de fase, no `roadmap.md`; regra de processo, aqui ou no `GITFLOW.md`; evidência, em `e2e/`. Prompt de setenta linhas é sintoma: **o que ele carregava deveria ter virado texto no repo.**
 
 ## Git, branches e releases (GitFlow)
 
@@ -203,4 +204,4 @@ Fonte da verdade: **`docs/GITFLOW.md`**. Resumo operacional:
 - **Deploy = auto-deploy por branch** no **Coolify** (GitHub App). Deployáveis, domínios e variáveis: **`docs/deploy/coolify.md`**.
 - **O Android não sai do Coolify.** O Coolify serve a stack Supabase e, mais tarde, a web; o APK é build local ou de CI, assinado fora do repo.
 - **Segredo/URL/origem nunca no repo** — só env/Build Variable no Coolify. A URL da API do front é **compile-time** (`--dart-define-from-file`); o CORS do backend vem de `CORS_ORIGINS`.
-- **Backup não é escopo** (decisão D4 do `docs/roadmap.md`, que sobrepõe o R9 e o §5.1 do plano). Não proponha rotina de `pg_dump`, não trate backup como item de DoD e não reabra o assunto — o humano já decidiu.
+- **Backup não é escopo** (decisão D4 do `docs/decisions.md`, que sobrepõe o R9 e o §5.1 do plano). Não proponha rotina de `pg_dump`, não trate backup como item de DoD e não reabra o assunto — o humano já decidiu.

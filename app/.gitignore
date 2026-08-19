@@ -43,3 +43,6 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Bundle de entrada gerado pelo patrol CLI a cada execução
+/patrol_test/test_bundle.dart

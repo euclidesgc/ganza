@@ -1,0 +1,5 @@
+{
+  "imports": {
+    "@std/http/status": "jsr:@std/http@^1.0.20/status"
+  }
+}

@@ -37,6 +37,7 @@ jobs:
       app: ${{ steps.filtro.outputs.app }}
       functions: ${{ steps.filtro.outputs.functions }}
       migrations: ${{ steps.filtro.outputs.migrations }}
+      harness: ${{ steps.filtro.outputs.harness }}
     steps:
       - uses: actions/checkout@v4
 
@@ -59,6 +60,13 @@ jobs:
             migrations:
               - 'supabase/migrations/**'
               - 'supabase/ci-bootstrap.sql'
+              - '.github/workflows/ci.yml'
+            harness:
+              - '.claude/**'
+              - 'docs/**'
+              - 'infra/local/**'
+              - 'scripts/verify-gauntlet.sh'
+              - '.vscode/**'
               - '.github/workflows/ci.yml'
 
   app:
@@ -265,3 +273,13 @@ jobs:
             exit 1
           fi
           echo "✓ toda política chama auth.<função>()/current_setting() dentro de um select"
+
+  harness:
+    name: Harness - contrato gauntlet
+    needs: changes
+    if: needs.changes.outputs.harness == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Estrutura e contrato do gauntlet
+        run: bash scripts/verify-gauntlet.sh

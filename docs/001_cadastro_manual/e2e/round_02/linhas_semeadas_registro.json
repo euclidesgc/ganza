@@ -1,0 +1,14 @@
+[
+    {
+        "description": "Caf\u00e9",
+        "amount": 700,
+        "direction": "out",
+        "occurred_at": "2026-08-12T12:00:00+00:00"
+    },
+    {
+        "description": "Venda da feira",
+        "amount": 25000,
+        "direction": "in",
+        "occurred_at": "2026-08-10T13:00:00+00:00"
+    }
+]

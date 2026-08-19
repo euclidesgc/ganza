@@ -1,0 +1,13 @@
+[
+    {
+        "amount": 4500,
+        "source": "manual",
+        "direction": "out",
+        "user_id": "af4b6de0-42c2-4c56-8e1e-67b486a95239",
+        "area_id": null,
+        "description": "Almo\u00e7o",
+        "occurred_at": "2026-08-17T15:00:00+00:00",
+        "reconciliation_status": "pending",
+        "created_at": "2026-08-19T02:57:19.829439+00:00"
+    }
+]

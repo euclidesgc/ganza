@@ -1,0 +1,380 @@
+#!/usr/bin/env bash
+#
+# E2E da listagem de transações — Fase 3 (T3.8) de docs/001_cadastro_manual.
+# Gera TODOS os prints do DoD por máquina. Ao dev humano sobra conferir as
+# imagens; nenhum passo é operado à mão.
+#
+#   uso:  RODADA=01 ./docs/001_cadastro_manual/e2e_shots.sh
+#         ./docs/001_cadastro_manual/e2e_shots.sh down    # só limpa
+#
+# Pré-requisitos (exportados antes de rodar):
+#   SUPABASE_URL  ANON_KEY  JWT_DONO  USER_ID
+#
+# ── RASTRO QUE ESTE SCRIPT DEIXA (tudo removido por `down`, que também roda
+#    no trap EXIT) ───────────────────────────────────────────────────────────
+#   • emulador Android `Pixel_8_Pro` headless          → controller por PID
+#   • saída para o Supabase local bloqueada na cena 1  → iptables -D
+#   • app instalado no emulador (br.com.ganza.ganza)   → fica; morre com o AVD
+#   • processos `patrol test`                          → pkill no trap
+#
+# Este roteiro só aceita a stack local descartável iniciada por
+# `scripts/local-supabase.sh`. Dados de HML e produção nunca são alterados.
+
+set -uo pipefail
+
+RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+APP="$RAIZ/app"
+RODADA="${RODADA:-01}"
+DESTINO="$RAIZ/docs/001_cadastro_manual/e2e/round_$RODADA"
+AVD="${AVD:-Pixel_8_Pro}"
+SERIAL="${SERIAL:-emulator-5554}"
+LOGS="$DESTINO/logs"
+FUSO="${FUSO:-America/Sao_Paulo}"
+EVIDENCE_PORT="${E2E_EVIDENCE_PORT:-8765}"
+EVIDENCE_PID=''
+PATROL_PID=''
+EMULATOR_OWNED=0
+
+export PATH="$PATH:$HOME/.puro/shared/pub_cache/bin:$HOME/.pub-cache/bin:${ANDROID_HOME:-$HOME/Android/Sdk}/platform-tools:${ANDROID_HOME:-$HOME/Android/Sdk}/emulator"
+
+falhas=0
+ok()   { printf 'PASS  %s\n' "$*"; }
+nok()  { printf 'FAIL  %s\n' "$*"; falhas=$((falhas + 1)); }
+etapa(){ printf '\n── %s\n' "$*"; }
+
+bloquear_supabase_local() {
+  adb -s "$SERIAL" root >/dev/null
+  adb -s "$SERIAL" wait-for-device
+  adb -s "$SERIAL" reverse "tcp:$EVIDENCE_PORT" "tcp:$EVIDENCE_PORT" >/dev/null
+  adb -s "$SERIAL" shell iptables -I OUTPUT -d 10.0.2.2 -j REJECT >/dev/null
+  adb -s "$SERIAL" shell iptables -C OUTPUT -d 10.0.2.2 -j REJECT >/dev/null
+}
+
+liberar_supabase_local() {
+  adb -s "$SERIAL" shell iptables -D OUTPUT -d 10.0.2.2 -j REJECT 2>/dev/null
+}
+
+# ─────────────────────────────────────────────────────────────── limpeza ──
+down() {
+  etapa 'limpeza'
+  if [ -n "$PATROL_PID" ]; then
+    kill -TERM -- "-$PATROL_PID" 2>/dev/null || true
+    wait "$PATROL_PID" 2>/dev/null || true
+  fi
+  if [ -n "$EVIDENCE_PID" ]; then
+    kill "$EVIDENCE_PID" 2>/dev/null || true
+    wait "$EVIDENCE_PID" 2>/dev/null || true
+  fi
+  if [ "$EMULATOR_OWNED" -eq 1 ]; then
+    adb -s "$SERIAL" reverse --remove "tcp:$EVIDENCE_PORT" 2>/dev/null
+    liberar_supabase_local
+    "$RAIZ/scripts/e2e-emulator.sh" stop
+  fi
+}
+
+if [ "${1:-run}" = 'down' ]; then down; exit 0; fi
+trap down EXIT
+
+# ────────────────────────────────────────────────────────── pré-requisitos ──
+etapa 'pré-requisitos'
+for var in SUPABASE_URL ANON_KEY JWT_DONO USER_ID; do
+  [ -n "${!var:-}" ] || { nok "variável $var não exportada"; exit 1; }
+done
+case "$SUPABASE_URL" in
+  http://127.0.0.1:*|http://localhost:*|http://0.0.0.0:*) ;;
+  *) nok "SUPABASE_URL remoto recusado: $SUPABASE_URL"; exit 1 ;;
+esac
+for bin in adb emulator patrol curl python3; do
+  command -v "$bin" >/dev/null || { nok "binário ausente: $bin"; exit 1; }
+done
+ok 'ambiente completo'
+
+mkdir -p "$DESTINO" "$LOGS"
+python3 "$RAIZ/scripts/capture-e2e-evidence.py" \
+  --port "$EVIDENCE_PORT" --serial "$SERIAL" --destination "$DESTINO" \
+  > "$LOGS/captura.log" 2>&1 &
+EVIDENCE_PID=$!
+for _ in $(seq 1 20); do
+  curl -fsS "http://127.0.0.1:$EVIDENCE_PORT/health" >/dev/null && break
+  sleep 1
+done
+curl -fsS "http://127.0.0.1:$EVIDENCE_PORT/health" >/dev/null \
+  && ok 'servidor de captura pronto' \
+  || { nok 'servidor de captura não iniciou'; exit 1; }
+
+api() { # <método> <caminho> [corpo]
+  local metodo="$1" caminho="$2" corpo="${3:-}"
+  if [ -n "$corpo" ]; then
+    curl -sS -X "$metodo" "$SUPABASE_URL$caminho" \
+      -H "apikey: $ANON_KEY" -H "Authorization: Bearer $JWT_DONO" \
+      -H 'Content-Type: application/json' -d "$corpo" -w '\n%{http_code}'
+  else
+    curl -sS -X "$metodo" "$SUPABASE_URL$caminho" \
+      -H "apikey: $ANON_KEY" -H "Authorization: Bearer $JWT_DONO" -w '\n%{http_code}'
+  fi
+}
+
+# ───────────────────────────────────────────────────────────── emulador ──
+etapa 'emulador'
+# `-timezone` no boot: a lista renderiza a data no fuso do aparelho, e a
+# prova do fix de fuso (linha guardada em 01:30Z de 16/08, vivida às 22:30
+# de 15/08) só existe se o emulador estiver em America/Sao_Paulo.
+# O controller recusa um serial externo: a rodada não assume um AVD alheio.
+if ! "$RAIZ/scripts/e2e-emulator.sh" start "$AVD" "$SERIAL" "$FUSO" "$LOGS/emulador.log"; then
+  nok 'não foi possível reservar um emulador exclusivo para a rodada'
+  exit 1
+fi
+EMULATOR_OWNED=1
+adb wait-for-device
+for _ in $(seq 1 60); do
+  [ "$(adb -s "$SERIAL" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = '1' ] && break
+  sleep 5
+done
+[ "$(adb -s "$SERIAL" shell getprop sys.boot_completed | tr -d '\r')" = '1' ] \
+  && ok "emulador $AVD pronto (API $(adb -s "$SERIAL" shell getprop ro.build.version.sdk | tr -d '\r'))" \
+  || { nok 'emulador não subiu'; exit 1; }
+
+"$RAIZ/scripts/e2e-emulator.sh" harden "$SERIAL"
+ok 'diálogos de erro do sistema suprimidos — nenhum ANR tapa os prints'
+
+adb -s "$SERIAL" reverse "tcp:$EVIDENCE_PORT" "tcp:$EVIDENCE_PORT" >/dev/null
+
+# ─────────────────────────────────────────────────────── fuso do emulador ──
+# Não é detalhe de ambiente: é o que a cena 3 prova. Se o aparelho estivesse
+# em UTC, a linha de 01:30Z sairia como "16/08, domingo" e o print estaria
+# mentindo sobre a correção. Aborta se não conseguir fixar o fuso.
+etapa 'fuso do emulador'
+fuso_atual() { adb -s "$SERIAL" shell getprop persist.sys.timezone | tr -d '\r'; }
+if [ "$(fuso_atual)" != "$FUSO" ]; then
+  adb -s "$SERIAL" root >/dev/null 2>&1
+  adb -s "$SERIAL" wait-for-device
+  adb -s "$SERIAL" shell setprop persist.sys.timezone "$FUSO" >/dev/null 2>&1
+  sleep 2
+fi
+if [ "$(fuso_atual)" = "$FUSO" ]; then
+  ok "emulador em $FUSO ($(adb -s "$SERIAL" shell date | tr -d '\r'))"
+else
+  nok "fuso do emulador é '$(fuso_atual)', esperava $FUSO — a prova de fuso não valeria"
+  exit 1
+fi
+
+# ────────────────────────────────────────────── contrato antes da tela ──
+# O que a máquina consegue afirmar sozinha fica aqui; a tela só é chamada
+# para o que exige olho.
+etapa 'contrato — RLS e leitura pelo PostgREST'
+
+anon="$(curl -sS "$SUPABASE_URL/rest/v1/transactions?select=id" -H "apikey: $ANON_KEY")"
+[ "$anon" = '[]' ] \
+  && ok "GET anônimo devolve [] — a RLS barra quem não tem sessão" \
+  || nok "GET anônimo devolveu: $anon"
+
+resposta="$(api GET '/rest/v1/transactions?select=id,description,amount,direction,occurred_at,source&order=occurred_at.desc')"
+codigo="$(printf '%s' "$resposta" | tail -1)"
+corpo="$(printf '%s' "$resposta" | sed '$d')"
+[ "$codigo" = '200' ] && ok 'GET do dono devolve 200' || nok "GET do dono devolveu $codigo"
+
+printf '%s\n' "$corpo" | python3 -m json.tool > "$DESTINO/estado_inicial.json"
+ok "estado anterior salvo em $(basename "$DESTINO")/estado_inicial.json"
+
+# ───────────────────────────────────── cena 1 · erro de leitura (sem rede) ──
+# Vem primeiro porque não depende de dado nenhum, e porque a cena seguinte
+# precisa da tabela vazia.
+cena() { # <nome> <arquivo>
+  local nome="$1" arquivo="$2"
+  ( cd "$APP" && exec setsid timeout --kill-after=60s 600 patrol test \
+      --target=patrol_test/lista_transacoes_test.dart \
+      --device "$SERIAL" --flavor dev \
+      --dart-define-from-file=config/local.json \
+      --dart-define="E2E_CENA=$nome" \
+      --dart-define="E2E_ARQUIVO=$arquivo" \
+      --dart-define="E2E_EVIDENCE_URL=http://127.0.0.1:$EVIDENCE_PORT" \
+      --dart-define="E2E_JWT=$JWT_DONO" \
+      --dart-define="E2E_USER_ID=$USER_ID" \
+      --dart-define="E2E_EMAIL=e2e@ganza.local" ) \
+    > "$LOGS/cena_$nome.log" 2>&1 &
+  PATROL_PID=$!
+  wait "$PATROL_PID"
+  local saida=$?
+  PATROL_PID=''
+  if [ $saida -eq 0 ] && [ -s "$DESTINO/$arquivo.png" ]; then
+    ok "cena '$nome' — Patrol verde e print em $arquivo.png"
+  else
+    nok "cena '$nome' — saída $saida; ver logs/cena_$nome.log"
+  fi
+}
+
+etapa 'cena 1 · erro de leitura com Supabase local indisponível'
+bloquear_supabase_local \
+  && ok 'saída do emulador para o Supabase local bloqueada' \
+  || { nok 'não foi possível bloquear o Supabase local'; exit 1; }
+cena erro 01_erro_de_leitura
+liberar_supabase_local
+ok 'saída para o Supabase local restaurada'
+
+# ───────────────────────────────────────────────── cena 2 · estado vazio ──
+etapa 'cena 2 · estado vazio (tabela da conta esvaziada por id)'
+mapfile -t ids < <(python3 -c "
+import json,sys
+linhas = json.load(open('$DESTINO/estado_inicial.json'))
+if len(linhas) > 10:
+    sys.exit('linhas demais (%d) — abortando por segurança' % len(linhas))
+for l in linhas:
+    if l['source'] != 'manual':
+        sys.exit('linha de origem inesperada: %s' % l['source'])
+    print(l['id'])
+")
+[ ${#ids[@]} -gt 0 ] || ok 'nada a apagar — tabela já estava vazia'
+for id in "${ids[@]}"; do
+  [ -n "$id" ] || continue
+  cod="$(api DELETE "/rest/v1/transactions?id=eq.$id" | tail -1)"
+  [ "$cod" = '204' ] && ok "apagada $id" || nok "DELETE de $id devolveu $cod"
+done
+vazia="$(api GET '/rest/v1/transactions?select=id' | sed '$d')"
+[ "$vazia" = '[]' ] && ok 'tabela da conta vazia' || nok "ainda há linhas: $vazia"
+cena vazio 02_estado_vazio
+
+# ────────────────────────────────────────────── cena 3 · lista carregada ──
+# Recriadas pela Edge Function real (o caminho de escrita do produto), nunca
+# por SQL: o que a Fase 4 vai exercitar pelo formulário é este mesmo endpoint.
+etapa 'cena 3 · lista carregada (linhas recriadas pela Edge Function)'
+criar() { # <direção in|out> <descrição> <centavos> <occurred_at>
+  local resposta codigo corpo
+  resposta="$(curl -sS -X POST "$SUPABASE_URL/functions/v1/transactions" \
+    -H "apikey: $ANON_KEY" -H "Authorization: Bearer $JWT_DONO" \
+    -H 'Content-Type: application/json' \
+    -d "{\"direction\":\"$1\",\"amount\":$3,\"description\":\"$2\",\"occurred_at\":\"$4\"}" \
+    -w '\n%{http_code}')"
+  codigo="$(printf '%s' "$resposta" | tail -1)"
+  corpo="$(printf '%s' "$resposta" | sed '$d')"
+  if [ "$codigo" = '201' ] && printf '%s' "$corpo" | python3 -c "
+import json,sys
+l = json.load(sys.stdin)
+assert isinstance(l['amount'], int) and l['amount'] == $3, l['amount']
+assert l['direction'] == '$1', l['direction']
+assert l['source'] == 'manual', l['source']
+assert l['reconciliation_status'] == 'pending', l['reconciliation_status']
+assert l['user_id'] == '$USER_ID', l['user_id']
+"; then
+    ok "Edge Function criou '$2' com direction=$1, amount=$3 inteiro, source=manual"
+  else
+    nok "POST de '$2' devolveu $codigo: $corpo"
+  fi
+}
+# O seed é desenhado para que UMA lista prove as três coisas de uma vez:
+#
+#  • fuso  — 'Venda de sábado à noite' é guardada em 2026-08-16T01:30Z, que em
+#            America/Sao_Paulo é 22:30 do dia 15. Tem de sair '15/08, sábado';
+#            com o bug de formatar em UTC sairia '16/08, domingo'. É a única
+#            linha de 15/08 na lista, para não haver dúvida de qual é a prova.
+#  • sinal — ela é `in`: prefixo '+' e cor de entrada, ao lado das saídas.
+#  • coluna — o maior valor (+R$ 1.234.567,89) fica LOGO ACIMA do menor
+#            (−R$ 7,00), com sinais opostos: é onde a coluna dançaria se a
+#            fonte não tivesse algarismos tabulares, e onde '+' e '−' revelam
+#            se ocupam a mesma largura.
+#
+# Ordem da lista = occurred_at desc; as três datas são distintas o bastante
+# para o empate por created_at não entrar em jogo.
+criar in  'Venda de sábado à noite' 123456789 '2026-08-16T01:30:00+00:00'
+criar out 'Café'                    700       '2026-08-14T09:00:00-03:00'
+criar out 'Almoço'                  4500      '2026-08-14T08:00:00-03:00'
+
+total="$(api GET '/rest/v1/transactions?select=id' | sed '$d' | python3 -c 'import json,sys; print(len(json.load(sys.stdin)))')"
+[ "$total" = '3' ] && ok 'três linhas na conta' || nok "esperava 3 linhas, achei $total"
+
+# O que o banco guardou, ao lado do que a tela mostra: é assim que o dev
+# humano confere o fuso sem abrir o Postgres — 2026-08-16T01:30:00+00:00 no
+# JSON, '15/08, sábado' no print.
+api GET '/rest/v1/transactions?select=description,amount,direction,occurred_at&order=occurred_at.desc' \
+  | sed '$d' | python3 -m json.tool > "$DESTINO/linhas_semeadas.json"
+ok "linhas semeadas salvas em $(basename "$DESTINO")/linhas_semeadas.json"
+
+cena lista 03_lista_carregada
+
+# ───────────────────────────────────── recorte dos algarismos tabulares ──
+# Imagem derivada, não uma tela nova: a mesma captura de 03, ampliada na
+# coluna de valores, que é o detalhe que o olho tem de julgar.
+etapa 'recorte da coluna de valores'
+python3 - "$DESTINO/03_lista_carregada.png" "$DESTINO/04_algarismos_tabulares.png" <<'PY'
+import sys
+from PIL import Image
+
+origem, destino = sys.argv[1], sys.argv[2]
+img = Image.open(origem)
+l, a = img.size
+recorte = img.crop((int(l * 0.28), int(a * 0.11), l, int(a * 0.39)))
+recorte = recorte.resize((recorte.width * 2, recorte.height * 2), Image.LANCZOS)
+recorte.save(destino)
+print(f'recorte {recorte.size[0]}x{recorte.size[1]} de {origem}')
+PY
+[ -s "$DESTINO/04_algarismos_tabulares.png" ] \
+  && ok 'recorte 04_algarismos_tabulares.png gerado a partir de 03' \
+  || nok 'recorte não saiu'
+
+# ─────────────────────────────────────────────────────── snapshot + README ──
+etapa 'snapshot dos scripts na rodada'
+cp "$RAIZ/docs/001_cadastro_manual/e2e_shots.sh"            "$DESTINO/e2e_shots.sh.snapshot"
+cp "$APP/patrol_test/lista_transacoes_test.dart"            "$DESTINO/lista_transacoes_test.dart.snapshot"
+ok 'scripts congelados na pasta da rodada'
+
+etapa 'README da rodada'
+# Emitido aqui, não escrito à mão: é por ele que o dev humano confere, e um
+# README desatualizado descreveria uma imagem que não existe mais.
+cat > "$DESTINO/README_listagem.md" <<README
+# Rodada $RODADA — E2E da listagem de transações (Fase 3 · T3.8)
+
+Gerado por \`docs/001_cadastro_manual/e2e_shots.sh\` em $(date '+%d/%m/%Y %H:%M')
+— emulador \`$AVD\` (Android API $(adb -s "$SERIAL" shell getprop ro.build.version.sdk 2>/dev/null | tr -d '\r'),
+fuso \`$(fuso_atual)\`), build \`--flavor dev\` contra o Supabase local.
+Nenhum print foi tirado à mão: o teste Patrol pede o PNG no marcador exato e o
+servidor local o grava com \`adb screencap\`.
+
+O fuso do aparelho é parte da prova, não do ambiente: a lista formata a data
+no fuso de quem lê. O script fixa \`$FUSO\` no boot e **aborta** se não
+conseguir — um print tirado num emulador em UTC não provaria o fuso.
+
+**O atestado é do dev humano.** O QA gerou; quem confere as imagens é você.
+
+## O que cada arquivo prova
+
+| arquivo | o que prova |
+| --- | --- |
+| \`01_erro_de_leitura.png\` | Com a saída para o Supabase local bloqueada por \`iptables\`, a lista mostra ícone de erro, mensagem e o botão **Tentar de novo**. O teste também afirma que o texto do estado vazio **não** aparece aqui. |
+| \`02_estado_vazio.png\` | Conta sem nenhuma transação (todas apagadas por id, ver \`estado_inicial.json\`): **"Nenhuma transação registrada."**, sem ilustração e sem entusiasmo. O teste afirma que **"Tentar de novo" não aparece**. |
+| \`01\` + \`02\` juntos | Falha e vazio são telas **visivelmente diferentes** — o \`01_prd.md\` proíbe que um erro se disfarce de "nada aqui". Duas imagens, dois estados. |
+| \`03_lista_carregada.png\` | Lista com as três linhas recriadas **pela Edge Function real** (\`POST /functions/v1/transactions\`, nunca por SQL). Prova quatro coisas na mesma imagem: **(a) fuso** — \`Venda de sábado à noite\` está guardada como \`2026-08-16T01:30:00+00:00\` (ver \`linhas_semeadas.json\`) e aparece como **\`15/08, sábado\`**, o dia que o usuário viveu às 22:30; formatada em UTC sairia \`16/08, domingo\`. **(b) entrada** — a mesma linha é \`direction: "in"\` e vem com **\`+\`** e a cor de entrada, ao lado de duas saídas em \`−\` e cor de saída. **(c) valor e data no formato do DoD** — \`Almoço\`, \`14/08, sexta\`, \`−R$ 45,00\` à direita, com o menos tipográfico (−, U+2212). **(d) volta** — a \`AppBar\` tem a seta de voltar para Áreas (rota empilhada por \`pushNamed\`). |
+| \`04_algarismos_tabulares.png\` | **Recorte ampliado 2× da mesma captura de \`03\`** (não é outra tela), na coluna de valores: \`+R\$ 1.234.567,89\` imediatamente acima de \`−R\$ 7,00\`, e \`−R\$ 45,00\` abaixo. O maior e o menor valor colados, com **sinais opostos**: é onde a coluna dançaria se a fonte não tivesse \`FontFeature.tabularFigures()\` (T3.2), e onde se vê se o \`+\` e o \`−\` ocupam a mesma largura. |
+| \`linhas_semeadas.json\` | O que o banco guardou nesta rodada — \`occurred_at\` em UTC ao lado do que o print mostra. É por aqui que se confere o fuso sem abrir o Postgres. |
+| \`estado_inicial.json\` | Fotografia da tabela **antes** de qualquer DELETE — os ids apagados estão aqui. |
+| \`logs/\` | Saída completa de cada cena e do emulador. |
+| \`*.snapshot\` | Cópia congelada dos scripts e do teste que produziram exatamente estas imagens. |
+
+O DoD escreve a data como \`15/08, sexta\`: é a **forma** (\`dd/MM, dia-da-semana\`),
+não o calendário — 15/08/2026 cai num sábado. A rodada mostra as duas metades
+com datas reais, \`15/08, sábado\` e \`14/08, sexta\`.
+
+## O que o olho tem de julgar (não vira asserção)
+
+1. Os três valores terminam na **mesma vertical** e os algarismos têm a mesma
+   largura entre linhas, com \`+\` e \`−\` alinhados (\`04\`).
+2. A cor da entrada e a da saída se distinguem **sem depender de cor** — o
+   \`+\`/\`−\` textual está lá — e nenhuma das duas some no fundo.
+3. O vazio é **neutro** — nada de confete, ilustração ou convite animado.
+4. O erro **parece** erro: cor, ícone e ação de saída visíveis.
+5. A descrição fica em uma linha, com reticências se estourar.
+
+## Achados desta rodada (não bloqueiam o DoD)
+
+1. **Mensagem de erro genérica sem rede.** Em \`01\`, sem conexão nenhuma, o app
+   diz "Algo deu errado. Tente de novo." em vez de algo como "Sem conexão".
+   O estado está correto e distinto do vazio (que é o que o DoD exige), mas a
+   mensagem não ajuda o usuário a agir.
+README
+ok 'README_listagem.md da rodada emitido'
+
+etapa 'resultado'
+if [ "$falhas" -eq 0 ]; then
+  echo "✓ rodada $RODADA verde — evidências em $DESTINO"
+else
+  echo "✗ rodada $RODADA com $falhas falha(s)"
+fi
+exit "$falhas"

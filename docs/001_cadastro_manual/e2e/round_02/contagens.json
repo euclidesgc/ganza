@@ -1,0 +1,20 @@
+{
+  "partida_apos_limpeza_e_seed": 2,
+  "abandono": {
+    "antes": 2,
+    "depois": 2
+  },
+  "caminho_feliz": {
+    "antes": 2,
+    "depois": 3
+  },
+  "toque_duplo": {
+    "antes": 3,
+    "depois": 4
+  },
+  "sem_rede": {
+    "antes": 4,
+    "depois": 4
+  },
+  "final": 4
+}

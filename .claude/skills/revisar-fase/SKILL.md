@@ -1,6 +1,6 @@
 ---
 name: revisar-fase
-description: Valida uma fase implementada contra o plan.md e as regras do ganza. Usada pelo QA ao fim de cada fase, antes do resumo de PR ao dev.
+description: Valida uma fase implementada contra o 03_plan.md e as regras do ganza. Usada pelo QA ao fim de cada fase, antes do resumo de PR ao dev.
 allowed-tools: Read, Glob, Grep, Bash, mcp__code-review-graph__detect_changes_tool, mcp__code-review-graph__get_review_context_tool, mcp__dart__analyze_files, mcp__dart__run_tests
 ---
 
@@ -12,7 +12,11 @@ Confira, nesta ordem:
 
 1. **DoD da etapa — antes de tudo.** Cada linha foi **executada** e a saída bate com o esperado? Teste automatizado no DoD foi visto **falhar sem a mudança**? Linha que envolve serviço no ar foi verificada **contra o domínio**, não contra `localhost`? Linha não verificada = etapa não fechada. A skill `fechar-etapa` conduz isso.
 
-2. **Plano.** Cada tarefa da fase no `docs/NN-<nome>/plan.md` foi feita? Algo foi feito que **não** estava no plano? Desvio não se aceita de cara: reporte ao tech-lead (correção ou justificativa ao dev).
+2. **Plano.** Cada tarefa da fase no `docs/NNN_<nome>/03_plan.md` foi feita?
+   Algo foi feito que **não** estava no plano? É `fail` até haver registro
+   prévio em `changes.md` com planejamento original, impedimento, alternativas,
+   decisão, resumo e reconciliação de PRD/specs/plano. Não aceite justificativa
+   verbal nem reescrita silenciosa dos documentos.
 
 3. **Invariantes de produto** (`CLAUDE.md` — estas se **provam**, não se declaram):
    - Nenhum caminho grava registro sem `confirmed`. Procure ativamente pelo atalho: um `insert` direto no fluxo de ingestão, um "só para teste", um flag. A extração devolve **lista**; o card **não** é editável.
@@ -35,6 +39,9 @@ Confira, nesta ordem:
 
 10. **Cancela de máquina — o piso.** `dart format`, `flutter analyze` e `flutter test` verdes; `deno fmt`/`lint`/`check`/`test` verdes; `gates_guard.sh` e `validar-workflows.sh` limpos. **Rode — não confie no relato.** Isto é pré-requisito, não o "pronto": o pronto é o item 1.
 
-11. **Docs.** O plan.md foi marcado com o progresso? specs/prd continuam dizendo a verdade? O roadmap reflete o estado?
+11. **Docs.** O 03_plan.md foi marcado com o progresso? PRD/specs/plano
+    continuam dizendo a verdade? `decisions.md` contém somente decisões da
+    feature? Todo desvio está em `changes.md` e referencia a reconciliação? O
+    roadmap reflete o estado?
 
 Devolva: veredito por item (OK ou o que desviou, com arquivo e linha), e a lista do que precisa voltar como tarefa. Se algo contradiz uma regra do projeto, a regra ganha.

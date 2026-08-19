@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../injection.dart';
 import 'transactions_list_cubit.dart';
+import 'widgets/new_transaction_fab.dart';
 import 'widgets/transactions_list_body.dart';
 
 class TransactionsListPage extends StatelessWidget {
@@ -20,6 +21,7 @@ class TransactionsListPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('Transações')),
       body: const SafeArea(child: TransactionsListBody()),
+      floatingActionButton: const NewTransactionFab(),
     );
   }
 }

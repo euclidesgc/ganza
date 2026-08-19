@@ -1,0 +1,30 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Ganza Local",
+      "type": "dart",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/app",
+      "program": "lib/main_dev.dart",
+      "toolArgs": [
+        "--flavor",
+        "dev",
+        "--dart-define-from-file=config/local.json"
+      ],
+      "preLaunchTask": "Ganza Local Up"
+    },
+    {
+      "name": "Ganza HML",
+      "type": "dart",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/app",
+      "program": "lib/main_prod.dart",
+      "toolArgs": [
+        "--flavor",
+        "prod",
+        "--dart-define-from-file=config/hml.json"
+      ]
+    }
+  ]
+}

@@ -11,7 +11,9 @@ O nome vem do chocalho cilíndrico cheio de sementes do forró e do maracatu: el
 | Caminho | O que é |
 |---|---|
 | [`docs/plano.md`](docs/plano.md) | O produto: problema, objetivos, não-objetivos, modelo de dados, fases, identidade |
-| [`docs/roadmap.md`](docs/roadmap.md) | O estado: o que foi feito, o que falta, decisões travadas e pendentes |
+| [`docs/roadmap.md`](docs/roadmap.md) | Backlog curto e ordenado de features |
+| [`docs/decisions.md`](docs/decisions.md) | Decisões técnicas e pendências humanas |
+| [`docs/_templates/feature/`](docs/_templates/feature/) | Modelos de decisões e mudanças por feature |
 | [`CLAUDE.md`](CLAUDE.md) | As regras de como se constrói aqui (arquitetura, gates, time de IA) |
 | [`docs/GITFLOW.md`](docs/GITFLOW.md) | Branches, PRs, releases |
 | `app/` | Flutter — Android e Web, mesmo `lib/` |
@@ -73,4 +75,6 @@ Ela conduz o fluxo — PM faz o discovery, tech-lead escreve o plano, os especia
 
 ## Estado
 
-Fase 0 — Fundação. Veja [`docs/roadmap.md`](docs/roadmap.md).
+O próximo trabalho vem de [`docs/roadmap.md`](docs/roadmap.md). O E2E completo
+roda localmente com `bash scripts/e2e-local.sh 001`; ele requer Android SDK,
+emulador e `patrol_cli` instalado com `flutter pub global activate patrol_cli`.

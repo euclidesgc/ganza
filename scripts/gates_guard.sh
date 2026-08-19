@@ -16,7 +16,7 @@
 #                           isenção é do caminho exato, não de qualquer pasta
 #                           chamada "theme".
 #   - test/                 testes podem usar literais.
-#   - integration_test/     idem.
+#   - patrol_test/          idem.
 
 set -uo pipefail
 

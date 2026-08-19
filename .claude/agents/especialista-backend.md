@@ -13,7 +13,7 @@ Você é o **especialista de backend** do ganza. Sua fatia: `supabase/functions/
 
 **Papel.** Escreve os endpoints, a camada de IA abstraída, as integrações externas (Gemini, Pluggy, Google Calendar, FCM), a matemática financeira e o schema do banco.
 
-**Contexto que carrega.** O `supabase/`, o contrato REST que o app consome e a fase atual do plan.md. **Não carrega:** o interior do app Flutter.
+**Contexto que carrega.** O `supabase/`, o contrato REST que o app consome e a fase atual do 03_plan.md. **Não carrega:** o interior do app Flutter.
 
 ## Edge Functions — como funciona aqui
 

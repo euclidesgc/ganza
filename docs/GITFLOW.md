@@ -64,20 +64,20 @@ develop   ●──●──●──●──●───●──────�
 
 ---
 
-## 4. Ambientes — e por que `hml` ainda não existe
+## 4. Ambientes
 
 O GitFlow acima é o destino. **A infraestrutura chega nele por etapas**, e a etapa atual é deliberadamente menor:
 
 | Etapa | Remoto | Local | Quando |
 |---|---|---|---|
-| **Agora** | só **produção** (`main`) | Supabase em Docker: é onde a migration é testada e o E2E roda | até a Fase 2 |
-| **Depois** | + **homologação** (`develop` → `hml.`) | idem | quando a falta doer |
+| **Agora** | **HML** (`develop`) | Supabase em Docker: migrations e E2E completos | atual |
+| **Depois** | + **produção** (`main`) | idem | na primeira release |
 
 O motivo é concreto: cada ambiente remoto é uma stack Supabase inteira numa VPS de **2 vCPU compartilhada com outros dois projetos**. Duplicar isso para um app de um usuário só é custo sem retorno enquanto o local dá conta.
 
-**A consequência prática:** onde as skills de GitFlow dizem "valide em homologação", leia "valide no ambiente local" enquanto `hml` não existir. O merge em `develop` continua obrigatório — o que muda é só onde se olha o resultado.
+**A consequência prática:** o E2E completo roda localmente antes do PR. Depois de CI verde e merge em `develop`, a HML é atualizada sem E2E com escrita ou smoke remoto obrigatório.
 
-Quando o `hml` nascer, ele entra sob `hml.ganza.duckdns.org` / `api-hml.ganza.duckdns.org` — a mesma convenção do driva e do love-secret no mesmo servidor.
+O remoto atual é a HML. A produção só nasce quando uma release de `main` for publicada.
 
 ---
 
@@ -90,6 +90,10 @@ Quando o `hml` nascer, ele entra sob `hml.ganza.duckdns.org` / `api-hml.ganza.du
 5. Merges `develop → main` (releases) e a criação de `hotfix/*` são **decisão humana**, salvo instrução explícita.
 6. **Migration vai em PR separado, e primeiro** — nunca no mesmo PR que UI. É a única peça irreversível em produção.
 7. **Mais de um PR aberto ao mesmo tempo vai em pilha** — nunca vários PRs independentes contra `develop`. Ver seção 6.
+8. **Desvio depois do início da feature é rastreável** — antes de alterar a
+   implementação ou o DoD, registre-o em `docs/NNN_nome/changes.md` com o
+   plano original, impedimento, alternativas, decisão e resolução; no mesmo PR,
+   reconcilie `01_prd.md`, `02_specs.md` e `03_plan.md` com o resultado final.
 
 ---
 
