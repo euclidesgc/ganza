@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'core/config/app_config.dart';
 import 'core/network/dio_factory.dart';
+import 'core/session/session.dart';
 import 'modules/areas_module/areas_module.dart';
 import 'modules/auth_module/auth_module.dart';
 import 'modules/transactions_module/transactions_module.dart';
@@ -20,7 +21,8 @@ void registerDependencies(AppConfig config) {
         accessToken: () =>
             getIt<SupabaseClient>().auth.currentSession?.accessToken ?? '',
       ),
-    );
+    )
+    ..registerLazySingleton<PasswordRecoveryScope>(PasswordRecoveryScope.new);
 
   registerAuthModule(getIt);
   registerAreasModule(getIt);
