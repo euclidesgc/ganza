@@ -27,6 +27,9 @@ Use `scripts/local-supabase.sh` para subir a stack e `scripts/e2e-local.sh NNN` 
   - o cálculo financeiro bate com o valor esperado, ao centavo.
 - **Auto-limpante e rastreável.** Todo rastro (processos, containers, volumes, arquivos) é listado e removido por um subcomando `down`, e escrito no cabeçalho do script e no `test_plan.md`.
 - **Zero mudança de código-fonte** quando a stack real está pronta. Rode você mesmo e só entregue **verde**.
+- **Sentinela de término é do script, não de quem espera.** A primeira linha executável instala `trap 'printf "EXIT=%s\n" "$?"' EXIT`, para que o marcador saia também quando o script morre por erro, `set -e` ou sinal. Sentinela colado por fora (`bash script; echo EXIT=$?`) some junto com o wrapper e deixa todo waiter esperando para sempre um processo que já morreu — deadlock silencioso, o modo de falha mais caro deste harness porque parece execução em andamento.
+- **O log diz em que ponto está.** Cada cena abre com uma linha marcada e prefixo de tempo decorrido, para que uma olhada no `tail` responda "onde está e há quanto tempo" sem ler o arquivo inteiro.
+- **Cena lenta é declarada.** Passo que degrada a rede de propósito (`adb emu network delay gprs`), reinstala o APK ou espera timeout anuncia no log o custo esperado — sem isso, lentidão projetada é indistinguível de travamento.
 
 ## 2. Prints do app — `docs/NNN_<nome>/e2e_shots.sh` (o QA gera, o humano confere)
 

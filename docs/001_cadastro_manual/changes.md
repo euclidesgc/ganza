@@ -6,6 +6,38 @@ documentos canônicos descrevem somente o estado final reconciliado.
 
 ## Mudanças registradas
 
+### CHG-008 - Evidência da rodada 01 precede o harness Patrol local
+
+- **Data:** 2026-08-18
+- **Fase/PR:** Fase 3, PR #19 (mergeado), reconciliação de status da Fase 4.
+- **Planejado originalmente:** o Gauntlet deste plano e a T3.8 exigem que o
+  E2E rode **somente contra a stack local, por `patrol test`**, com a ponte
+  JUnit versionada e captura por `adb reverse`.
+- **Por que não foi possível prosseguir:** a rodada 01 foi executada e mergeada
+  **antes** de CHG-002 a CHG-007, contra o ambiente remoto e pelo executor
+  `flutter drive`. O próprio `e2e/round_01/report.md` declara a rodada
+  histórica e diz que ela "não pode ser usada como prova para um novo PR". O
+  plano reconciliado passou a descrever um contrato que a Fase 3 nunca chegou
+  a cumprir na forma atual.
+- **Alternativas consideradas:** reexecutar a rodada 01 sob Patrol na stack
+  local; reabrir a Fase 3 e desfazer o merge do PR #19; ou aceitar a rodada 01
+  como registro histórico e cobrar a prova visual da listagem dentro da rodada
+  02, que já exercita a mesma tela sob o harness canônico. Reexecutar a 01
+  custa uma rodada inteira para reprovar o que a 02 prova de qualquer jeito;
+  desfazer o merge não devolve nenhuma informação nova.
+- **Decisão tomada:** manter a Fase 3 mergeada e a rodada 01 como evidência
+  histórica; a prova visual da listagem sob Patrol/stack local é obrigação da
+  rodada 02 — `app/patrol_test/registro_transacao_test.dart` já assere a linha
+  nova no topo da lista, a descrição, a data e o valor formatado. Aprovado pelo
+  tech-lead; nenhuma linha de DoD, rubrica ou invariante foi alterada.
+- **Resumo da resolução:** `e2e/round_01/` continua versionado e rotulado como
+  rodada histórica; o `report.md` da rodada 02 passa a ser a única evidência
+  citável para a listagem e para o registro.
+- **Reconciliação documental:** `03_plan.md` §8 (Fase 3 marcada como mergeada
+  pelo PR #19, com a ressalva apontando para este registro) e este `changes.md`.
+  `01_prd.md` e `02_specs.md` não mudam: o contrato de E2E já é o de Patrol
+  local e permanece exigível da rodada 02 em diante.
+
 ### CHG-007 - E2E reduzido a Patrol com PNG e ownership do emulador
 
 - **Data:** 2026-08-18

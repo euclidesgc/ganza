@@ -188,6 +188,9 @@ done
   && ok "emulador $AVD pronto (API $(adb -s "$SERIAL" shell getprop ro.build.version.sdk | tr -d '\r'))" \
   || { nok 'emulador não subiu'; exit 1; }
 
+"$RAIZ/scripts/e2e-emulator.sh" harden "$SERIAL"
+ok 'diálogos de erro do sistema suprimidos — nenhum ANR tapa os prints'
+
 adb -s "$SERIAL" reverse "tcp:$EVIDENCE_PORT" "tcp:$EVIDENCE_PORT" >/dev/null
 
 # ─────────────────────────────────────────────────────── fuso do emulador ──
@@ -272,13 +275,13 @@ c_partida="$(contar)"
 [ "$c_partida" = '2' ] && ok 'duas linhas antigas na conta' || nok "esperava 2, achei $c_partida"
 
 api GET '/rest/v1/transactions?select=description,amount,direction,occurred_at&order=occurred_at.desc' \
-  | sed '$d' | python3 -m json.tool > "$DESTINO/linhas_semeadas.json"
+  | sed '$d' | python3 -m json.tool > "$DESTINO/linhas_semeadas_registro.json"
 
 # ──────────────────────────────────────────────────────────────── cenas ──
 cena() { # <nome> <descrição> <dígitos> <valor no campo> <valor na lista> <png…>
   local nome="$1" descricao="$2" digitos="$3" campo="$4" lista="$5"
   shift 5
-  ( cd "$APP" && exec setsid timeout --kill-after=30s 300 patrol test \
+  ( cd "$APP" && exec setsid timeout --kill-after=60s 600 patrol test \
       --target=patrol_test/registro_transacao_test.dart \
       --device "$SERIAL" --flavor dev \
       --dart-define-from-file=config/local.json \
@@ -408,7 +411,7 @@ PY
 ok 'contagens salvas em contagens.json'
 
 etapa 'README da rodada'
-cat > "$DESTINO/README.md" <<README
+cat > "$DESTINO/README_registro.md" <<README
 # Rodada $RODADA — E2E do registro pelo app (Fase 4 · T4.7)
 
 Gerado por \`docs/001_cadastro_manual/e2e_registro_shots.sh\` em $(date '+%d/%m/%Y %H:%M')
@@ -496,7 +499,7 @@ refresh token, e é a recusa dele que derruba a sessão.
 5. A linha nova no topo (\`02\`) não empurrou o layout: valores continuam
    alinhados à direita, com algarismos tabulares.
 README
-ok 'README.md da rodada emitido'
+ok 'README_registro.md da rodada emitido'
 
 etapa 'resultado'
 if [ "$falhas" -eq 0 ]; then

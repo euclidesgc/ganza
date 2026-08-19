@@ -134,6 +134,9 @@ done
   && ok "emulador $AVD pronto (API $(adb -s "$SERIAL" shell getprop ro.build.version.sdk | tr -d '\r'))" \
   || { nok 'emulador não subiu'; exit 1; }
 
+"$RAIZ/scripts/e2e-emulator.sh" harden "$SERIAL"
+ok 'diálogos de erro do sistema suprimidos — nenhum ANR tapa os prints'
+
 adb -s "$SERIAL" reverse "tcp:$EVIDENCE_PORT" "tcp:$EVIDENCE_PORT" >/dev/null
 
 # ─────────────────────────────────────────────────────── fuso do emulador ──
@@ -178,7 +181,7 @@ ok "estado anterior salvo em $(basename "$DESTINO")/estado_inicial.json"
 # precisa da tabela vazia.
 cena() { # <nome> <arquivo>
   local nome="$1" arquivo="$2"
-  ( cd "$APP" && exec setsid timeout --kill-after=30s 300 patrol test \
+  ( cd "$APP" && exec setsid timeout --kill-after=60s 600 patrol test \
       --target=patrol_test/lista_transacoes_test.dart \
       --device "$SERIAL" --flavor dev \
       --dart-define-from-file=config/local.json \
@@ -316,7 +319,7 @@ ok 'scripts congelados na pasta da rodada'
 etapa 'README da rodada'
 # Emitido aqui, não escrito à mão: é por ele que o dev humano confere, e um
 # README desatualizado descreveria uma imagem que não existe mais.
-cat > "$DESTINO/README.md" <<README
+cat > "$DESTINO/README_listagem.md" <<README
 # Rodada $RODADA — E2E da listagem de transações (Fase 3 · T3.8)
 
 Gerado por \`docs/001_cadastro_manual/e2e_shots.sh\` em $(date '+%d/%m/%Y %H:%M')
@@ -366,7 +369,7 @@ com datas reais, \`15/08, sábado\` e \`14/08, sexta\`.
    O estado está correto e distinto do vazio (que é o que o DoD exige), mas a
    mensagem não ajuda o usuário a agir.
 README
-ok 'README.md da rodada emitido'
+ok 'README_listagem.md da rodada emitido'
 
 etapa 'resultado'
 if [ "$falhas" -eq 0 ]; then

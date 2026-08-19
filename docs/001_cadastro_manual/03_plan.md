@@ -2,7 +2,7 @@
 
 Fatiamento e execução. O "o quê" está em [`02_specs.md`](02_specs.md), o contrato do pronto em [`01_prd.md`](01_prd.md), as decisões desta feature em [`decisions.md`](decisions.md), os desvios em [`changes.md`](changes.md), e o item canônico está no [`docs/roadmap.md`](../roadmap.md). **Este plano não inventa escopo: ele distribui o DoD entre as fases e acrescenta o que falta para cada fase se sustentar sozinha.**
 
-Estado: **Fase 3 em andamento** · branch `feature/GZ-16-listar-transacoes` (de `develop`).
+Estado: **Fase 4 em andamento** · branch `feature/GZ-17-registrar-transacao` (de `develop`) · T4.1–T4.6 implementadas e commitadas; **próximo passo: T4.7, a começar pelo gate do CISO sobre o diff da fase**.
 
 ---
 
@@ -225,13 +225,13 @@ Consolidar as duas frentes na branch da fase antes de seguir. Daqui em diante é
 
 **DoD da Fase 3**
 
-- [ ] `dart format --set-exit-if-changed`, `flutter analyze` e `scripts/gates_guard.sh` verdes; `flutter test -r compact` continua verde com a suíte que já existe (nenhum teste novo nesta fase).
+- [x] `dart format --set-exit-if-changed`, `flutter analyze` e `scripts/gates_guard.sh` verdes; `flutter test -r compact` continua verde com a suíte que já existe (nenhum teste novo nesta fase).
 - [x] `e2e/round_01/` — print do **estado vazio** da lista, numa conta sem transação, mostrando "Nenhuma transação registrada.". *(`02_estado_vazio.png`)*
 - [x] `e2e/round_01/` — print da lista **com a transação criada pelo `curl` da Fase 2**, na mesma imagem: descrição, data no formato `15/08, sexta` e valor `−R$ 45,00` alinhado à direita. *(linhas 6 e 7 do DoD do roadmap; `03_lista_carregada.png` — datas reais `14/08, sexta` e `15/08, sábado` cobrem as duas metades da forma, ver README da rodada)*
 - [x] `e2e/round_01/` — print com um valor grande (`R$ 1.234.567,89`) e um de dois dígitos **na mesma lista**, provando que a coluna de valores não dança entre linhas. É o teste real dos algarismos tabulares, e não fecha sem a T3.2. *(`04_algarismos_tabulares.png`)*
 - [x] `e2e/round_01/` — **erro de leitura e lista vazia em prints distintos**, provando que os dois estados são visualmente diferentes: o `01_prd.md` exige que uma falha nunca se disfarce de "nada aqui". Induzido derrubando a rede do emulador. *(`01_erro_de_leitura.png` + `02_estado_vazio.png`)*
-- [ ] O E2E é atestado pelo **dev humano**, não pelo QA. O `report.md` da rodada nomeia cada passo, comando e evidência.
-- [ ] Job "App" verde no CI do PR.
+- [x] O E2E é atestado pelo **dev humano**, não pelo QA. O `report.md` da rodada nomeia cada passo, comando e evidência.
+- [x] Job "App" verde no CI do PR.
 
 ---
 
@@ -239,15 +239,15 @@ Consolidar as duas frentes na branch da fase antes de seguir. Daqui em diante é
 
 Branch: `feature/GZ-17-registrar-transacao`. Fecha o ciclo: a mesma tela que lê passa a escrever.
 
-- [ ] **T4.1** `[paralela · frente A · worktree]` — `app/lib/core/format/cents_input.dart`: acumulação de dígitos → centavos (`"4500"` → `4500`), máximo 9 dígitos inteiros. **Nunca `double.parse(x) * 100`** — é a invariante nº 2 do `02_specs.md` e o bug que só aparece meses depois num total que não bate. · camada **core** · `especialista-infra`
-- [ ] **T4.2** `[paralela · frente A · worktree]` — `app/lib/core/network/failure_from_exception.dart` aprende `FunctionException`: `400` → `ValidationFailure`, `401` → `AuthFailure`, `403` → `PermissionFailure`, demais → `UnexpectedFailure`; falha de transporte continua `NetworkFailure`. Decisão **A4**. · camada **core** · `especialista-infra`
-- [ ] **T4.3** `[paralela · frente B · worktree]` — `domain/`: entidade de entrada `NewTransaction`, método `create(NewTransaction)` no contrato do repositório e use case `CreateTransaction`. · camada **domain** · `especialista-dominio`
+- [x] **T4.1** `[paralela · frente A · worktree]` — `app/lib/core/format/cents_input.dart`: acumulação de dígitos → centavos (`"4500"` → `4500`), máximo 9 dígitos inteiros. **Nunca `double.parse(x) * 100`** — é a invariante nº 2 do `02_specs.md` e o bug que só aparece meses depois num total que não bate. · camada **core** · `especialista-infra`
+- [x] **T4.2** `[paralela · frente A · worktree]` — `app/lib/core/network/failure_from_exception.dart` aprende `FunctionException`: `400` → `ValidationFailure`, `401` → `AuthFailure`, `403` → `PermissionFailure`, demais → `UnexpectedFailure`; falha de transporte continua `NetworkFailure`. Decisão **A4**. · camada **core** · `especialista-infra`
+- [x] **T4.3** `[paralela · frente B · worktree]` — `domain/`: entidade de entrada `NewTransaction`, método `create(NewTransaction)` no contrato do repositório e use case `CreateTransaction`. · camada **domain** · `especialista-dominio`
 
 Consolidar; daqui em diante sequencial.
 
-- [ ] **T4.4** — `TransactionModel.toPayload(NewTransaction)` (só `direction`, `amount`, `description`, `occurred_at`; **nunca** `user_id` nem `area_id`) e o `create` no `TransactionsRepositoryImpl` via `client.functions.invoke('transactions', body: …)`, com o `201` voltando pelo mesmo `safeParse` da leitura. · camada **data** · `especialista-dados`
-- [ ] **T4.5** — `presentation/new_transaction/`: cubit + estado `sealed`, e a página com os quatro campos na ordem do `02_specs.md` §6.1 — seletor **Despesa**/**Receita** com rótulo textual sempre visível (default Despesa), campo monetário pt-BR com dígitos entrando pela direita, descrição de até 200 caracteres travada na digitação, e seletor de data com default hoje e **futuro bloqueado na UI** (a função aceita; a Fase 3 do produto não pode herdar a trava). Botão **Registrar** desabilitado enquanto inválido **e** enquanto o envio está em voo. Em erro, o formulário **preserva o que foi digitado**. Rebuild escopado — o campo de valor não reconstrói a tela a cada tecla. · camada **presentation** · `especialista-apresentacao`
-- [ ] **T4.6** — Navegação e refetch: rota `/transacoes/nova`, entrada a partir da lista, e o retorno ao `201` **refazendo a leitura** pelo PostgREST em vez de inserir o item localmente — o refetch é a prova do caminho de volta. · camada **presentation** · `especialista-apresentacao`
+- [x] **T4.4** — `TransactionModel.toPayload(NewTransaction)` (só `direction`, `amount`, `description`, `occurred_at`; **nunca** `user_id` nem `area_id`) e o `create` no `TransactionsRepositoryImpl` via `client.functions.invoke('transactions', body: …)`, com o `201` voltando pelo mesmo `safeParse` da leitura. · camada **data** · `especialista-dados`
+- [x] **T4.5** — `presentation/new_transaction/`: cubit + estado `sealed`, e a página com os quatro campos na ordem do `02_specs.md` §6.1 — seletor **Despesa**/**Receita** com rótulo textual sempre visível (default Despesa), campo monetário pt-BR com dígitos entrando pela direita, descrição de até 200 caracteres travada na digitação, e seletor de data com default hoje e **futuro bloqueado na UI** (a função aceita; a Fase 3 do produto não pode herdar a trava). Botão **Registrar** desabilitado enquanto inválido **e** enquanto o envio está em voo. Em erro, o formulário **preserva o que foi digitado**. Rebuild escopado — o campo de valor não reconstrói a tela a cada tecla. · camada **presentation** · `especialista-apresentacao`
+- [x] **T4.6** — Navegação e refetch: rota `/transacoes/nova`, entrada a partir da lista, e o retorno ao `201` **refazendo a leitura** pelo PostgREST em vez de inserir o item localmente — o refetch é a prova do caminho de volta. · camada **presentation** · `especialista-apresentacao`
 - [ ] **T4.7** — E2E Patrol rodada 2 (gate do CISO antes), pela mesma ponte
   JUnit versionada e callback de captura por `adb reverse`, com asserções,
   prints e logs imediatamente posteriores à asserção; a falha de transporte
@@ -320,10 +320,16 @@ Branch: `feature/GZ-18-testes-cadastro-manual`. **Só começa depois do E2E das 
 
 Legenda: `[ ]` não iniciada · `[-]` em andamento · `[x]` mergeada em `develop`.
 
-- [x] **Fase 1** — Migration + docs vivas · PR 1 — mergeada.
+- [x] **Fase 1** — Migration + docs vivas · PR 1 — mergeada (PR #15).
 - [x] **Fase 2** — Edge Function + testes Deno · PR 2 — mergeada (PR #17).
   DoD pré-PR verde na stack local; o merge em `develop` alimenta a HML sem
   E2E com escrita ou smoke remoto obrigatório.
-- [-] **Fase 3** — Leitura: lista de transações · PR 3
-- [ ] **Fase 4** — Escrita: formulário → Edge Function · PR 4
+- [x] **Fase 3** — Leitura: lista de transações · PR 3 — mergeada (PR #19).
+  Job "App" verde no CI do PR; evidência em `e2e/round_01/`, que
+  [`CHG-008`](changes.md#chg-008---evidência-da-rodada-01-precede-o-harness-patrol-local)
+  registra como rodada histórica, cuja prova visual a rodada 02 refaz sob o
+  harness Patrol local.
+- [-] **Fase 4** — Escrita: formulário → Edge Function · PR 4 — T4.1–T4.6
+  implementadas e commitadas em `feature/GZ-17-registrar-transacao`; falta a
+  T4.7 (gate do CISO, depois E2E rodada 02) e o DoD da fase.
 - [ ] **Fase 5** — Bateria automatizada + fechamento · PR 5
