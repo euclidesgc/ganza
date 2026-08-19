@@ -276,6 +276,19 @@ Branch: `feature/GZ-18-testes-cadastro-manual`. **Só começa depois do E2E das 
 - [ ] **T5.4** — atualizar `changes.md` para cada desvio aprovado durante as
   fases e reconciliar PRD, specs e plano na mesma tarefa. Sem novo desvio, não
   há nova entrada. · `tech-lead`
+- [ ] **T5.5** — **Reescopo do E2E, decidido com a bateria da T5.2 já escrita.**
+  Cena que só assere lógica não precisa de aparelho e paga o preço mais caro do
+  projeto: no harness atual cada uma custa ~2,5 min de emulador, contra
+  segundos em widget test. Candidatas medidas na rodada 02: campos preservados
+  após erro, botão desabilitado enquanto inválido e em voo, descrição travada
+  em 200 caracteres. **Permanecem no E2E** as provas que só o aparelho dá —
+  renderização (algarismos tabulares), fuso do dispositivo, navegação real e o
+  caminho de rede real. Encolher o roteiro **altera linhas do DoD das Fases 3 e
+  4**, então a decisão entra em `changes.md` antes da mudança e vale das
+  próximas features em diante — a evidência já colhida não é refeita. Depende
+  da [`D20`](../decisions.md) (harness sem recompilação por cena) estar
+  aplicada, senão o ganho se mistura com o do build. · camada **testes/docs** ·
+  `qa` + `tech-lead`
 
 **DoD da Fase 5**
 
