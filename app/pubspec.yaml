@@ -55,3 +55,6 @@ flutter:
     - family: IBMPlexSans
       fonts:
         - asset: assets/fonts/IBMPlexSans.ttf
+    - family: RemixIcon
+      fonts:
+        - asset: assets/fonts/remixicon.ttf
