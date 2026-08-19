@@ -27,6 +27,7 @@ dist/
 
 # Ferramentas locais
 .code-review-graph/
+.docs-index/
 .claude/worktrees/
 .claude/RESUME.md
 .claude/settings.local.json

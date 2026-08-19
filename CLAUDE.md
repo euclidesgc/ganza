@@ -173,12 +173,19 @@ Exceção honesta: correção de uma linha óbvia, apontada por erro de CI, não
 
 ## Economia de tokens (obrigatório)
 
-Custo de token é regra, não preferência. Duas ferramentas estão ativas neste repositório — **use-as**:
+Custo de token é regra, não preferência. Três ferramentas estão ativas neste repositório — **use-as**:
 
 - **rtk** reescreve `git`/`grep`/`ls`/… via hook e enxuga a saída.
 - **O grafo do CRG** (`.code-review-graph/`, ignorado pelo git) é atualizado por hook a cada `Edit`/`Write`. O repo está registrado com o alias **`ganza`**. Ele **só enxerga arquivo versionado**: código novo ainda não commitado não aparece no grafo — nesse caso, `Read` mesmo.
+- **O índice de docs** (`scripts/docs_index.py`, banco em `.docs-index/index.db`, local e ignorado pelo git) indexa os `.md` por seção — heading, faixa exata de linhas e trilha de títulos — e busca por FTS5/BM25 em vez de `grep` cego seguido de leitura às escuras. Toda consulta reindexa o que mudou antes de responder, então o resultado nunca mente mesmo se o hook de atualização falhar ou não existir. Da raiz do repositório:
+  - `python3 scripts/docs_index.py search "termo"` — devolve caminho, faixa de linhas e trilha por seção, rankeado.
+  - `python3 scripts/docs_index.py label GZ-17` — busca exata de identificador (`T4.1`, `D4`, `R9`, `F0.9`, `§11`, `GZ-17`, `#19`, …), separando onde é **definido** de onde é só citado.
+  - `python3 scripts/docs_index.py outline docs/plano.md` — sumário do arquivo com faixa por seção, sem abrir o arquivo inteiro.
+  - `python3 scripts/docs_index.py index --quiet` — reindexação manual (o hook já faz isso a cada `Edit`/`Write`).
 
-- **Grafo antes de grep/read cru.** Para explorar código, consulte primeiro os tools do MCP `code-review-graph` (`query_graph`, `get_review_context`, `detect_changes`, `semantic_search_nodes`, `get_impact_radius`). Só caia em `Grep`/`Read` quando o grafo não cobrir. (Vale para subagentes — inclua isso no prompt deles.)
+  **O que ele não resolve:** acha *onde* a informação está, não se ela *continua verdadeira* — um ponteiro `arquivo:linha` escrito numa doc não é verificado por ele. O hook que mantém o índice fresco está versionado em `.claude/settings.json`; se o mesmo comando existir também no settings da máquina, ele roda **duas vezes, em paralelo** — hooks de escopos diferentes somam, não se sobrescrevem.
+
+- **Grafo antes de grep/read cru em código.** Para explorar código, consulte primeiro os tools do MCP `code-review-graph` (`query_graph`, `get_review_context`, `detect_changes`, `semantic_search_nodes`, `get_impact_radius`). Só caia em `Grep`/`Read` quando o grafo não cobrir. **Índice antes de grep/read cru em docs longas** (`docs/`, `.claude/`, `*.md` da raiz) — use `search`/`label`/`outline` em vez de abrir o arquivo inteiro para achar uma seção. (Vale para subagentes — inclua isso no prompt deles.)
 - **Saída de comando enxuta.** Testes com `-r compact` (`flutter test -r compact`) e/ou `| tail`; nunca despejar log linha a linha.
 - **`rtk proxy <cmd>` quando o filtro atrapalha.** O hook reescreve `grep`/`ls`/`git`… e embaralha saídas com números soltos. Precisa da saída crua? `rtk proxy grep -n …`.
 - **Não reler** arquivo recém-editado (o harness rastreia o estado) nem redescrever o que já foi estabelecido.

@@ -38,5 +38,19 @@
       "Read(./**/*.jks)",
       "Read(./**/google-services.json)"
     ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "ROOT=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0; [ -f \"$ROOT/scripts/docs_index.py\" ] && python3 \"$ROOT/scripts/docs_index.py\" --root \"$ROOT\" index --quiet >/dev/null 2>&1 || true",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
   }
 }
