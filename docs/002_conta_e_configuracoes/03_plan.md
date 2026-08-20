@@ -937,7 +937,7 @@ está — o `settings_module` navega pelo nome da rota, que já é público.
 
 **Tarefas**
 
-- [ ] **T3.1** — Criar `supabase/migrations/0006_adicionar_nome_no_perfil.sql`: coluna `display_name` em `public.profiles` e substituição de `public.handle_new_user()` para copiar o nome do metadado do cadastro quando houver. · camada **migration** · `especialista-backend`
+- [x] **T3.1** — Criar `supabase/migrations/0006_adicionar_nome_no_perfil.sql`: coluna `display_name` em `public.profiles` e substituição de `public.handle_new_user()` para copiar o nome do metadado do cadastro quando houver. · camada **migration** · `especialista-backend` · **DoD: CUMPRIDO**
 
   **DoD da tarefa**
   - Num Postgres vazio em que `supabase/migrations/0001_habilitar_extensoes.sql` a `0005_otimizar_politicas_rls.sql` já aplicaram na ordem, `psql -v ON_ERROR_STOP=1 -f supabase/migrations/0006_adicionar_nome_no_perfil.sql; echo $?` imprime `0`. O `psql -q` não imprime nada — quem prova é o código de saída.
