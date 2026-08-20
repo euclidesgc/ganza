@@ -5,6 +5,10 @@
 # detectável dos Gates 1 e 4. Os Gates 2 e 3 (tier de widget, arquivo gordo)
 # são heurísticos demais para grep confiável e ficam no gate de revisão.
 #
+# Gate 4 cobre também Icons.<nome> cru (ícone deve vir de AppIcons em
+# core/theme/). Padrão ancorado (^|[^A-Za-z])Icons\. para não acusar
+# AppIcons.<nome>, que é o token exigido.
+#
 # Sai 0 se limpo, 1 se achar violação. Plugado no .github/workflows/ci.yml.
 #
 # Escapes pontuais (com justificativa) por comentário na própria linha:
@@ -14,7 +18,9 @@
 # Isenções por caminho:
 #   - app/lib/core/theme/   é a FONTE dos tokens (Color(0x) vive aqui). A
 #                           isenção é do caminho exato, não de qualquer pasta
-#                           chamada "theme".
+#                           chamada "theme". Não precisa de isenção equivalente
+#                           para Icons.<nome>: app_icons.dart só declara
+#                           IconData(0x…) tipado, nunca Icons.<nome> cru.
 #   - test/                 testes podem usar literais.
 #   - patrol_test/          idem.
 
@@ -53,7 +59,9 @@ for f in "${FILES[@]}"; do
   # -------------------------------------------------------------------------
   # GATE 4 — zero literal de estilo cru (deve vir de core/theme via token).
   # Cobre: Color(0x…), Colors.<nome> (menos white/black/transparent),
-  # fontSize: <num>, (Border)Radius.circular(<num>), EdgeInsets.*(<num>).
+  # fontSize: <num>, (Border)Radius.circular(<num>), EdgeInsets.*(<num>),
+  # Icons.<nome> (ícone Material cru — token exigido é AppIcons.<nome>;
+  # padrão ancorado (^|[^A-Za-z])Icons\. para não acusar AppIcons.*).
   # Escape // gate4-ok libera a linha.
   # -------------------------------------------------------------------------
   while IFS=$'\t' read -r line content; do
@@ -61,7 +69,7 @@ for f in "${FILES[@]}"; do
     case "$content" in *"// gate4-ok"*) continue ;; esac
     emit "GATE4" "$f:$line" "$(printf '%s' "$content" | sed 's/^[[:space:]]*//')"
   done < <(grep -nE \
-             'Color\(0x|\bColors\.[a-zA-Z]|fontSize: ?-?[0-9]|circular\( ?-?[0-9]|EdgeInsets\.(all|fromLTRB)\( ?-?[0-9]|EdgeInsets\.(symmetric|only)\([^)]*: ?-?[0-9]' "$f" \
+             'Color\(0x|\bColors\.[a-zA-Z]|fontSize: ?-?[0-9]|circular\( ?-?[0-9]|EdgeInsets\.(all|fromLTRB)\( ?-?[0-9]|EdgeInsets\.(symmetric|only)\([^)]*: ?-?[0-9]|(^|[^A-Za-z])Icons\.' "$f" \
              | grep -vE '\bColors\.(white|black|transparent)\b' \
              | sed -E 's/^([0-9]+):/\1\t/')
 done

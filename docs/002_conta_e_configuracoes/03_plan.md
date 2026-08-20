@@ -848,7 +848,7 @@ Consolidar as duas frentes antes de seguir.
   - Tirar `/configuracoes` de dentro do `ShellRoute` faz esse teste falhar — provar tirando, colar a saída vermelha e restaurar. Sem essa reversão o teste prova que passa, não que mede.
   - `cd app && dart format --set-exit-if-changed lib test`, `flutter analyze` e `flutter test -r compact` terminam com código de saída `0`; da raiz, `bash scripts/gates_guard.sh; echo $?` imprime `0`.
 
-- [ ] **T2.9** — Fazer `scripts/gates_guard.sh` acusar `Icons.` cru em `app/lib`, que hoje ele não olha. · camada **infra** · `especialista-infra`
+- [x] **T2.9** — Fazer `scripts/gates_guard.sh` acusar `Icons.` cru em `app/lib`, que hoje ele não olha. · camada **infra** · `especialista-infra` · **DoD: CUMPRIDO**
 
   **DoD da tarefa**
   - `scripts/gates_guard.sh` passa a acusar o uso cru de `Icons.` nos arquivos de `app/lib`, com padrão **ancorado** (`(^|[^A-Za-z])Icons\.`): `rtk proxy grep -n 'Icons' scripts/gates_guard.sh` devolve pelo menos uma linha, e hoje não devolve nenhuma. A âncora é obrigatória — sem ela o script acusaria `AppIcons.`, que é o token que o projeto obriga a usar.
