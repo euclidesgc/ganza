@@ -8,7 +8,7 @@ escopo: ele distribui o DoD entre as fases e acrescenta o que falta para cada
 fase se sustentar sozinha.**
 
 Estado: **Fase 1 em andamento** · branch `feature/GZ-24-conta-e-configuracoes`
-(de `develop`) · seis fases fatiadas em 65 tarefas · **T1.1 a T1.14 com
+(de `develop`) · seis fases fatiadas em 67 tarefas · **T1.1 a T1.14 com
 `CUMPRIDO`**; **próximo passo: despachar a T1.15 — a etapa de nova senha da
 recuperação não tem saída, e abandoná-la deixa a pessoa dentro do app com a
 senha antiga valendo (`changes.md`, CHG-009). Depois dela, a T1.17 fecha a fase;
@@ -761,23 +761,22 @@ os dois roteiros herdados ficam vermelhos desde esta fase até o lote rodar.
 
 **Tarefas**
 
-- [ ] **T2.1** `[paralela · frente A · worktree]` — Acrescentar a `app/lib/core/theme/app_icons.dart` os tokens que a navegação e as configurações usam: menu, configurações, conta, IA, banco, chat, chave, revelar, ocultar, conectado, não configurado e avançar. · camada **core** · `especialista-infra`
+- [x] **T2.1** `[paralela · frente A · worktree]` — Acrescentar a `app/lib/core/theme/app_icons.dart` os tokens que a navegação e as configurações usam: menu, configurações, conta, IA, banco, chat, chave, revelar, ocultar, conectado, não configurado e avançar. · camada **core** · `especialista-infra` · **DoD: CUMPRIDO**
 
   **DoD da tarefa**
   - `app/lib/core/theme/app_icons.dart` ganha pelo menos onze tokens novos, cada um nomeado **pela função na interface** e não pelo nome do ícone no catálogo Remix.
-  - Todo token do arquivo é `static const <nome> = IconData(0x…, fontFamily: 'RemixIcon');` — `rtk proxy grep -c 'static const' app/lib/core/theme/app_icons.dart` e `rtk proxy grep -c "IconData(0x" app/lib/core/theme/app_icons.dart` imprimem o mesmo número, e `rtk proxy grep -n 'static final\|IconData(' app/lib/core/theme/app_icons.dart | grep -v const` não devolve nada. O `const` é obrigatório porque sem ele o `--tree-shake-icons` do build de release não faz o subsetting da fonte.
-  - Cada codepoint novo foi conferido contra o `remixicon.glyph.json` da tag `v4.9.1` do repositório upstream do Remix Icon — o `decisions.md` desta feature registra a origem, e o valor conferido bate com o escrito no arquivo.
-  - Nenhum glifo renderiza como retângulo vazio: um print em `docs/002_conta_e_configuracoes/e2e/round_03/00_tokens_de_icone.png` mostra os onze desenhados lado a lado no emulador.
+  - Todo token do arquivo é `static const <nome> = IconData(0x…, fontFamily: 'RemixIcon');` — `rtk proxy grep -c 'static const' app/lib/core/theme/app_icons.dart` e `rtk proxy grep -c "IconData(0x" app/lib/core/theme/app_icons.dart` imprimem o mesmo número, **e esse número é pelo menos onze** — sem essa âncora, um arquivo vazio imprimiria `0` nos dois e passaria, e `rtk proxy grep -n 'static final\|IconData(' app/lib/core/theme/app_icons.dart | grep -v const` não devolve nada. O `const` é obrigatório porque sem ele o `--tree-shake-icons` do build de release não faz o subsetting da fonte.
+  - Cada codepoint novo foi conferido contra o `remixicon.glyph.json` da tag `v4.9.1` do repositório upstream do Remix Icon — o `decisions.md` desta feature registra a origem, e o valor conferido bate com o escrito no arquivo. **Esta conferência é a prova única de que o glifo existe na fonte**: o print que a acompanhava migrou para o lote de fechamento (§9), então codepoint não conferido aqui não é pego por mais ninguém antes do lote.
   - `cd app && dart format --set-exit-if-changed lib/core/theme` e `flutter analyze lib/core/theme` terminam com código de saída `0`.
 
-- [ ] **T2.2** `[paralela · frente B · worktree]` — Tematizar `DrawerThemeData`, `ListTileThemeData` e `SwitchThemeData` em `app/lib/core/theme/app_theme.dart`, nas duas variantes de brilho. · camada **core** · `especialista-infra`
+- [x] **T2.2** `[paralela · frente B · worktree]` — Tematizar `DrawerThemeData`, `ListTileThemeData` e `SwitchThemeData` em `app/lib/core/theme/app_theme.dart`, nas duas variantes de brilho. · camada **core** · `especialista-infra` · **DoD: CUMPRIDO**
 
   **DoD da tarefa**
   - `app/lib/core/theme/app_theme.dart` declara `drawerTheme`, `listTileTheme` e `switchTheme` dentro do `ThemeData` que `_build` devolve — `rtk proxy grep -n 'drawerTheme\|listTileTheme\|switchTheme' app/lib/core/theme/app_theme.dart` devolve as três linhas.
   - O `DrawerThemeData` tem `elevation: 0` e cor de superfície vinda de token, sem *surface tint*: material humilde é o princípio que o `appBarTheme` e o `cardTheme` do mesmo arquivo já seguem com `elevation: 0`.
-  - O `ListTileThemeData` fixa altura mínima de toque a partir de `AppSpacing.touchTarget`, que vale `48.0` em `app/lib/core/theme/app_spacing.dart` — nenhum número cru aparece na declaração.
+  - O `ListTileThemeData` fixa altura mínima de toque a partir de `AppSpacing.touchTarget`, que vale `48.0` em `app/lib/core/theme/app_spacing.dart`, e **nenhum número cru aparece na declaração**: `rtk proxy grep -n 'AppSpacing.touchTarget' app/lib/core/theme/app_theme.dart` devolve a linha, e `rtk proxy grep -nE '(minTileHeight|minVerticalPadding|minLeadingWidth|horizontalTitleGap): *[0-9]' app/lib/core/theme/app_theme.dart` não devolve nenhuma. Os dois juntos: o positivo impede que a ausência de match passe por vazio.
   - As três entradas valem para as duas variantes: `AppTheme.light` e `AppTheme.dark` passam pelo mesmo `_build`, e nenhum valor de cor é escrito fora dos tokens de `app/lib/core/theme/`.
-  - `cd app && dart format --set-exit-if-changed lib/core/theme` e `flutter analyze lib/core/theme` terminam com código de saída `0`; da raiz, `bash scripts/gates_guard.sh; echo $?` imprime `0`.
+  - `cd app && dart format --set-exit-if-changed lib/core/theme` e `flutter analyze lib/core/theme` terminam com código de saída `0`. **Não cite `scripts/gates_guard.sh` neste bloco:** ele isenta `app/lib/core/theme/` por caminho, então aqui ele sai `0` por construção e não prova nada (**D31** de `docs/decisions.md`).
 
 As frentes A e B escrevem em arquivos diferentes da mesma pasta
 (`app_icons.dart` e `app_theme.dart`), sem se importarem: o tema não consome
@@ -785,24 +784,25 @@ token de ícone, e os tokens de ícone não consomem tema. Vale worktree para as
 duas — é a mesma pasta, e o `dart format` de uma pisaria no arquivo aberto da
 outra. Consolidar antes do bloco seguinte: as frentes C e D consomem as duas.
 
-- [ ] **T2.3** `[paralela · frente C · worktree]` — Criar o drawer em `app/lib/core/widgets/navigation/` (tier app-wide: é chrome de aplicação, consumido por mais de um módulo), com barrel `navigation.dart` e export em `app/lib/core/widgets/widgets.dart`. · camada **core/presentation** · `especialista-apresentacao`
+- [x] **T2.3** `[paralela · frente C · worktree]` — Criar o drawer em `app/lib/core/widgets/navigation/` (tier app-wide: é chrome de aplicação, consumido por mais de um módulo), com barrel `navigation.dart` e export em `app/lib/core/widgets/widgets.dart`. · camada **core/presentation** · `especialista-apresentacao` · **DoD: CUMPRIDO**
 
   **DoD da tarefa**
   - `app/lib/core/widgets/navigation/` contém o drawer e os seus itens, **um widget por arquivo** em `snake_case`, com barrel `navigation.dart`; `app/lib/core/widgets/widgets.dart` exporta o barrel novo além de `brand/brand.dart` e `pulse/pulse.dart`.
   - Nenhum arquivo da pasta declara função ou método que devolva `Widget` fora do `build()` override — cada pedaço de interface é uma classe própria recebendo dados pelo construtor: da raiz, `bash scripts/gates_guard.sh; echo $?` imprime `0`.
   - Nenhum arquivo da pasta importa caminho sob `app/lib/modules/`: `rtk proxy grep -rn "modules/" app/lib/core/widgets/navigation/` não devolve nenhuma linha — o drawer recebe destinos e callbacks pelo construtor.
-  - Todo item do drawer tem rótulo textual visível **e** `Semantics`/tooltip, e nenhum item usa cor como único sinal de estado — conferir lendo os arquivos e o print em `docs/002_conta_e_configuracoes/e2e/round_03/01_drawer_aberto.png`.
-  - O item de chat aparece **desabilitado, com o motivo em texto visível** e anunciado por `Semantics`, e o estado desabilitado chega **pelo construtor**: nenhum arquivo da pasta consulta configuração, sessão ou `get_it` para decidir isso — conferir lendo os arquivos e o mesmo print.
+  - Todo item do drawer tem rótulo textual visível **e** `Semantics`/tooltip, e nenhum item usa cor como único sinal de estado — conferir lendo os arquivos de `app/lib/core/widgets/navigation/`, um a um. O print que acompanhava esta linha migrou para o lote de fechamento (§9); a leitura fica.
+  - O item de chat aparece **desabilitado, com o motivo em texto visível** e anunciado por `Semantics`, e o estado desabilitado chega **pelo construtor**: nenhum arquivo da pasta consulta configuração, sessão ou `get_it` para decidir isso — conferir lendo os arquivos de `app/lib/core/widgets/navigation/`; o print que acompanhava esta linha migrou para o lote de fechamento (§9).
   - `cd app && dart format --set-exit-if-changed lib/core/widgets` e `flutter analyze lib/core/widgets` terminam com código de saída `0`.
 
-- [ ] **T2.4** `[paralela · frente D · worktree]` — Criar o módulo `app/lib/modules/settings_module/` com a home das configurações listando as três seções (Conta, IA, Banco) sem conteúdo funcional, mais `settings_routes.dart`, `settings_injection.dart` e o barrel `settings_module.dart`, no gabarito da skill `criar-modulo`. · camada **presentation** · `especialista-apresentacao`
+- [x] **T2.4** `[paralela · frente D · worktree]` — Criar o módulo `app/lib/modules/settings_module/` com a home das configurações listando as três seções (Conta, IA, Banco) sem conteúdo funcional, mais `settings_routes.dart`, `settings_injection.dart` e o barrel `settings_module.dart`, no gabarito da skill `criar-modulo`. · camada **presentation** · `especialista-apresentacao` · **DoD: CUMPRIDO**
 
   **DoD da tarefa**
   - `app/lib/modules/settings_module/settings_module.dart` exporta **apenas** `settings_routes.dart` e `settings_injection.dart`; nenhuma página, widget ou model entra no barrel — conferir lendo o arquivo inteiro.
   - `app/lib/modules/settings_module/settings_routes.dart` declara `/configuracoes` com constante de `path` **e** de `name`, e nenhuma rota do arquivo usa `extra:`.
-  - A home lista as três seções e cada uma navega para um destino que ainda não tem conteúdo, sem travar nem lançar: print em `docs/002_conta_e_configuracoes/e2e/round_03/02_configuracoes_home.png` mostrando as três entradas com rótulo textual e ícone.
+  - A home lista as três seções — Conta, IA e Banco — com rótulo textual visível, e tocar em cada uma navega para o seu destino sem lançar: teste de widget em `app/test/modules/settings_module/presentation/settings_home_page_test.dart`, com a saída de `cd app && flutter test -r compact test/modules/settings_module` colada.
+  - Esse teste falha se uma das três seções sair da home — provar removendo uma delas, colar a saída vermelha e restaurar. Teste que nunca foi visto falhar não prova nada.
   - Nenhum arquivo sob `app/lib/modules/settings_module/presentation/` importa caminho contendo `/data/`, e o único ponto que toca o `get_it` é um `static Widget pageBuilder` — `rtk proxy grep -rn 'getIt' app/lib/modules/settings_module/` só devolve linhas de `pageBuilder` ou de `settings_injection.dart`.
-  - `cd app && dart format --set-exit-if-changed lib/modules/settings_module` e `flutter analyze lib/modules/settings_module` terminam com código de saída `0`; da raiz, `bash scripts/gates_guard.sh; echo $?` imprime `0`.
+  - `cd app && dart format --set-exit-if-changed lib/modules/settings_module test/modules/settings_module` e `flutter analyze lib/modules/settings_module` terminam com código de saída `0`; da raiz, `bash scripts/gates_guard.sh; echo $?` imprime `0`.
 
 As frentes C e D escrevem em árvores separadas — `app/lib/core/widgets/` e
 `app/lib/modules/settings_module/` — e nenhuma importa a outra: o drawer é
@@ -813,12 +813,12 @@ os dois são compartilhados e ficam inteiros na T2.5.
 
 Consolidar as duas frentes antes de seguir.
 
-- [ ] **T2.5** — Montar o `ShellRoute` restrito aos destinos de topo em `app/lib/app_router.dart`, com o drawer no `Scaffold` do shell e `leading:` explícito por token de `AppIcons`; registrar o módulo em `app/lib/injection.dart`; remover os dois `IconButton` da `AppBar` da `AreasPage`, cujas ações passam para o drawer. · camada **infra/presentation** · `especialista-infra`
+- [x] **T2.5** — Montar o `ShellRoute` restrito aos destinos de topo em `app/lib/app_router.dart`, com o drawer no `Scaffold` do shell e `leading:` explícito por token de `AppIcons`; registrar o módulo em `app/lib/injection.dart`; remover os dois `IconButton` da `AppBar` da `AreasPage`, cujas ações passam para o drawer. · camada **infra/presentation** · `especialista-infra` · **DoD: CUMPRIDO**
 
   **DoD da tarefa**
   - `app/lib/app_router.dart` declara um `ShellRoute` contendo **apenas** os destinos de topo; `/transacoes/nova` e os destinos sob `/configuracoes/` continuam empilhados fora dele, para a `AppBar` deles manter o botão de voltar.
   - Nenhum `Scaffold` de página de topo deixa o `leading:` para o framework preencher: `rtk proxy grep -rn 'drawer:' app/lib` mostra o `Scaffold` do shell, e o mesmo `Scaffold` declara `leading:` com token de `app/lib/core/theme/app_icons.dart`. Sem isso o Flutter injeta um `DrawerButton` com glifo do Material, que `scripts/gates_guard.sh` não detecta porque procura o literal `Icons.`.
-  - `rtk proxy grep -rn 'Icons\.' app/lib` não devolve nenhuma linha, e os arquivos `app/lib/modules/areas_module/presentation/areas/widgets/transactions_button.dart` e `.../sign_out_button.dart` não existem mais — as duas ações estão no drawer.
+  - `rtk proxy grep -rnE '(^|[^A-Za-z])Icons\.' app/lib` não devolve nenhuma linha — **o padrão é ancorado de propósito e não se simplifica para `'Icons\.'`**: sem a âncora ele casa `Icons.` como pedaço de `AppIcons.`, que é justamente o token que o Gate 4 obriga a usar, e o critério passa a reprovar as 10 linhas legítimas que o repositório já tem. E os arquivos `app/lib/modules/areas_module/presentation/areas/widgets/transactions_button.dart` e `app/lib/modules/areas_module/presentation/areas/widgets/sign_out_button.dart` não existem mais — as duas ações estão no drawer.
   - `cd app && dart format --set-exit-if-changed lib`, `flutter analyze` e `flutter test -r compact` terminam com código de saída `0`; da raiz, `bash scripts/gates_guard.sh; echo $?` imprime `0`.
 
 - [ ] **T2.6** `[adiada · lote de fechamento]` — Instrumentar: atualizar `app/patrol_test/lista_transacoes_test.dart` e `app/patrol_test/registro_transacao_test.dart` para navegar pelo drawer, e escrever a cena nova que abre o drawer e chega a `/configuracoes`. · camada **testes** · `qa` · **fora do DoD da Fase 2** (§9; `changes.md`, CHG-012)
@@ -839,6 +839,26 @@ Consolidar as duas frentes antes de seguir.
   - Nenhum arquivo da rodada contém token, senha ou refresh token: `rtk proxy grep -rniE 'eyJ|refresh_token|"password"' docs/002_conta_e_configuracoes/e2e/round_03/` não devolve nenhuma linha.
   - `scripts/local-supabase.sh down` seguido de `scripts/local-supabase.sh status` mostra a stack fora do ar ao fim da rodada.
 
+- [x] **T2.8** — Devolver `/configuracoes` para dentro do `ShellRoute` de `app/lib/app_router.dart` e consertar o teste que impedia isso. · camada **infra/presentation** · `especialista-infra` · **DoD: CUMPRIDO**
+
+  **DoD da tarefa**
+  - Em `app/lib/app_router.dart`, a rota `/configuracoes` é declarada **dentro** do `routes:` do `ShellRoute`, e nenhuma sub-rota de `/configuracoes/` entra ali — conferir lendo o arquivo. A tela de Configurações passa a ter o drawer e **não** tem seta de voltar.
+  - `app/test/modules/settings_module/presentation/settings_home_page_test.dart` **não monta `GoRouter` próprio**: ele exercita o router do app, construído pela mesma função de `app/lib/app_router.dart` que o `bootstrap` usa, com a mesma chave de navegador root — `rtk proxy grep -n 'GoRouter(' app/test/modules/settings_module/presentation/settings_home_page_test.dart` não devolve nenhuma linha.
+  - Um teste desse arquivo navega para `/configuracoes` e assere que o drawer está alcançável a partir dela e que a `AppBar` não traz botão de voltar; `cd app && flutter test -r compact test/modules/settings_module` sai `0`.
+  - Tirar `/configuracoes` de dentro do `ShellRoute` faz esse teste falhar — provar tirando, colar a saída vermelha e restaurar. Sem essa reversão o teste prova que passa, não que mede.
+  - `cd app && dart format --set-exit-if-changed lib test`, `flutter analyze` e `flutter test -r compact` terminam com código de saída `0`; da raiz, `bash scripts/gates_guard.sh; echo $?` imprime `0`.
+
+- [x] **T2.9** — Fazer `scripts/gates_guard.sh` acusar `Icons.` cru em `app/lib`, que hoje ele não olha. · camada **infra** · `especialista-infra` · **DoD: CUMPRIDO**
+
+  **DoD da tarefa**
+  - `scripts/gates_guard.sh` passa a acusar o uso cru de `Icons.` nos arquivos de `app/lib`, com padrão **ancorado** (`(^|[^A-Za-z])Icons\.`): `rtk proxy grep -n 'Icons' scripts/gates_guard.sh` devolve pelo menos uma linha, e hoje não devolve nenhuma. A âncora é obrigatória — sem ela o script acusaria `AppIcons.`, que é o token que o projeto obriga a usar.
+  - Com o repositório no estado atual, `bash scripts/gates_guard.sh; echo $?` imprime `0`: as 13 linhas que hoje casam `Icons.` são todas `AppIcons.*` e **não** podem ser acusadas.
+  - Prova de que a checagem morde: acrescentar `const Icon(Icons.add)` a um arquivo qualquer sob `app/lib/`, rodar `bash scripts/gates_guard.sh; echo $?` e obter valor **diferente de `0`** com o arquivo e a linha apontados; remover a linha e obter `0` de novo. Colar as duas saídas.
+  - O escape documentado no cabeçalho do script continua valendo para a checagem nova: a mesma linha com `// gate4-ok: <motivo>` no fim **não** é acusada — provar e colar a saída `0`.
+  - `bash -n scripts/gates_guard.sh` sai `0`, e o cabeçalho do próprio script descreve a checagem nova junto das que já lista — nenhuma frase do cabeçalho ficou falsa depois da mudança.
+
+A **T2.8** nasce de um desvio registrado em [`changes.md`](changes.md) (CHG-014): o executor da T2.5 tirou `/configuracoes` do shell para fazer um teste passar, e o contrato da §3 diz o contrário. **O contrato não cede** — quem estava errado era o teste, que montava um `GoRouter` isolado sem a chave root e por isso não suportava `parentNavigatorKey`. Teste de widget não decide topologia de navegação.
+
 Instrumentar (T2.6) e executar (T2.7) ficam com o mesmo agente pela mesma razão
 da Fase 1: a T2.6 mexe em dois roteiros que já estavam verdes, e quem os alterou
 é quem sabe distinguir "a navegação nova está errada" de "a cena herdada
@@ -847,9 +867,9 @@ continuam juntas lá: adiar não desfaz o motivo de estarem no mesmo agente.
 
 **DoD da Fase 2**
 
-- [ ] As cinco tarefas que a fase leva ao PR 2 — T2.1 a T2.5, já que a **T2.6** e a **T2.7** estão adiadas para o lote de fechamento (§9) — com o campo `DoD:` marcado CUMPRIDO, em negrito, na própria linha: `rtk proxy grep -cE '^- \[x\] \*\*T2\.[0-9]+\*\*.*\*\*DoD: CUMPRIDO\*\*' docs/002_conta_e_configuracoes/03_plan.md` imprime `5`, e `rtk proxy grep -cE '^- \[.\] \*\*T2\.[0-9]+\*\*.*\*\*DoD: NÃO CUMPRIDO\*\*' docs/002_conta_e_configuracoes/03_plan.md` imprime `0`. O padrão ancora na fase e traz os asteriscos: sem os asteriscos a contagem inclui as próprias linhas de critério que citam o campo, e sem a âncora ela cresce a cada fase seguinte que marcar uma tarefa — nos dois casos o número nunca fecha.
+- [ ] As sete tarefas que a fase leva ao PR 2 — T2.1 a T2.5, a **T2.8** e a **T2.9**, já que a **T2.6** e a **T2.7** estão adiadas para o lote de fechamento (§9) — com o campo `DoD:` marcado CUMPRIDO, em negrito, na própria linha: `rtk proxy grep -cE '^- \[x\] \*\*T2\.[0-9]+\*\*.*\*\*DoD: CUMPRIDO\*\*' docs/002_conta_e_configuracoes/03_plan.md` imprime `7`, e `rtk proxy grep -cE '^- \[.\] \*\*T2\.[0-9]+\*\*.*\*\*DoD: NÃO CUMPRIDO\*\*' docs/002_conta_e_configuracoes/03_plan.md` imprime `0`. O padrão ancora na fase e traz os asteriscos: sem os asteriscos a contagem inclui as próprias linhas de critério que citam o campo, e sem a âncora ela cresce a cada fase seguinte que marcar uma tarefa — nos dois casos o número nunca fecha.
 - [ ] `cd app && dart format --set-exit-if-changed lib patrol_test test`, `flutter analyze` e `flutter test -r compact` verdes; da raiz, `bash scripts/gates_guard.sh; echo $?` imprime `0`.
-- [ ] `rtk proxy grep -rn 'Icons\.' app/lib` não devolve nenhuma linha — o glifo do Material não voltou pelo `DrawerButton` que o `Scaffold` injeta.
+- [ ] `rtk proxy grep -rnE '(^|[^A-Za-z])Icons\.' app/lib` não devolve nenhuma linha — **o padrão é ancorado de propósito e não se simplifica para `'Icons\.'`**: sem a âncora ele casa `Icons.` como pedaço de `AppIcons.`, que é justamente o token que o Gate 4 obriga a usar, e o critério passa a reprovar as 10 linhas legítimas que o repositório já tem — o glifo do Material não voltou pelo `DrawerButton` que o `Scaffold` injeta.
 - [ ] `CHANGELOG.md`, seção `Unreleased`, atualizado no mesmo PR.
 - [ ] Job "App" verde no CI do PR.
 
@@ -857,7 +877,7 @@ continuam juntas lá: adiar não desfaz o motivo de estarem no mesmo agente.
 na mesma rodada e o atestado do dev humano sobre ela — saiu do gate do PR 2 e
 está na §9 (`changes.md`, CHG-012). A troca de navegação continua provada dentro
 da fase pelo teste de widget da **T2.4** e pelo
-`grep 'Icons\.'` acima; o que fica sem prova até o lote é o roteiro herdado da
+`grep -rnE '(^|[^A-Za-z])Icons\.'` acima; o que fica sem prova até o lote é o roteiro herdado da
 feature 001 seguir verde no emulador — risco **X3**, aceito por escrito.
 
 ---
@@ -973,19 +993,19 @@ que estas duas acabaram de fechar.
 
   **DoD da tarefa**
   - `app/lib/modules/settings_module/presentation/account/account_cubit.dart` declara o estado `sealed` no mesmo arquivo via `part of`, com um `final class` por desfecho, e nenhum arquivo sob `app/lib/modules/settings_module/presentation/account/` tem `import` contendo `/data/`.
-  - O campo de e-mail é somente leitura e a tela mostra, em **texto visível**, por que o e-mail não se troca ali — print em `docs/002_conta_e_configuracoes/e2e/round_04/01_conta.png`.
-  - Salvar com o nome vazio é impedido antes do envio, e um erro de servidor **preserva o que foi digitado**: dois prints em `docs/002_conta_e_configuracoes/e2e/round_04/`, um por estado.
+  - Teste de widget em `app/test/modules/settings_module/presentation/account/account_page_test.dart` assere as três garantias da tela: o campo de e-mail é somente leitura **e** a tela exibe, em texto visível, o motivo de o e-mail não se trocar ali; salvar com o nome vazio é bloqueado **antes** de qualquer chamada ao repositório; e um erro de servidor **preserva o que foi digitado** no campo de nome. Rodar com `cd app && flutter test -r compact test/modules/settings_module`.
+  - Cada asserção falha quando a garantia correspondente sai: tornar o e-mail editável, deixar passar o nome vazio ou limpar o campo no erro faz o teste falhar — provar as três reversões, colar as saídas e restaurar.
   - Todo `emit` posterior a um `await` é precedido de `if (isClosed) return;` — conferir com `rtk proxy grep -n 'await\|isClosed\|emit' app/lib/modules/settings_module/presentation/account/account_cubit.dart`.
-  - `cd app && dart format --set-exit-if-changed lib/modules/settings_module` e `flutter analyze lib/modules/settings_module` terminam com código de saída `0`; da raiz, `bash scripts/gates_guard.sh; echo $?` imprime `0`.
+  - `cd app && dart format --set-exit-if-changed lib/modules/settings_module test/modules/settings_module` e `flutter analyze lib/modules/settings_module` terminam com código de saída `0`; da raiz, `bash scripts/gates_guard.sh; echo $?` imprime `0`.
 
 - [ ] **T3.7** `[paralela · frente D · worktree]` — Criar `app/lib/modules/auth_module/presentation/change_password/`: cubit com estado `sealed` via `part of` e a página que pede senha atual, nova e confirmação. · camada **presentation** · `especialista-apresentacao`
 
   **DoD da tarefa**
   - Sob `app/lib/modules/auth_module/presentation/change_password/` existe um cubit com estado `sealed` no mesmo arquivo via `part of` e uma página `StatelessWidget` com `static Widget pageBuilder`; nenhum arquivo da pasta tem `import` contendo `/data/`.
-  - A tela pede **senha atual**, nova e confirmação, e o botão fica desabilitado enquanto a nova e a confirmação diferem — print com as duas diferentes e o botão desabilitado em `docs/002_conta_e_configuracoes/e2e/round_04/`.
   - Os três campos nascem com `obscureText: true` e nenhum estado da tela exibe as três senhas em claro ao mesmo tempo: `rtk proxy grep -rn 'obscureText' app/lib/modules/auth_module/presentation/change_password/` devolve três linhas.
-  - Senha atual errada produz mensagem curta e **preserva os campos de senha nova e confirmação** — print em `docs/002_conta_e_configuracoes/e2e/round_04/`.
-  - `cd app && dart format --set-exit-if-changed lib/modules/auth_module` e `flutter analyze lib/modules/auth_module/presentation/change_password` terminam com código de saída `0`; da raiz, `bash scripts/gates_guard.sh; echo $?` imprime `0`.
+  - Teste de widget em `app/test/modules/auth_module/presentation/change_password/change_password_page_test.dart` assere que o botão de confirmar fica **desabilitado** enquanto a senha nova e a confirmação diferem, e que senha atual errada produz mensagem curta **preservando** o que foi digitado nos campos de senha nova e de confirmação. Rodar com `cd app && flutter test -r compact test/modules/auth_module/presentation/change_password`.
+  - As duas asserções falham quando a garantia sai: habilitar o botão com os campos divergentes, ou limpar os campos no erro, faz o teste falhar — provar as duas reversões, colar as saídas e restaurar.
+  - `cd app && dart format --set-exit-if-changed lib/modules/auth_module test/modules/auth_module/presentation/change_password` e `flutter analyze lib/modules/auth_module/presentation/change_password` terminam com código de saída `0`; da raiz, `bash scripts/gates_guard.sh; echo $?` imprime `0`.
 
 As frentes C e D escrevem em módulos diferentes e nenhuma importa a outra: a
 tela de conta navega para a de senha **pelo nome da rota**, que é público, não
@@ -999,10 +1019,11 @@ Consolidar as duas frentes antes de seguir.
 
   **DoD da tarefa**
   - `app/lib/modules/settings_module/settings_routes.dart` declara `/configuracoes/conta` e `app/lib/modules/auth_module/auth_routes.dart` declara `/configuracoes/conta/senha`, **cada uma com constante de `path` e de `name`**; `rtk proxy grep -n 'extra:' app/lib/modules/settings_module/settings_routes.dart app/lib/modules/auth_module/auth_routes.dart` não devolve nenhuma linha.
-  - As duas rotas ficam **fora** do `ShellRoute` de `app/lib/app_router.dart`, para a `AppBar` de cada uma manter o botão de voltar: abrir `/configuracoes/conta/senha`, voltar duas vezes e chegar à lista de áreas, com print da sequência em `docs/002_conta_e_configuracoes/e2e/round_04/`.
+  - As duas rotas ficam **fora** do `ShellRoute` de `app/lib/app_router.dart`, para a `AppBar` de cada uma manter o botão de voltar: teste de widget em `app/test/app_router_test.dart` que constrói o router, navega para `/configuracoes/conta/senha`, volta duas vezes e assere a chegada à lista de áreas. Rodar com `cd app && flutter test -r compact test/app_router_test.dart`.
+  - Mover qualquer uma das duas rotas para dentro do `ShellRoute` faz esse teste falhar — provar movendo uma delas, colar a saída vermelha e restaurar.
   - `rtk proxy grep -c 'GetUserProfile\|UpdateDisplayName' app/lib/modules/settings_module/settings_injection.dart` imprime pelo menos `2`, e `rtk proxy grep -c 'ChangePassword' app/lib/modules/auth_module/auth_injection.dart` imprime pelo menos `1`.
   - Nenhum barrel ganhou export novo: `app/lib/modules/auth_module/auth_module.dart` e `app/lib/modules/settings_module/settings_module.dart` continuam exportando só rota e DI, mais os três símbolos de sessão já documentados no do auth — conferir lendo os dois arquivos inteiros.
-  - `cd app && dart format --set-exit-if-changed lib`, `flutter analyze` e `flutter test -r compact` terminam com código de saída `0`; da raiz, `bash scripts/gates_guard.sh; echo $?` imprime `0`.
+  - `cd app && dart format --set-exit-if-changed lib test`, `flutter analyze` e `flutter test -r compact` terminam com código de saída `0`; da raiz, `bash scripts/gates_guard.sh; echo $?` imprime `0`.
 
 - [ ] **T3.9** `[adiada · lote de fechamento]` — Instrumentar o E2E da fase: roteiro `patrol` que edita o nome, confere que o e-mail não é editável e troca a senha com a senha atual certa e com a errada. · camada **testes** · `qa` · **fora do DoD da Fase 3** (§9; `changes.md`, CHG-012)
 
@@ -1189,7 +1210,7 @@ duas migrations são do mesmo agente em fila — `0008` depende de `0007` existi
   **DoD da tarefa**
   - `app/lib/core/widgets/forms/secret_field.dart` declara um único widget que recebe rótulo, controlador e callbacks **pelo construtor**; `app/lib/core/widgets/forms/forms.dart` o exporta e `app/lib/core/widgets/widgets.dart` exporta o barrel novo além de `brand/brand.dart` e `pulse/pulse.dart`.
   - O campo nasce com `obscureText: true` e **não** declara `autofillHints`: `rtk proxy grep -n 'obscureText\|autofillHints' app/lib/core/widgets/forms/secret_field.dart` mostra `obscureText` e nenhuma linha de `autofillHints` — chave de API não é senha de site e não deve ir para o gerenciador de senhas do sistema.
-  - O botão de revelar tem `Semantics` próprio cujo rótulo muda entre revelar e ocultar, e nenhum estado do campo usa cor como único sinal — conferir lendo o arquivo e o print `docs/002_conta_e_configuracoes/e2e/round_05/00_secret_field.png`, que mostra os dois estados lado a lado.
+  - O botão de revelar tem `Semantics` próprio cujo rótulo muda entre revelar e ocultar, e nenhum estado do campo usa cor como único sinal — conferir lendo `app/lib/core/widgets/forms/secret_field.dart`, onde os dois rótulos e o sinal não-cromático de cada estado estão no código. O print que acompanhava esta linha migrou para o lote de fechamento (§9): a leitura já sustentava a exigência sozinha.
   - Nenhum arquivo da pasta declara função ou método que devolva `Widget` fora do `build()` override, e nenhum literal de cor, espaçamento, raio ou tipografia aparece neles: da raiz, `bash scripts/gates_guard.sh; echo $?` imprime `0`.
   - `cd app && dart format --set-exit-if-changed lib/core/widgets` e `flutter analyze lib/core/widgets` terminam com código de saída `0`.
 
@@ -1224,10 +1245,11 @@ Consolidar as três frentes antes de seguir.
 
   **DoD da tarefa**
   - `app/lib/modules/settings_module/presentation/ai/ai_settings_cubit.dart` declara o estado `sealed` no mesmo arquivo via `part of`, com um `final class` por desfecho, e nenhum arquivo sob `app/lib/modules/settings_module/presentation/ai/` tem `import` contendo `/data/`.
-  - A tela é **write-only para a chave**: em nenhum estado ela carrega ou exibe o valor gravado — com credencial existente, mostra provedor, modelo, os quatro últimos dígitos e a marca de configurada. Print em `docs/002_conta_e_configuracoes/e2e/round_05/01_ia_configurada.png`.
-  - O campo da chave é o `SecretField` de `app/lib/core/widgets/forms/secret_field.dart`, e o botão de salvar fica desabilitado com o campo vazio e enquanto o envio está em voo; um erro de servidor **preserva o que foi digitado** — dois prints em `docs/002_conta_e_configuracoes/e2e/round_05/`, um por estado.
+  - A tela é **write-only para a chave**: teste de widget em `app/test/modules/settings_module/presentation/ai/ai_settings_page_test.dart` assere que, com credencial existente, ela mostra provedor, modelo, os **quatro últimos** dígitos e a marca de configurada, e que **nenhum** widget da árvore exibe o valor gravado inteiro. Rodar com `cd app && flutter test -r compact test/modules/settings_module`.
+  - O mesmo teste assere que o campo da chave é o `SecretField` de `app/lib/core/widgets/forms/secret_field.dart`, que o botão de salvar fica desabilitado com o campo vazio e enquanto o envio está em voo, e que um erro de servidor **preserva o que foi digitado**.
+  - Fazer a tela exibir a chave inteira, habilitar o salvar com o campo vazio ou limpar o campo no erro faz o teste falhar — provar as três reversões, colar as saídas e restaurar.
   - Todo `emit` posterior a um `await` é precedido de `if (isClosed) return;` — conferir com `rtk proxy grep -n 'await\|isClosed\|emit' app/lib/modules/settings_module/presentation/ai/ai_settings_cubit.dart`.
-  - `cd app && dart format --set-exit-if-changed lib/modules/settings_module` e `flutter analyze lib/modules/settings_module` terminam com código de saída `0`; da raiz, `bash scripts/gates_guard.sh; echo $?` imprime `0`.
+  - `cd app && dart format --set-exit-if-changed lib/modules/settings_module test/modules/settings_module` e `flutter analyze lib/modules/settings_module` terminam com código de saída `0`; da raiz, `bash scripts/gates_guard.sh; echo $?` imprime `0`.
 
 - [ ] **T4.11** — Aplicar o gating nos três pontos: `redirect` e `refreshListenable` em `app/lib/app_router.dart`, `BlocSelector` no item de chat do drawer em `app/lib/core/widgets/navigation/`, e a rota `/configuracoes/ia` com o registro do DI. · camada **infra/presentation** · `especialista-infra`
 
@@ -1275,8 +1297,8 @@ isolamento seria tirar segurança do gate.
 
 - [ ] As doze tarefas que a fase leva aos PRs 4a e 4b — T4.1 a T4.11 e a **T4.14**, já que a **T4.12** e a **T4.13** estão adiadas para o lote de fechamento (§9) — com o campo `DoD:` marcado CUMPRIDO, em negrito, na própria linha: `rtk proxy grep -cE '^- \[x\] \*\*T4\.[0-9]+\*\*.*\*\*DoD: CUMPRIDO\*\*' docs/002_conta_e_configuracoes/03_plan.md` imprime `12`, e `rtk proxy grep -cE '^- \[.\] \*\*T4\.[0-9]+\*\*.*\*\*DoD: NÃO CUMPRIDO\*\*' docs/002_conta_e_configuracoes/03_plan.md` imprime `0`. O padrão ancora na fase e traz os asteriscos: sem os asteriscos a contagem inclui as próprias linhas de critério que citam o campo, e sem a âncora ela cresce a cada fase seguinte que marcar uma tarefa — nos dois casos o número nunca fecha.
 - [ ] `cd app && dart format --set-exit-if-changed lib patrol_test test`, `flutter analyze` e `flutter test -r compact` verdes; `cd supabase/functions && deno fmt --check && deno lint && deno task check && deno task test` verde; da raiz, `bash scripts/gates_guard.sh; echo $?` imprime `0`.
-- [ ] `rtk proxy grep -rniE 'AIza|sk-|apiKey' app/lib` não devolve nenhuma linha — nenhuma chave de terceiro, nem placeholder, entrou no binário.
-- [ ] `rtk proxy grep -rln 'aiConfigured' app/lib` devolve só arquivos sob `app/lib/core/session/`, `app/lib/core/widgets/navigation/` e `app/lib/app_router.dart` — o gate mora no router, não no corpo de página.
+- [ ] `rtk proxy grep -rnE '(^|[^A-Za-z])(AIza[A-Za-z0-9_-]{20,}|sk-[A-Za-z0-9]{16,})' app/lib` não devolve nenhuma linha — nenhuma chave de terceiro, nem placeholder com forma de chave, entrou no binário. **O padrão casa o literal, não o identificador:** `apiKey` sozinho reprovaria o token `AppIcons.apiKey` de `app/lib/core/theme/app_icons.dart` (o ícone de chave, nomeado pela função, como o Gate 4 manda) e o comentário sobre o cabeçalho `apikey` em `app/lib/modules/transactions_module/data/repositories/transactions_repository_impl.dart` — duas linhas legítimas que hoje existem.
+- [ ] `rtk proxy grep -rln 'aiConfigured' app/lib` devolve **os três** caminhos `app/lib/core/session/`, `app/lib/core/widgets/navigation/` e `app/lib/app_router.dart` — e nenhum outro. O "nenhum outro" sozinho passaria com saída vazia; é a presença dos três que prova que o gate existe, e a ausência do resto que prova que ele mora no router e não no corpo de página.
 - [ ] A prova de isolamento entre dois usuários **e** a prova de RLS no banco estão em `docs/002_conta_e_configuracoes/e2e/round_05/isolamento.md`, com comandos e saídas literais, **reproduzidas pelo QA independentemente do executor da fase** (tarefa **T4.14**). Esta linha é invariante bloqueante do gauntlet e se prova por saída de comando: **não é adiável** e não sai do gate do PR (**D30**).
 - [ ] `CLAUDE.md` reconciliado no mesmo PR: a invariante 4 passa a distinguir **credencial do projeto** (proibida no cliente, sem exceção) de **credencial do usuário** (entra pelo app, vive cifrada no servidor e nunca retorna ao cliente) — decisão **D24**.
 - [ ] `docs/002_conta_e_configuracoes/decisions.md` registra o achado da chave-mestra do Vault e a consequência: **nenhuma chave real de IA é salva em produção enquanto a pendência P12 não fechar.**
@@ -1415,8 +1437,9 @@ migration cria. Vale worktree onde houver escrita simultânea.
 
   **DoD da tarefa**
   - `app/lib/modules/settings_module/presentation/bank/bank_settings_cubit.dart` declara o estado `sealed` no mesmo arquivo via `part of`, com um `final class` por desfecho, e nenhum arquivo sob `app/lib/modules/settings_module/presentation/bank/` tem `import` contendo `/data/`.
-  - Os quatro estados de conexão aparecem com **rótulo textual**, nunca só por cor: quatro prints em `docs/002_conta_e_configuracoes/e2e/round_06/`, um por estado, cada um nomeado pelo estado que mostra.
-  - Desconectar pede confirmação explícita antes de agir, e cancelar não muda nada — dois prints em `docs/002_conta_e_configuracoes/e2e/round_06/`, o do diálogo e o da tela intacta depois de cancelar.
+  - Teste de widget em `app/test/modules/settings_module/presentation/bank/bank_settings_page_test.dart` assere que **cada um dos quatro estados de conexão** renderiza um rótulo textual próprio, achado por `find.text` — nenhum estado se distingue só por cor. Rodar com `cd app && flutter test -r compact test/modules/settings_module`.
+  - O mesmo teste assere que desconectar **pede confirmação explícita** antes de agir e que cancelar deixa tudo como estava: sem tocar em confirmar, nenhuma chamada de desconexão parte e a tela continua no estado conectado.
+  - Trocar o rótulo textual de um estado por distinção só de cor, ou fazer o desconectar agir sem confirmação, faz o teste falhar — provar as duas reversões, colar as saídas e restaurar.
   - Nada de conciliação vazou para esta fase: `rtk proxy grep -rniE 'reconcil|concilia' app/lib/modules/settings_module/` não devolve nenhuma linha.
   - `app/lib/modules/settings_module/settings_routes.dart` declara `/configuracoes/banco` com constante de `path` e de `name`, sem `extra:`, fora do `ShellRoute`; `cd app && dart format --set-exit-if-changed lib`, `flutter analyze` e `flutter test -r compact` terminam com código de saída `0`, e da raiz `bash scripts/gates_guard.sh; echo $?` imprime `0`.
 
@@ -1742,7 +1765,7 @@ legitimamente precisa da chave coexiste com as que não precisam (X7).
 | # | Risco | Onde dói | Tratamento neste plano |
 |---|---|---|---|
 | X1 | **O cadastro tranca calado se a confirmação for desligada sem o e-mail sair.** O risco mudou de forma em 20/08/2026: a **FD-022** desligou a confirmação automática, e com isso morreu o risco original — "qualquer endereço inventado vira conta confirmada". O que ficou é o inverso e é de ordem: com `GOTRUE_MAILER_AUTOCONFIRM: 'false'` e SMTP mudo, todo cadastro novo nasce não confirmado e **ninguém consegue entrar** — e nada no app acusa, porque o `signup` responde `200`. | Fase 1, e a virada da HML | As duas variáveis do GoTrue viram **no mesmo redeploy** das cinco de SMTP, nunca antes: a ordem está escrita em `docs/deploy/coolify.md`, seção "Ainda por fazer", e na **FD-022**. Na stack local o modo de falha não existe desde a T1.5 — o capturador recebe todo e-mail. Prova de que o caminho funciona antes de a HML virar: o E2E da Fase 1, que cria conta e confirma lendo o capturador. |
-| X2 | **O `Scaffold` com `drawer:` reintroduz o glifo do Material** e `scripts/gates_guard.sh` não pega: o guard procura o literal `Icons.`, e o `DrawerButton` injetado não escreve isso. | Fase 2 | Linha de DoD da T2.5: `leading:` explícito com token de `AppIcons`, e `grep -rn 'Icons\.' app/lib` vazio no DoD da fase. |
+| X2 | **O `Scaffold` com `drawer:` reintroduz o glifo do Material** pelo `DrawerButton` que ele injeta, e **nada no CI pega isso**: medido em 20/08/2026, `scripts/gates_guard.sh` **não tem checagem de ícone nenhuma** — `rtk proxy grep -n 'Icons' scripts/gates_guard.sh` não devolve nada, e o Gate 4 do script cobre `Color(0x`, `Colors.<nome>`, `fontSize`, `circular(` e `EdgeInsets`, mais nada. **A linha anterior desta célula dizia que o guard "procura o literal `Icons.`", e era falsa** — risco mitigado no papel por mecanismo inexistente. | Fase 2, e toda feature depois dela | Duas camadas, uma por fase e outra permanente: **hoje**, a linha de DoD da **T2.5** (`leading:` explícito com token de `AppIcons`) e a do DoD da Fase 2, ambas com `rtk proxy grep -rnE '(^|[^A-Za-z])Icons\.' app/lib` vazio — o padrão é ancorado porque sem a âncora ele casa `Icons.` dentro de `AppIcons.` e reprova as 13 linhas legítimas do repositório; **a partir da T2.9**, a checagem entra no próprio `scripts/gates_guard.sh`, que é o que faz a proteção valer nas features seguintes sem depender de alguém repetir a linha no DoD. |
 | X3 | **`flutter test` não cobre `app/patrol_test/`** e `flutter analyze` não pega string que deixou de casar, então a troca de navegação deixa o CI verde e o emulador vermelho. | Fase 2, e daí até o lote de fechamento | **O tratamento mudou em 20/08/2026 e o risco cresceu** (`changes.md`, CHG-012): a T2.6 e a T2.7 saíram do gate do PR 2 por **D30**, e com elas a linha do DoD da fase que exigia os três roteiros verdes na mesma rodada. Os dois roteiros herdados da feature 001 ficam **vermelhos desde a Fase 2 até o lote rodar**, sem nada no CI acusando, e o descasamento de string se acumula pelas fases seguintes em vez de aparecer numa. **Aceito por escrito, e é o preço explícito da velocidade** — quem rodar o lote começa por estes dois arquivos, que são os mais prováveis de falhar. |
 | X4 | **A recuperação por OTP não cobre o clique no link do e-mail.** O GoTrue manda o link junto do código; quem clicar cai no navegador e não volta para o app. | Fase 1 | Limitação **conhecida e aceita**: o texto do e-mail e a tela de recuperação instruem a digitar o código. O deep link PKCE fica registrado em `docs/002_conta_e_configuracoes/decisions.md` como o passo seguinte, com o custo já levantado (source set de flavor + `GOTRUE_URI_ALLOW_LIST`). |
 | X5 | **A chave-mestra do Vault não está em volume.** Ela mora em `/etc/postgresql-custom/pgsodium_root.key`, na camada gravável do contêiner; `infra/local/docker-compose.yml` monta só `db-data:/var/lib/postgresql/data`. Recriar o contêiner do Postgres transforma todo segredo do Vault em ciphertext permanentemente indecifrável. | Fase 4 | Pendência **P12** mais a tarefa **T4.3**, que mede em produção, reproduz o modo de falha na stack local e deixa o trecho de compose pronto. Linha do DoD da fase: nenhuma chave real em produção antes de P12 fechar. |
@@ -1770,7 +1793,7 @@ Legenda das fases: `[ ]` não iniciada · `[-]` em andamento · `[x]` mergeada e
 tarefa sem esse veredito **não** é marcada, mesmo que o código pareça pronto.
 
 - [-] **Fase 1** — Auth completo: medir a sessão, cadastrar e recuperar senha · PR 1 (17 tarefas — 16 no PR 1; a T1.16 está adiada para o lote de fechamento, §9)
-- [ ] **Fase 2** — Drawer e a casca das Configurações · PR 2 (7 tarefas — 5 no PR 2; T2.6 e T2.7 no lote de fechamento, §9)
+- [ ] **Fase 2** — Drawer e a casca das Configurações · PR 2 (9 tarefas — 7 no PR 2, com a T2.8 do CHG-014 e a T2.9 do CHG-015; T2.6 e T2.7 no lote de fechamento, §9)
 - [ ] **Fase 3** — Perfil do usuário · PR 3a + PR 3b (10 tarefas — 8 no PR 3b; T3.9 e T3.10 no lote de fechamento, §9)
 - [ ] **Fase 4** — Configuração de IA e o gating · PR 4a + PR 4b (14 tarefas — 12 nos PRs; T4.12 e T4.13 no lote de fechamento, §9; a T4.14 nasceu ao partir a prova de isolamento da execução do E2E)
 - [ ] **Fase 5** — Integração bancária · PR 5a + PR 5b (8 tarefas — 6 nos PRs; T5.7 e T5.8 no lote de fechamento, §9)
@@ -1798,6 +1821,12 @@ um agente só é fatiamento que não foi feito.
 | Fase 5 · **T5.7** e **T5.8** | Rodada `round_06`: roteiro que conecta contra a **sandbox** da Pluggy, vê o status e desconecta, com os quatro estados em prints distintos; execução e `report.md`. Junto vem a prova de que a capacidade de banco vem da tabela e não do binário, que só era observável pelos prints da rodada. | `qa` (as duas com o mesmo agente) | `app/patrol_test/` (roteiro novo), `docs/002_conta_e_configuracoes/e2e/round_06/` | [`changes.md`](changes.md), CHG-012 |
 | Fase 2 · **T2.5** | O print `docs/002_conta_e_configuracoes/e2e/round_03/03_navegacao_pelo_drawer.png`: abrir o app, tocar no ícone de menu, ir para transações pelo drawer e voltar **sem perder a pilha**. Sai de graça junto da rodada `round_03`, que já navega por ali. | `qa`, na rodada `round_03` | `docs/002_conta_e_configuracoes/e2e/round_03/` | [`changes.md`](changes.md), CHG-013 |
 | Fase 4 · **T4.11** | Dois prints da rodada `round_05`: a sequência que mostra configurar a IA e tocar no chat levando ao destino **sem navegação manual no meio** (o `refreshListenable` fazendo efeito), e `docs/002_conta_e_configuracoes/e2e/round_05/02_drawer_chat_desabilitado.png`, o item de chat desabilitado com o motivo em texto visível. **O teste do rótulo semântico não veio para cá:** ficou no DoD da T4.11, porque se prova por comando. | `qa`, na rodada `round_05` | `docs/002_conta_e_configuracoes/e2e/round_05/` | [`changes.md`](changes.md), CHG-013 |
+| Fase 2 · **T2.1** | O print `docs/002_conta_e_configuracoes/e2e/round_03/00_tokens_de_icone.png`: os onze tokens de ícone desenhados lado a lado, **nenhum como retângulo vazio**. Até o lote rodar, a única prova de que o glifo existe é a conferência de codepoint contra o `remixicon.glyph.json` da tag `v4.9.1`, no próprio bloco da T2.1. | `qa`, na rodada `round_03` | `docs/002_conta_e_configuracoes/e2e/round_03/` | [`changes.md`](changes.md), CHG-013 |
+| Fase 2 · **T2.3** | O print `docs/002_conta_e_configuracoes/e2e/round_03/01_drawer_aberto.png`, que acompanhava duas linhas do bloco: rótulo textual mais `Semantics` em todo item, e o item de chat desabilitado com o motivo visível. **A conferência por leitura não veio para cá** — ficou nas duas linhas. | `qa`, na rodada `round_03` | `docs/002_conta_e_configuracoes/e2e/round_03/` | [`changes.md`](changes.md), CHG-013 |
+| Fase 2 · **T2.4** | O print `docs/002_conta_e_configuracoes/e2e/round_03/02_configuracoes_home.png`: as três seções com rótulo textual e ícone. **Não deixou buraco:** no lugar entrou teste de widget em `app/test/modules/settings_module/presentation/settings_home_page_test.dart`, que é o que o DoD da fase já afirmava existir. | `qa`, na rodada `round_03` | `docs/002_conta_e_configuracoes/e2e/round_03/` | [`changes.md`](changes.md), CHG-013 |
+| Fase 3 · **T3.6**, **T3.7** e **T3.8** | Os prints da rodada `round_04` que essas três tarefas cobravam: `01_conta.png` e os dois estados do nome; o botão desabilitado com senha nova e confirmação divergentes e a senha atual errada; e a sequência de voltar duas vezes a partir de `/configuracoes/conta/senha`. **Nenhuma exigência ficou sem prova na fase** — as três foram substituídas por teste de widget com linha de reversão, no próprio bloco. | `qa`, na rodada `round_04` | `docs/002_conta_e_configuracoes/e2e/round_04/` | [`changes.md`](changes.md), CHG-013 |
+| Fase 4 · **T4.7** e **T4.10** | Prints da rodada `round_05`: `00_secret_field.png` (os dois estados do botão de revelar) e `01_ia_configurada.png` mais os dois estados do botão de salvar. **Naturezas diferentes:** o da T4.7 era **redundante** com a conferência por leitura, que fica, e saiu seco; os da T4.10 eram **prova única** do write-only e foram substituídos por teste de widget com reversão. | `qa`, na rodada `round_05` | `docs/002_conta_e_configuracoes/e2e/round_05/` | [`changes.md`](changes.md), CHG-013 |
+| Fase 5 · **T5.6** | Os seis prints da rodada `round_06` que a tarefa cobrava: um por estado de conexão e os dois do diálogo de desconectar. Eram **prova única** de que nenhum estado se distingue só por cor e de que desconectar pede confirmação — substituídos por teste de widget com reversão, no próprio bloco. | `qa`, na rodada `round_06` | `docs/002_conta_e_configuracoes/e2e/round_06/` | [`changes.md`](changes.md), CHG-013 |
 
 **Como este lote se fatia:** a **instrumentação** das rodadas é paralela — cada
 uma escreve num roteiro próprio sob `app/patrol_test/` e num diretório de

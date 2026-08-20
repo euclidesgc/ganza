@@ -3,20 +3,24 @@ import 'dart:async';
 import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 
+import 'app_shell.dart';
+import 'core/routing/routing.dart';
 import 'core/session/session.dart';
 import 'injection.dart';
 import 'modules/areas_module/areas_module.dart';
 import 'modules/auth_module/auth_module.dart';
+import 'modules/settings_module/settings_module.dart';
 import 'modules/transactions_module/transactions_module.dart';
 
 /// Sem `extra:` em nenhuma rota — ele some no refresh do navegador, e o
 /// mesmo `lib/` serve Android e Web.
-GoRouter createRouter() {
+GoRouter createRouter({String initialLocation = AreasRoutes.path}) {
   final sessions = getIt<ObserveCurrentUser>()();
   final recoveryScope = getIt<PasswordRecoveryScope>();
 
   return GoRouter(
-    initialLocation: AreasRoutes.path,
+    navigatorKey: rootNavigatorKey,
+    initialLocation: initialLocation,
     refreshListenable: Listenable.merge([
       _SessionListenable(sessions),
       recoveryScope,
@@ -49,12 +53,18 @@ GoRouter createRouter() {
       return publicPaths.contains(location) ? AreasRoutes.path : null;
     },
     routes: [
-      AreasRoutes.route,
+      ShellRoute(
+        builder: (context, state, child) => AppShell(child: child),
+        routes: [
+          AreasRoutes.route,
+          SettingsRoutes.route,
+          TransactionsRoutes.route,
+        ],
+      ),
       AuthRoutes.route,
       AuthRoutes.signUpRoute,
       AuthRoutes.passwordRecoveryRequestRoute,
       AuthRoutes.passwordRecoveryCodeRoute,
-      TransactionsRoutes.route,
     ],
   );
 }

@@ -7,6 +7,7 @@ import 'core/network/dio_factory.dart';
 import 'core/session/session.dart';
 import 'modules/areas_module/areas_module.dart';
 import 'modules/auth_module/auth_module.dart';
+import 'modules/settings_module/settings_module.dart';
 import 'modules/transactions_module/transactions_module.dart';
 
 final getIt = GetIt.instance;
@@ -27,5 +28,6 @@ void registerDependencies(AppConfig config) {
 
   registerAuthModule(getIt);
   registerAreasModule(getIt);
+  registerSettingsModule(getIt);
   registerTransactionsModule(getIt);
 }

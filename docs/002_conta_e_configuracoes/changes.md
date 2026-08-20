@@ -7,6 +7,107 @@ estado final, sem preservar neles uma versão obsoleta do planejamento.
 
 ## Mudanças registradas
 
+### CHG-015 - O risco X2 estava mitigado por um mecanismo que não existe
+
+- **Data:** 2026-08-20
+- **Fase/PR:** Fase 2 (PR 2), no `fechar-etapa`, antes de o PR abrir.
+- **Planejado originalmente:** o risco **X2** — o `DrawerButton` que o `Scaffold`
+  injeta reintroduz o glifo do Material — era dado por tratado com esta frase, no
+  plano e no `02_specs.md`: `scripts/gates_guard.sh` "procura o literal `Icons.`",
+  e o botão injetado não escreve esse literal, logo bastava a linha de DoD com
+  `grep -rn 'Icons\.' app/lib` vazio.
+- **Por que não foi possível prosseguir:** as duas metades da frase são falsas.
+  **A primeira:** `rtk proxy grep -n 'Icons' scripts/gates_guard.sh` não devolve
+  nada — o script não tem checagem de ícone nenhuma; o Gate 4 dele cobre
+  `Color(0x`, `Colors.<nome>`, `fontSize`, `circular(` e `EdgeInsets`, e mais
+  nada. **A segunda:** o padrão `'Icons\.'` sem âncora casa como substring de
+  `AppIcons.`, então o critério "não devolve nenhuma linha" é incumprível — hoje
+  devolve **13**, todas legítimas. O risco estava mitigado no papel por mecanismo
+  inexistente, e a prova que sobrava era inexequível. Resíduo do mesmo padrão
+  ainda estava em quatro pontos (`03_plan.md` na nota da Fase 2 e na linha do X2;
+  `02_specs.md` na armadilha do guard e na tabela de riscos).
+- **Alternativas consideradas:** (a) reescrever só o texto do risco, dizendo que
+  o que protege é a linha de DoD com o grep ancorado — honesto e barato, mas a
+  proteção morre no fim da Fase 2, porque nenhuma feature seguinte repete essa
+  linha; (b) **pôr a checagem no guard**, que é onde ela vale para sempre e roda
+  em todo PR, e corrigir o texto do risco junto.
+- **Decisão tomada:** (b), pelo `tech-lead`. O argumento que decide é o
+  **precedente do `Colors.<nome>`**: o guard já recusa a constante crua do
+  Material quando ela substitui um token de cor, e ícone virou responsabilidade
+  de `core/theme/` pela **D22**. Recusar `Icons.` cru é a mesma regra, e a
+  ausência dela é omissão, não escolha de desenho. Nasce a **T2.9**
+  (`especialista-infra`, camada infra, no PR 2), com bloco DoD de cinco linhas:
+  a checagem entra ancorada, o repositório atual continua saindo `0`, e a prova
+  de que **morde** é introduzir um `Icons.add` cru, ver saída diferente de `0` e
+  restaurar — mais o escape `// gate4-ok` continuando a valer.
+- **Resumo da resolução:** o texto do X2 passa a dizer o que de fato protege, em
+  duas camadas — a linha de DoD **hoje**, o guard **a partir da T2.9** — e os
+  quatro resíduos do padrão cru foram trocados pelo ancorado
+  `(^|[^A-Za-z])Icons\.`, com a razão da âncora escrita em cada um, para ninguém
+  "simplificar" de volta. Fase 2 vai de 8 para **9** tarefas e leva **7** ao PR 2;
+  a feature, de 66 para **67**. **Varredura dos outros riscos, rodando cada
+  mecanismo citado:** X3 (`app/patrol_test/` existe e está fora de `test/`), X5
+  (`infra/local/docker-compose.yml` monta só `db-data:/var/lib/postgresql/data`,
+  sem a chave-mestra do Vault), X7 (`envVars` em
+  `supabase/functions/main/index.ts:42`), X10 (`scripts/local-supabase.sh:130`
+  com o `to_regclass('public.transactions')`), X17 (**FD-024** em `decisions.md`)
+  e X18 (`app/lib/core/session/password_recovery_scope.dart`) — **todos
+  verdadeiros**. O X2 era o único falso.
+- **Reconciliação documental:** `docs/002_conta_e_configuracoes/03_plan.md`
+  (linha do X2, nota da Fase 2, tarefa **T2.9**, contagem do DoD da fase, §8 e
+  cabeçalho), `docs/002_conta_e_configuracoes/02_specs.md` (armadilha do guard e
+  tabela de riscos) e `docs/decisions.md` (**D31** ganha o fato medido).
+  `scripts/gates_guard.sh` **não** foi tocado: mexer nele é a T2.9.
+
+### CHG-014 - O contrato de navegação não cede a um teste mal montado, e a T2.5 deixa uma tarefa para trás
+
+- **Data:** 2026-08-20
+- **Fase/PR:** Fase 2 (PR 2), durante a execução da **T2.5**.
+- **Planejado originalmente:** a tabela de rotas da §3 do plano fixa
+  `/configuracoes` **dentro** do `ShellRoute` e todas as sub-rotas
+  (`/configuracoes/conta`, `/configuracoes/conta/senha`, `/configuracoes/ia`,
+  `/configuracoes/banco`) **fora** dele. A razão está no desenho e não é
+  cosmética: `/configuracoes` é um **destino de topo**, listado no drawer, e o
+  shell é justamente o que carrega o drawer. As sub-rotas ficam fora para cada
+  uma manter `AppBar` própria com seta de voltar — é o que a **T3.8** já cobra.
+- **Por que não foi possível prosseguir:** o executor aninhou
+  `SettingsRoutes.route` no shell com `parentNavigatorKey` nas sub-rotas, como o
+  contrato pede, e
+  `app/test/modules/settings_module/presentation/settings_home_page_test.dart`
+  quebrou: o teste monta um `GoRouter` **próprio e isolado, sem a chave de
+  navegador root**, e o go_router lança assert quando uma rota referencia uma
+  chave que aquele router não conhece. Ele reverteu e deixou `/configuracoes`
+  como rota de topo, fora do shell — com o efeito de a tela de Configurações
+  ganhar seta de voltar e **perder o drawer**.
+- **Alternativas consideradas:** (a) **o contrato cede** — aceitar Configurações
+  fora do shell, mais barato e sem tarefa nova, ao preço de a pessoa não alcançar
+  o drawer de dentro das Configurações e ter de voltar antes de trocar de área;
+  (b) **o teste é que estava mal montado** — corrigir o teste para exercitar o
+  router do app em vez de um router de mentira, e devolver `/configuracoes` ao
+  shell.
+- **Decisão tomada:** (b), pelo `tech-lead`. **O contrato não cede.** Um teste de
+  widget que monta um `GoRouter` isolado não conhece a topologia do app e não
+  pode ditá-la — a cauda não balança o cachorro. E a alternativa (a) contraria a
+  promessa 3 da §6 do plano, "navegação de topo por drawer": um item de drawer
+  que leva a uma tela **sem** drawer é exatamente o que essa promessa nega. O
+  defeito é do harness do teste, não do router. **Nasce a T2.8**
+  (`especialista-infra`, camada infra/presentation, no PR 2): devolver
+  `/configuracoes` ao `ShellRoute` e reescrever o teste para exercitar o router
+  do app, com bloco DoD próprio de cinco linhas — incluindo a reversão, que tirar
+  a rota do shell faz o teste falhar.
+- **Resumo da resolução:** nada do contrato mudou; o que mudou foi o
+  reconhecimento de que a prova estava errada. A Fase 2 passa de 7 para **8**
+  tarefas e leva **6** ao PR 2 (T2.1 a T2.5 e T2.8; T2.6 e T2.7 seguem no lote de
+  fechamento), e a feature vai de 65 para **66**. O estado atual do código —
+  `/configuracoes` fora do shell — é **desvio conhecido e temporário**, fechado
+  pela T2.8 antes do PR 2. Regra que fica: quando um teste impede a topologia
+  correta, o conserto é no teste; "conserte o router, não o teste" vale para
+  regressão de comportamento, não para harness que não sabe montar o alvo.
+- **Reconciliação documental:** `docs/002_conta_e_configuracoes/03_plan.md` —
+  tarefa **T2.8** com bloco DoD e a nota que a explica, contagem do DoD da Fase 2,
+  §8 Progresso e o cabeçalho. A tabela de rotas da §3 **não muda**: ela já dizia o
+  certo. `01_prd.md`, `02_specs.md` e `decisions.md` desta pasta não mudam.
+
 ### CHG-013 - Print de emulador em DoD de tarefa segue a mesma régua, e a senha antiga troca de prova em vez de sair do gate
 
 - **Data:** 2026-08-20
@@ -59,6 +160,51 @@ estado final, sem preservar neles uma versão obsoleta do planejamento.
   chama esse endpoint —, e isso continua na cena adiada da T3.9. Contagens de
   tarefa não mudam: a feature segue com **65** tarefas, e nenhuma tarefa nasceu ou
   morreu aqui.
+- **Segunda leva, mesma decisão e mesma autoria (20/08/2026):** a varredura
+  inicial não alcançou três blocos da Fase 2, e um deles escondia lacuna maior.
+  **T2.1** perde o print `00_tokens_de_icone.png`, e a linha vizinha passa a dizer
+  que a conferência de codepoint contra o `remixicon.glyph.json` da tag `v4.9.1` é
+  a **prova única** de que o glifo existe — antes ela dividia o papel com o print.
+  **T2.3** tinha duas linhas que citavam o print `01_drawer_aberto.png` **junto**
+  da conferência por leitura: partidas como a 1246, a leitura fica e o print
+  migra. **T2.4** era o caso grave e **não é de política**: o parágrafo "O que
+  esta fase não cobra mais" afirmava que a troca de navegação seguia provada
+  "pelo teste de widget da T2.4", e o bloco da T2.4 **não pedia teste nenhum** — a
+  home era provada só pelo print. O parágrafo prometia prova inexistente. O print
+  sai e entram **duas linhas**: teste de widget em
+  `app/test/modules/settings_module/presentation/settings_home_page_test.dart`
+  provando as três seções com rótulo textual e a navegação sem lançar, e a linha
+  de reversão, que remover uma seção faz o teste falhar; a linha de
+  format/analyze passa a cobrir `test/modules/settings_module`. **Não é acréscimo
+  de exigência: é a prova que o DoD da fase já afirmava existir, escrita onde se
+  cumpre.** As três entram na §9 com caminho completo, sob a mesma nota — decisão
+  do orquestrador, não do humano, reversível pela §9.
+- **Terceira leva — a régua do print aplicada às seis restantes, com o critério
+  que a T5.6 revelou:** antes de remover, perguntar se o print é **prova única**
+  de alguma exigência ou **redundante** com uma linha vizinha que fica.
+  Redundante sai seco — foi o caso da **T4.7**, onde a conferência por leitura de
+  `app/lib/core/widgets/forms/secret_field.dart` já sustentava a exigência
+  sozinha. Prova única **não sai sem substituto**, sob pena de apagar exigência
+  em vez de adiar prova: **T3.6**, **T3.7**, **T3.8**, **T4.10** e **T5.6**
+  ganharam teste de widget com caminho completo, o que ele assere, o comando que
+  o roda e a **linha de reversão** — sem ela o teste prova que passa, não que
+  mede. Nenhum bloco passou de seis linhas. Os prints continuam listados na §9,
+  porque a rodada ainda os colhe; o que mudou é que a exigência deixou de
+  depender deles. Mesma autoria: decisão do orquestrador, reversível pela §9.
+- **Quarta leva — prova vazia, achada pelo `supervisor-dod` ao julgar a T2.2:**
+  `scripts/gates_guard.sh` isenta `app/lib/core/theme/` por caminho, então a
+  linha do DoD da **T2.2** que mandava rodar o guard e esperar `0` passava **por
+  construção** — o guard não olha o escopo daquela tarefa. A linha perdeu a
+  citação ao guard e ganhou o aviso de não a reintroduzir; a exigência que ela
+  fingia cobrir virou **grep pareado** na linha do `ListTileThemeData`, positivo
+  (`AppSpacing.touchTarget` presente) mais negativo (nenhum número cru nas
+  propriedades de altura). Na varredura do defeito inverso apareceram mais duas:
+  a contagem da **T2.1**, que com arquivo vazio imprimiria `0` nos dois `grep -c`
+  e passaria, agora exige o número ser **pelo menos onze**; e a linha do DoD da
+  **Fase 4** sobre `aiConfigured`, cujo "devolve só arquivos sob" era satisfeito
+  por saída vazia, agora exige **os três** caminhos presentes e nenhum outro. O
+  fato ficou na **D31** de `docs/decisions.md`, não aqui, porque vale para toda
+  feature futura. `scripts/gates_guard.sh` **não** foi tocado.
 - **Sobrepõe a CHG-012:** o item "O que ficou de fora de propósito" daquela
   entrada, que dizia que as três linhas continuavam sem decisão. Continua valendo
   o resto dela.
