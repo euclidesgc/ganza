@@ -7,6 +7,50 @@ estado final, sem preservar neles uma versão obsoleta do planejamento.
 
 ## Mudanças registradas
 
+### CHG-005 - A garantia anti-enumeração desce da tela para o contrato, e a T1.6 reabre
+
+- **Data:** 2026-08-20
+- **Fase/PR:** Fase 1 (PR 1), tarefas T1.6 (reaberta) e T1.7.
+- **Planejado originalmente:** o DoD da **T1.6** exigia tradução com "texto
+  próprio em pt-BR e distinto entre si" para seis códigos do GoTrue, entre eles
+  `user_already_exists`; o DoD da **T1.7** exigia que nenhum texto da tela
+  afirmasse que o endereço já tem conta. **As duas linhas não podem valer ao
+  mesmo tempo** com um banner que renderiza `failure.message` sem filtro, e a
+  contradição passou despercebida quando a **FD-024** foi escrita.
+- **Por que não foi possível prosseguir:** o supervisor da T1.7 mostrou que a
+  camada data traduz `user_already_exists` para "Já existe uma conta com este
+  e-mail." e que o banner de cadastro renderiza a mensagem crua — ou seja, a
+  tela **diz** o que a **FD-024** proíbe. O `grep` do DoD da T1.7 voltou vazio
+  por defeito próprio: estava escopado a `presentation/sign_up/`, e a string mora
+  em `data/`. Hoje o caminho não dispara porque cadastro repetido de conta **não
+  confirmada** volta `200` sem erro — mas o código está lá, e conta já confirmada
+  não foi medida.
+- **Alternativas consideradas:** (a) filtrar na apresentação, no cubit de
+  cadastro — mais barato e menos invasivo, mas põe uma regra de **segurança** num
+  lugar que cada tela nova precisa lembrar de repetir, e o mesmo tradutor já
+  alcança a tela de entrar; (b) tratar dentro do `signUp`, na camada data,
+  devolvendo o mesmo `Right(unit)` do sucesso, e **manter** o texto traduzido
+  para outros chamadores; (c) fazer (b) **e remover o texto que revela**,
+  deixando `user_already_exists` sem mensagem própria.
+- **Decisão tomada:** (c), pelo `tech-lead`. (a) foi descartada porque segurança
+  que depende de cada tela lembrar não é garantia, é convenção. (b) resolve o
+  comportamento mas deixa a frase proibida no binário, a **uma chamada** de
+  distância de vazar de novo — e como nenhum outro método do repositório pode
+  receber esse código, o texto não serve a ninguém: é arma carregada esperando o
+  próximo caminho de cadastro. Com (c) a garantia é dupla e cada metade custa uma
+  linha: o `signUp` devolve desfecho **idêntico** ao do sucesso, e a frase deixa
+  de existir.
+- **Resumo da resolução:** a **T1.6 reabre** com duas linhas de DoD trocadas — a
+  da tradução, que passa a cobrar cinco textos distintos e a exceção deliberada,
+  e uma nova, que exige o `Right(unit)` provado por teste que falha sem a
+  mudança. A **T1.7** tem o `grep` reescopado para o módulo inteiro, onde a
+  string de fato mora. Nasce a **FD-025**.
+- **Reconciliação documental:** `03_plan.md` — DoD da **T1.6** e da **T1.7**;
+  `decisions.md` (**FD-025**). **A tela de entrar não vira tarefa nova:**
+  `signIn` não pode receber `user_already_exists` — é código só de cadastro —,
+  então o alcance do tradutor era risco latente, não vazamento vivo, e some junto
+  com a frase pela mesma edição de uma linha.
+
 ### CHG-004 - O E2E da Fase 1 passa a cobrir a confirmação de e-mail e a primeira entrada
 
 - **Data:** 2026-08-20
