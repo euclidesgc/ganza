@@ -999,7 +999,7 @@ que estas duas acabaram de fechar.
   - Todo `emit` posterior a um `await` é precedido de `if (isClosed) return;` — conferir com `rtk proxy grep -n 'await\|isClosed\|emit' app/lib/modules/settings_module/presentation/account/account_cubit.dart`.
   - `cd app && dart format --set-exit-if-changed lib/modules/settings_module test/modules/settings_module` e `flutter analyze lib/modules/settings_module` terminam com código de saída `0`; da raiz, `bash scripts/gates_guard.sh; echo $?` imprime `0`.
 
-- [ ] **T3.7** `[paralela · frente D · worktree]` — Criar `app/lib/modules/auth_module/presentation/change_password/`: cubit com estado `sealed` via `part of` e a página que pede senha atual, nova e confirmação. · camada **presentation** · `especialista-apresentacao`
+- [x] **T3.7** `[paralela · frente D · worktree]` — Criar `app/lib/modules/auth_module/presentation/change_password/`: cubit com estado `sealed` via `part of` e a página que pede senha atual, nova e confirmação. · camada **presentation** · `especialista-apresentacao` · **DoD: CUMPRIDO**
 
   **DoD da tarefa**
   - Sob `app/lib/modules/auth_module/presentation/change_password/` existe um cubit com estado `sealed` no mesmo arquivo via `part of` e uma página `StatelessWidget` com `static Widget pageBuilder`; nenhum arquivo da pasta tem `import` contendo `/data/`.
