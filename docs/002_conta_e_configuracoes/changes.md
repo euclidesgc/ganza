@@ -59,6 +59,51 @@ estado final, sem preservar neles uma versão obsoleta do planejamento.
   chama esse endpoint —, e isso continua na cena adiada da T3.9. Contagens de
   tarefa não mudam: a feature segue com **65** tarefas, e nenhuma tarefa nasceu ou
   morreu aqui.
+- **Segunda leva, mesma decisão e mesma autoria (20/08/2026):** a varredura
+  inicial não alcançou três blocos da Fase 2, e um deles escondia lacuna maior.
+  **T2.1** perde o print `00_tokens_de_icone.png`, e a linha vizinha passa a dizer
+  que a conferência de codepoint contra o `remixicon.glyph.json` da tag `v4.9.1` é
+  a **prova única** de que o glifo existe — antes ela dividia o papel com o print.
+  **T2.3** tinha duas linhas que citavam o print `01_drawer_aberto.png` **junto**
+  da conferência por leitura: partidas como a 1246, a leitura fica e o print
+  migra. **T2.4** era o caso grave e **não é de política**: o parágrafo "O que
+  esta fase não cobra mais" afirmava que a troca de navegação seguia provada
+  "pelo teste de widget da T2.4", e o bloco da T2.4 **não pedia teste nenhum** — a
+  home era provada só pelo print. O parágrafo prometia prova inexistente. O print
+  sai e entram **duas linhas**: teste de widget em
+  `app/test/modules/settings_module/presentation/settings_home_page_test.dart`
+  provando as três seções com rótulo textual e a navegação sem lançar, e a linha
+  de reversão, que remover uma seção faz o teste falhar; a linha de
+  format/analyze passa a cobrir `test/modules/settings_module`. **Não é acréscimo
+  de exigência: é a prova que o DoD da fase já afirmava existir, escrita onde se
+  cumpre.** As três entram na §9 com caminho completo, sob a mesma nota — decisão
+  do orquestrador, não do humano, reversível pela §9.
+- **Terceira leva — a régua do print aplicada às seis restantes, com o critério
+  que a T5.6 revelou:** antes de remover, perguntar se o print é **prova única**
+  de alguma exigência ou **redundante** com uma linha vizinha que fica.
+  Redundante sai seco — foi o caso da **T4.7**, onde a conferência por leitura de
+  `app/lib/core/widgets/forms/secret_field.dart` já sustentava a exigência
+  sozinha. Prova única **não sai sem substituto**, sob pena de apagar exigência
+  em vez de adiar prova: **T3.6**, **T3.7**, **T3.8**, **T4.10** e **T5.6**
+  ganharam teste de widget com caminho completo, o que ele assere, o comando que
+  o roda e a **linha de reversão** — sem ela o teste prova que passa, não que
+  mede. Nenhum bloco passou de seis linhas. Os prints continuam listados na §9,
+  porque a rodada ainda os colhe; o que mudou é que a exigência deixou de
+  depender deles. Mesma autoria: decisão do orquestrador, reversível pela §9.
+- **Quarta leva — prova vazia, achada pelo `supervisor-dod` ao julgar a T2.2:**
+  `scripts/gates_guard.sh` isenta `app/lib/core/theme/` por caminho, então a
+  linha do DoD da **T2.2** que mandava rodar o guard e esperar `0` passava **por
+  construção** — o guard não olha o escopo daquela tarefa. A linha perdeu a
+  citação ao guard e ganhou o aviso de não a reintroduzir; a exigência que ela
+  fingia cobrir virou **grep pareado** na linha do `ListTileThemeData`, positivo
+  (`AppSpacing.touchTarget` presente) mais negativo (nenhum número cru nas
+  propriedades de altura). Na varredura do defeito inverso apareceram mais duas:
+  a contagem da **T2.1**, que com arquivo vazio imprimiria `0` nos dois `grep -c`
+  e passaria, agora exige o número ser **pelo menos onze**; e a linha do DoD da
+  **Fase 4** sobre `aiConfigured`, cujo "devolve só arquivos sob" era satisfeito
+  por saída vazia, agora exige **os três** caminhos presentes e nenhum outro. O
+  fato ficou na **D31** de `docs/decisions.md`, não aqui, porque vale para toda
+  feature futura. `scripts/gates_guard.sh` **não** foi tocado.
 - **Sobrepõe a CHG-012:** o item "O que ficou de fora de propósito" daquela
   entrada, que dizia que as três linhas continuavam sem decisão. Continua valendo
   o resto dela.
