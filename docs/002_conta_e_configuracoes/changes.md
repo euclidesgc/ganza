@@ -7,6 +7,192 @@ estado final, sem preservar neles uma versão obsoleta do planejamento.
 
 ## Mudanças registradas
 
+### CHG-013 - Print de emulador em DoD de tarefa segue a mesma régua, e a senha antiga troca de prova em vez de sair do gate
+
+- **Data:** 2026-08-20
+- **Fase/PR:** Fases 2, 3 e 4 (PRs 2, 3b e 4b), nenhuma iniciada. Fecha as duas
+  pontas que a **CHG-012** deixou abertas de propósito.
+- **Planejado originalmente:** a **CHG-012** adiou as rodadas de E2E e as oito
+  tarefas de instrumentar/executar, mas **não** mexeu em três linhas de bloco DoD
+  de tarefa de **implementação** que cobram print de emulador — uma da **T2.5** e
+  duas da **T4.11** —, por entender que tirar prova do DoD de uma tarefa muda a
+  exigência dela e é chamada do humano. Elas ficaram listadas na §9 como
+  pendência de decisão. Na Fase 3, a prova de que **a senha antiga deixa de valer
+  depois da troca** também ficou pendurada: existia só na cena adiada da T3.9, com
+  a alternativa por comando escrita para quem despachasse a fase decidir.
+- **Por que não foi possível prosseguir:** manter T2.5 e T4.11 sob régua diferente
+  da T1.15 — cujo print foi retirado no começo da mesma sessão — deixaria a
+  política **incoerente entre fases**, que é exatamente o defeito que a CHG-012
+  fora escrita para eliminar. E deixar a senha antiga sem prova no PR contradiz a
+  fronteira que a própria **D30** fixou: invariante de segurança provado por
+  saída de comando **não sai do gate**.
+- **Alternativas consideradas:** (a) esperar a palavra do humano linha a linha —
+  paralisa três fases por uma decisão que a diretriz de velocidade dele já cobre;
+  (b) mover as três linhas e não registrar quem decidiu — barato e **silencioso**,
+  que é o defeito de verdade; (c) mover, **registrar como decisão do orquestrador
+  e deixá-la reversível** pela §9, com caminho completo de cada linha; (d) na Fase
+  3, adiar a exigência junto da cena — recusada, porque a exigência é a mais
+  importante do fluxo e a D30 proíbe adiar prova de segurança por comando.
+- **Decisão tomada:** (c) e, na Fase 3, **migrar a prova em vez da exigência**.
+  Concretamente: o print `03_navegacao_pelo_drawer.png` sai do DoD da **T2.5**
+  (que fica com quatro linhas); na **T4.11**, a linha do `refreshListenable`
+  mantém a exigência estrutural provada por
+  `rtk proxy grep -n 'Listenable.merge' app/lib/app_router.dart` e migra só a
+  prova visual, e a linha do item de chat desabilitado é **partida em duas** — o
+  teste de widget que assere o rótulo semântico **fica**, porque se prova por
+  comando, e só o print migra. As três entram na §9 com caminho completo, e caem
+  de graça nas rodadas `round_03` e `round_05`, que já passam por essas telas. Na
+  **Fase 3**, entra linha nova no DoD da fase: com uma conta de teste da stack
+  local, trocar a senha pelo mesmo endpoint que o app chama em
+  `updateUser(password:)` (`PUT /auth/v1/user`, `200`) e então
+  `POST /auth/v1/token?grant_type=password` com a **senha antiga** devolvendo
+  **`400`** e com a **nova** devolvendo `200` — comandos literais no plano, saídas
+  no corpo do PR.
+- **Resumo da resolução:** a régua passou a valer igual em todas as fases, e
+  nenhuma prova sumiu — mudou de momento, com endereço. **A decisão de mover
+  print de DoD de tarefa é do orquestrador, apoiada na diretriz de velocidade de
+  20/08/2026, e não do humano**; está escrita na §9 com essas palavras justamente
+  porque mexe na exigência de tarefas, e a §9 é o caminho de volta se ele
+  discordar. A linha da Fase 3 **não** acrescenta exigência: "a senha antiga
+  deixa de valer" já era cobrada, e o que mudou foi a prova, que deixou de
+  depender de emulador. Fica escrito o que ela **não** prova — que a tela de Conta
+  chama esse endpoint —, e isso continua na cena adiada da T3.9. Contagens de
+  tarefa não mudam: a feature segue com **65** tarefas, e nenhuma tarefa nasceu ou
+  morreu aqui.
+- **Sobrepõe a CHG-012:** o item "O que ficou de fora de propósito" daquela
+  entrada, que dizia que as três linhas continuavam sem decisão. Continua valendo
+  o resto dela.
+- **Reconciliação documental:** `docs/002_conta_e_configuracoes/03_plan.md` —
+  bloco DoD da **T2.5**, duas linhas do bloco da **T4.11**, linha nova no DoD da
+  **Fase 3** e o parágrafo "O que esta fase não cobra mais" daquela fase, mais
+  duas linhas novas na tabela da §9 e o parágrafo que registra a autoria da
+  decisão. `docs/decisions.md` **não muda**: a **D30** já previa este caso — o que
+  faltava era aplicá-lo. `01_prd.md`, `02_specs.md` e `decisions.md` desta pasta
+  não mudam.
+
+### CHG-012 - A D30 alcançou as fases 2 a 5, e uma prova de segurança quase foi adiada junto
+
+- **Data:** 2026-08-20
+- **Fase/PR:** Fases 2, 3, 4 e 5 (PRs 2, 3b, 4b e 5b), nenhuma delas iniciada.
+  Segunda onda da **D30**, cuja primeira aplicação — só à Fase 1 — está na
+  **CHG-011**.
+- **Planejado originalmente:** cada fase colhia a sua rodada de E2E antes do PR —
+  `round_03` (Fase 2), `round_04` (Fase 3), `round_05` (Fase 4) e `round_06`
+  (Fase 5) —, com um par instrumentar/executar dentro da fase e uma linha do DoD
+  da fase exigindo a rodada mais o atestado do dev humano. O Gauntlet e a tabela
+  §6 do plano prometiam **uma rodada por fase**.
+- **Por que não foi possível prosseguir:** a **D30** tirou a rodada de E2E do
+  caminho crítico, mas só a Fase 1 tinha sido reconciliada. Deixar as outras
+  quatro como estavam significava **repetir o mesmo bloqueio quatro vezes** —
+  descobrir, na abertura de cada PR, que o DoD cobra uma rodada que a política
+  manda adiar. E havia um caso pior que atraso: **a Fase 4 empacotava, numa linha
+  só e numa tarefa só, naturezas diferentes** — a rodada `round_05`, que é
+  emulador, e a prova de isolamento entre dois usuários mais a prova de RLS, que
+  são `curl` e `psql`. Adiar a linha inteira teria tirado do gate do PR uma
+  invariante bloqueante do gauntlet **sem ninguém perceber**, porque as duas
+  estavam na mesma frase.
+- **Alternativas consideradas:** (a) esperar cada fase chegar e resolver na hora —
+  é o custo que a decisão queria evitar, e no caso da Fase 4 o erro seria
+  silencioso; (b) adiar tudo que cita rodada, inclusive a linha da Fase 4 —
+  barato de escrever, perde segurança; (c) adiar as rodadas e **partir a linha da
+  Fase 4 em duas**, promovendo a prova por comando a tarefa própria, que fica no
+  PR.
+- **Decisão tomada:** (c), pelo `tech-lead`, com a fronteira escrita na **D30**
+  para valer nas fases que ainda nem existem: adia-se prova que depende de
+  emulador; prova de invariante de segurança por saída de comando nunca sai do
+  gate do PR. Concretamente: **T2.6, T2.7, T3.9, T3.10, T4.12, T4.13, T5.7 e
+  T5.8** marcadas `[adiada · lote de fechamento]`, com os blocos DoD preservados
+  inteiros; a **T4.14 nasce** — provar por comando o isolamento entre dois
+  usuários e a RLS de `public.ai_user_credentials`, com evidência em
+  `docs/002_conta_e_configuracoes/e2e/round_05/isolamento.md` — e **fica no PR
+  4b**; a T4.13 perde as duas linhas de prova por comando e o "e a prova de
+  isolamento" do título.
+- **Resumo da resolução:** varrendo as quatro linhas com o mesmo olho apareceram
+  **três gêmeas** que sozinhas continuariam bloqueando o PR e migraram junto: o
+  "E2E atestado pelo dev humano" da Fase 2, o "E2E da rodada 05 atestado pelo dev
+  humano" da Fase 4 (na Fase 3 o atestado já estava dentro da própria linha da
+  rodada), e — o achado menos óbvio — a linha da Fase 5 que provava **pelos
+  prints da rodada** que a capacidade de banco vem da tabela e não do binário:
+  ela foi arrastada porque a única prova que nomeava eram os prints. Dois
+  resíduos ficam escritos onde doem: o risco **X3 cresceu** — os dois roteiros
+  `patrol` herdados da feature 001 ficam **vermelhos desde a Fase 2 até o lote
+  rodar**, com o descasamento de string se acumulando por quatro fases em vez de
+  aparecer numa —, e na Fase 3 **a prova de que a senha antiga deixa de valer
+  depois da troca** passa a existir só na cena adiada, com a alternativa por
+  comando registrada para quem despachar a fase decidir. Contagens: Fase 2 leva 5
+  tarefas ao PR (de 7), Fase 3 leva 8 (de 10), Fase 4 passa a ter 14 tarefas e
+  leva 12, Fase 5 leva 6 (de 8), e a feature vai de 64 para **65** tarefas. A
+  **Fase 6 não foi tocada**: ela não tem rodada de E2E — suas provas são
+  `deno task test`, o corpus de injeção e `psql` num Postgres vazio.
+- **O que ficou de fora de propósito:** três blocos DoD de tarefa de
+  **implementação** também cobram print de emulador — **T2.5** e duas linhas da
+  **T4.11**. Tirar prova do DoD de uma tarefa muda a exigência dela, e isso é
+  chamada do humano; ficam listadas em `03_plan.md` §9 para não se perderem, e
+  quem despachar a fase resolve com uma palavra.
+- **Reconciliação documental:** `docs/decisions.md` (**D30** ganha a fronteira
+  emulador × prova de comando e a consequência aceita de a rodada adiada não
+  apontar mais para uma fase); `docs/002_conta_e_configuracoes/03_plan.md` —
+  parágrafo "Evidência E2E" do Gauntlet, prosa e DoD das Fases 2 a 5, oito
+  tarefas marcadas, T4.13 reescrita, **T4.14** criada, nota de rodapé da tabela
+  §6, risco **X3**, §8 Progresso e a tabela da §9. `01_prd.md`, `02_specs.md` e
+  `decisions.md` desta pasta **não mudam**: nenhuma promessa de produto foi
+  alterada, só quando cada prova acontece.
+
+### CHG-011 - Teste que não é DoD sai do caminho crítico, e a Fase 1 perde a cena e o print que ainda faltavam
+
+- **Data:** 2026-08-20
+- **Fase/PR:** Fase 1 (PR 1), por decisão de processo tomada com a fase aberta —
+  T1.15 em execução, T1.16 e T1.17 ainda pendentes.
+- **Planejado originalmente:** a Fase 1 só fechava com **dezessete** tarefas
+  cumpridas. A **T1.15** provava a saída da etapa de nova senha também **no
+  emulador**, capturando
+  `docs/002_conta_e_configuracoes/e2e/round_02/20_saida_sem_trocar_senha.png`; a
+  **T1.16** escrevia uma cena nova no roteiro `patrol` — pedir recuperação da
+  conta-semente, digitar o código certo, acionar "Sair sem trocar a senha" e
+  entrar de novo com a senha antiga — e fechava a evidência no `report.md` da
+  rodada 02; e a linha do DoD da fase sobre a saída da recuperação cobrava as
+  duas coisas antes do PR.
+- **Por que não foi possível prosseguir:** o humano decidiu, em 20/08/2026,
+  **suspender a escrita de teste unitário e de E2E que não seja linha de DoD de
+  alguma tarefa**, para acelerar a entrega, deixando o gate de qualidade da
+  implementação com o `supervisor-dod` (**D30** de `docs/decisions.md`). O
+  impedimento não é técnico: é que o DoD da Fase 1, como estava escrito,
+  **bloqueia o PR** por duas provas que a decisão nova manda adiar — uma rodada
+  de emulador para tirar um print e uma cena nova de `patrol`. Manter o texto
+  obrigaria a violar a decisão para abrir o PR, ou a segurar o PR contra ela.
+- **Alternativas consideradas:** (a) apagar a T1.16 e o print — descarta
+  comportamento já desenhado e prova já acordada, e o resíduo do abandono
+  ficaria sem nenhuma evidência de que entrar com a senha antiga ainda funciona;
+  (b) manter tudo e abrir o PR assim mesmo — contraria a decisão do humano no
+  mesmo dia em que ela foi tomada; (c) baixar a exigência da T1.15, trocando o
+  teste de cubit por inspeção de código — afrouxa comportamento, que é
+  justamente o que não se pode fazer; (d) **realocar quando a prova acontece**,
+  sem mexer no que ela exige.
+- **Decisão tomada:** (d), pelo `tech-lead`. A **T1.15** perde a linha do print em
+  emulador e fica com cinco linhas — entre elas o teste de
+  `app/test/modules/auth_module/presentation/password_recovery/password_recovery_code_cubit_test.dart`,
+  que **é** DoD de tarefa e por isso continua obrigatório, com a prova de que
+  falha sem a mudança. A **T1.16** continua escrita, com o bloco DoD intacto,
+  marcada `[adiada · lote de fechamento]` e fora do DoD da Fase 1. A linha do DoD
+  da fase sobre a saída passa a cobrar o que se prova agora — o rótulo no código
+  e o teste de cubit passando — e mantém, sem tirar uma vírgula, o resíduo
+  aceito e o atestado do dev humano.
+- **Resumo da resolução:** o PR 1 deixa de depender de rodada nova de emulador.
+  **Nada do que já foi colhido é descartado:** `e2e/round_01/` (medição da
+  sessão) e `e2e/round_02/` (ciclo de conta e recuperação) continuam valendo como
+  evidência da fase, e o atestado do dev humano sobre o ciclo completo de conta
+  continua sendo linha do DoD da Fase 1. A contagem de tarefas do DoD da fase cai
+  de dezessete para **dezesseis** (T1.1 a T1.15 e T1.17), e o que saiu está
+  listado em `03_plan.md` §9 — pendência que não está escrita é pendência
+  perdida.
+- **Reconciliação documental:** `docs/decisions.md` (**D30**, política
+  transversal, com os trechos do `CLAUDE.md` que ela sobrepõe);
+  `docs/002_conta_e_configuracoes/03_plan.md` — bloco DoD da T1.15, linha e
+  marcação da T1.16, nota de paralelismo depois da T1.17, duas linhas do DoD da
+  Fase 1 (a contagem das tarefas e a da saída da recuperação), §8 Progresso e a
+  §9 nova. `01_prd.md`, `02_specs.md` e `decisions.md` desta pasta **não mudam**:
+  o comportamento prometido é o mesmo, só muda quando a prova acontece.
+
 ### CHG-010 - A conta-semente da stack local passou a ser confirmada por SQL, e nenhuma tarefa previu isso
 
 - **Data:** 2026-08-20

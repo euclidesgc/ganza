@@ -8,11 +8,11 @@ escopo: ele distribui o DoD entre as fases e acrescenta o que falta para cada
 fase se sustentar sozinha.**
 
 Estado: **Fase 1 em andamento** · branch `feature/GZ-24-conta-e-configuracoes`
-(de `develop`) · seis fases fatiadas em 64 tarefas · **T1.1 a T1.14 com
+(de `develop`) · seis fases fatiadas em 65 tarefas · **T1.1 a T1.14 com
 `CUMPRIDO`**; **próximo passo: despachar a T1.15 — a etapa de nova senha da
 recuperação não tem saída, e abandoná-la deixa a pessoa dentro do app com a
-senha antiga valendo (`changes.md`, CHG-009). Depois dela, T1.16 e T1.17 em
-paralelo**.
+senha antiga valendo (`changes.md`, CHG-009). Depois dela, a T1.17 fecha a fase;
+a T1.16 está adiada para o lote de fechamento** (§9; `changes.md`, CHG-011).
 
 ---
 
@@ -50,7 +50,16 @@ cruzadas antes do fechamento.
 um print, log ou saída de comando. O E2E roda somente contra a stack local, por
 `patrol test`. As rodadas desta feature são `round_01` (medição da sessão),
 `round_02` (Fase 1), `round_03` (Fase 2), `round_04` (Fase 3), `round_05`
-(Fase 4) e `round_06` (Fase 5).
+(Fase 4) e `round_06` (Fase 5) — **a numeração continua nomeando a fase que cada
+rodada exercita, mas só as duas primeiras rodam dentro da própria fase.** Por
+**D30** de [`../decisions.md`](../decisions.md), a `round_01` e a `round_02` já
+foram executadas e continuam valendo como evidência; da `round_03` em diante a
+rodada sai do gate do PR e é executada no **lote de fechamento** (§9).
+**Consequência aceita:** rodada adiada roda contra o código final e, quando
+falhar, não aponta mais para uma fase. **Fronteira que não se move:** prova de
+invariante de segurança por saída de comando — RLS, isolamento entre usuários,
+política de tabela — **nunca** sai do gate do PR, e linha que empacota as duas
+naturezas é partida em duas, não adiada em bloco.
 
 ---
 
@@ -646,17 +655,16 @@ atrás dessa sessão. O resíduo que sobra — matar o app na etapa de nova senh
 fica **aceito e escrito**: `changes.md` (CHG-009), o DoD desta fase e o risco
 **X18**.
 
-- [ ] **T1.15** — Dar saída à etapa de nova senha da recuperação: um controle "Sair sem trocar a senha" que encerra a sessão **antes** de desligar o escopo de recuperação e devolve a pessoa à tela de entrar. · camada **presentation** · `especialista-apresentacao`
+- [x] **T1.15** — Dar saída à etapa de nova senha da recuperação: um controle "Sair sem trocar a senha" que encerra a sessão **antes** de desligar o escopo de recuperação e devolve a pessoa à tela de entrar. · camada **presentation** · `especialista-apresentacao` · **DoD: CUMPRIDO**
 
   **DoD da tarefa**
   - A etapa de nova senha da recuperação, montada por `app/lib/modules/auth_module/presentation/password_recovery/widgets/new_password_step_form.dart`, exibe um controle com o texto exato **"Sair sem trocar a senha"** — nele mesmo ou num widget dedicado que ele importe: `rtk proxy grep -rn 'Sair sem trocar a senha' app/lib/modules/auth_module/presentation/password_recovery/` devolve a linha, e o arquivo acima monta esse controle.
   - Acionar esse controle chama o caso de uso de `app/lib/modules/auth_module/domain/usecases/sign_out.dart` **antes** de desligar o escopo de `app/lib/core/session/password_recovery_scope.dart`, e **nunca** chama o de `app/lib/modules/auth_module/domain/usecases/update_password.dart`: teste em `app/test/modules/auth_module/presentation/password_recovery/password_recovery_code_cubit_test.dart` assere a ordem das duas chamadas e a ausência da terceira.
   - Remover do código a chamada de encerramento de sessão faz esse teste falhar — provar revertendo, colar as duas saídas e restaurar.
-  - Depois de acionado, o app mostra a **tela de entrar** e não a lista de áreas: provar no emulador e capturar `docs/002_conta_e_configuracoes/e2e/round_02/20_saida_sem_trocar_senha.png`, com os campos de e-mail e senha visíveis. O prefixo `20_` é o primeiro livre no diretório, que já vai até `19_`.
   - A navegação dessa saída usa rota nomeada do go_router: `rtk proxy grep -rn 'Navigator.of\|MaterialPageRoute\|extra:' app/lib/modules/auth_module/presentation/password_recovery/` não devolve nenhuma linha.
   - `cd app && dart format --set-exit-if-changed lib test`, `flutter analyze` e `flutter test -r compact` terminam com código de saída `0`, e da raiz `bash scripts/gates_guard.sh; echo $?` imprime `0`.
 
-- [ ] **T1.16** `[paralela · frente I]` — Cobrir o abandono da recuperação no roteiro `patrol` e fechar a evidência: cena que pede recuperação da conta-semente, digita o código certo, aciona a saída na etapa de nova senha e entra de novo com a senha antiga. · camada **testes** · `qa`
+- [ ] **T1.16** `[adiada · lote de fechamento]` — Cobrir o abandono da recuperação no roteiro `patrol` e fechar a evidência: cena que pede recuperação da conta-semente, digita o código certo, aciona a saída na etapa de nova senha e entra de novo com a senha antiga. · camada **testes** · `qa` · **fora do DoD da Fase 1** — sai do PR 1 e vai para o lote de fechamento (§9), por **D30** de [`../decisions.md`](../decisions.md); o bloco DoD abaixo continua valendo como está, e é ele que o `supervisor-dod` julga quando a tarefa for executada (`changes.md`, CHG-011).
 
   **DoD da tarefa**
   - Existe cena nova em `app/patrol_test/` que, **sem cadastrar conta nenhuma**, pede recuperação de senha para a conta-semente `e2e@ganza.local` que `scripts/local-supabase.sh` cria, lê o código de seis dígitos do capturador local, digita o código correto e, na etapa de nova senha, aciona o controle "Sair sem trocar a senha" **sem preencher senha alguma**.
@@ -666,32 +674,37 @@ fica **aceito e escrito**: `changes.md` (CHG-009), o DoD desta fase e o risco
   - Nenhum arquivo da rodada contém token, senha ou refresh token: `rtk proxy grep -rniE 'eyJ|refresh_token|"password"' docs/002_conta_e_configuracoes/e2e/round_02/` não devolve nenhuma linha.
   - `cd app && dart format --set-exit-if-changed patrol_test` e `flutter analyze patrol_test` terminam com código de saída `0`; se o format acusar `app/patrol_test/test_bundle.dart`, desconsidere esse arquivo, que o `patrol test` gera e o `.gitignore` cobre.
 
-- [ ] **T1.17** `[paralela · frente J]` — Reconciliar a documentação canônica: registrar a aceitação do resíduo do abandono, descrever a saída nova na spec da recuperação e corrigir a afirmação de que se pede outro código "pela barra de título" numa tela que não tem barra de título. · camada **docs** · `qa`
+- [x] **T1.17** `[paralela · frente J]` — Reconciliar a documentação canônica: registrar a aceitação do resíduo do abandono, descrever a saída nova na spec da recuperação e corrigir a afirmação de que se pede outro código "pela barra de título" numa tela que não tem barra de título. · camada **docs** · `qa` · **DoD: CUMPRIDO**
 
   **DoD da tarefa**
   - `docs/002_conta_e_configuracoes/decisions.md` ganha uma entrada nova, com data, decidindo que a etapa de nova senha da recuperação tem saída explícita que **encerra a sessão**, e que **fica aceito** que matar o app nessa etapa deixa a sessão válida no aparelho e a senha antiga valendo, sem aviso. A entrada escreve as duas razões — o código de seis dígitos já provou posse do e-mail, que é o mesmo fator com que o servidor autentica; e fechar o resíduo exigiria persistir o escopo de recuperação em disco, trocando um estado raro por risco de trancar a pessoa numa tela sem saída — e nomeia a condição que a reabre: conta bancária atrás dessa sessão.
   - `docs/002_conta_e_configuracoes/02_specs.md`, na seção "Recuperação de senha", descreve a saída com o rótulo exato **"Sair sem trocar a senha"** e o que ela deixa (sessão encerrada, pessoa na tela de entrar, senha antiga ainda valendo): `rtk proxy grep -c 'Sair sem trocar a senha' docs/002_conta_e_configuracoes/02_specs.md` imprime pelo menos `1`.
   - O rótulo citado na documentação é idêntico ao que o app exibe: `rtk proxy grep -rn 'Sair sem trocar a senha' app/lib/modules/auth_module/presentation/password_recovery/` devolve a linha, com o mesmo texto entre aspas.
-  - Nenhuma doc da pasta afirma que a tela do código de recuperação tem barra de título ou seta de voltar: `rtk proxy grep -rn 'barra de título' docs/002_conta_e_configuracoes/` não devolve nenhuma linha, e o texto que entra no lugar nomeia o controle que existe — o botão "Cancelar e voltar para o login" de `app/lib/modules/auth_module/presentation/password_recovery/widgets/cancel_recovery_link.dart`.
+  - Nenhuma doc canônica de comportamento da pasta afirma que a tela do código de recuperação tem barra de título ou seta de voltar: `rtk proxy grep -n 'barra de título' docs/002_conta_e_configuracoes/01_prd.md docs/002_conta_e_configuracoes/02_specs.md docs/002_conta_e_configuracoes/decisions.md` não devolve nenhuma linha, e o texto que entra no lugar nomeia o controle que existe — o botão "Cancelar e voltar para o login" de `app/lib/modules/auth_module/presentation/password_recovery/widgets/cancel_recovery_link.dart`. O comando nomeia os três arquivos em vez de varrer a pasta porque `03_plan.md` e `changes.md` citam a frase errada para descrever o defeito corrigido: varrer a pasta faria o critério casar consigo mesmo e só passaria apagando o registro do defeito.
   - Nenhuma frase vizinha ficou falsa: na mesma seção, as afirmações sobre os dois modos de falha do fluxo (código recusado e senha nova fraca) e a mensagem literal **"Código inválido ou vencido. Confira e digite de novo, ou volte para pedir um novo código."** continuam batendo com `app/lib/modules/auth_module/data/repositories/auth_repository_impl.dart` — reler as duas e conferir uma a uma.
 
-A T1.16 e a T1.17 são paralelas entre si e **as duas dependem da T1.15**: a cena
-aciona o controle que ela cria, e a doc cita o rótulo dela — descrever antes de
-existir escreveria doc falsa. As frentes são disjuntas: a I só escreve em
-`app/patrol_test/` e em `docs/002_conta_e_configuracoes/e2e/round_02/`, a J só em
-`docs/002_conta_e_configuracoes/02_specs.md` e `decisions.md`. **A evidência do
-abandono fica na `round_02`, não numa rodada nova:** a numeração das rodadas está
-fixada no Gauntlet, `round_03` é a Fase 2, e a `round_02` já é o diretório de
-evidência desta fase — recebeu prints de tarefas de implementação antes de
-receber os do roteiro.
+**A T1.17 fica nesta fase e a T1.16 sai dela** (`changes.md`, CHG-011; §9).
+As duas dependem da T1.15 — a cena aciona o controle que ela cria, e a doc cita
+o rótulo dela, e descrever antes de existir escreveria doc falsa —, mas só a doc
+é obrigação do PR 1: a cena nova de `patrol` é teste que nenhum DoD de tarefa
+desta fase pede, e por isso vai para o lote de fechamento (**D30** de
+[`../decisions.md`](../decisions.md)). As frentes continuam disjuntas quando a
+T1.16 for executada: a I só escreve em `app/patrol_test/` e em
+`docs/002_conta_e_configuracoes/e2e/round_02/`, a J só em
+`docs/002_conta_e_configuracoes/02_specs.md` e `decisions.md` — então a T1.16
+roda em paralelo com qualquer outra frente do lote que não toque nesses dois
+diretórios. **A evidência do abandono fica na `round_02`, não numa rodada nova:**
+a numeração das rodadas está fixada no Gauntlet, `round_03` é a Fase 2, e a
+`round_02` já é o diretório de evidência desta fase — recebeu prints de tarefas
+de implementação antes de receber os do roteiro.
 
 **DoD da Fase 1**
 
-- [ ] As dezessete tarefas da fase (T1.1 a T1.17) com o campo `DoD:` marcado CUMPRIDO, em negrito, na própria linha: `rtk proxy grep -cE '^- \[x\] \*\*T1\.[0-9]+\*\*.*\*\*DoD: CUMPRIDO\*\*' docs/002_conta_e_configuracoes/03_plan.md` imprime `17`, e `rtk proxy grep -cE '^- \[.\] \*\*T1\.[0-9]+\*\*.*\*\*DoD: NÃO CUMPRIDO\*\*' docs/002_conta_e_configuracoes/03_plan.md` imprime `0`. O padrão ancora na fase e traz os asteriscos: sem os asteriscos a contagem inclui as próprias linhas de critério que citam o campo, e sem a âncora ela cresce a cada fase seguinte que marcar uma tarefa — nos dois casos o número nunca fecha.
+- [ ] As dezesseis tarefas que a fase leva ao PR 1 — T1.1 a T1.15 e T1.17, já que a **T1.16** está adiada para o lote de fechamento (§9) — com o campo `DoD:` marcado CUMPRIDO, em negrito, na própria linha: `rtk proxy grep -cE '^- \[x\] \*\*T1\.[0-9]+\*\*.*\*\*DoD: CUMPRIDO\*\*' docs/002_conta_e_configuracoes/03_plan.md` imprime `16`, e `rtk proxy grep -cE '^- \[.\] \*\*T1\.[0-9]+\*\*.*\*\*DoD: NÃO CUMPRIDO\*\*' docs/002_conta_e_configuracoes/03_plan.md` imprime `0`. O padrão ancora na fase e traz os asteriscos: sem os asteriscos a contagem inclui as próprias linhas de critério que citam o campo, e sem a âncora ela cresce a cada fase seguinte que marcar uma tarefa — nos dois casos o número nunca fecha. A T1.16 fica em `[ ]` de propósito e por isso não entra nessa contagem.
 - [ ] `cd app && dart format --set-exit-if-changed lib patrol_test test`, `flutter analyze` e `flutter test -r compact` verdes; da raiz, `bash scripts/gates_guard.sh; echo $?` imprime `0`.
 - [ ] A consequência da medição está escrita: `docs/002_conta_e_configuracoes/e2e/round_01/report.md` responde que a sessão sobrevive a restart e a reboot, e `docs/002_conta_e_configuracoes/decisions.md` traz a **FD-023**, que tira "lembrar login" do escopo e põe no lugar o e-mail preenchido de volta ao sair. `rtk proxy grep -n 'FD-023' docs/002_conta_e_configuracoes/decisions.md` devolve a linha.
 - [ ] `docs/002_conta_e_configuracoes/e2e/round_02/` — o ciclo completo de conta: criar conta, **confirmar o e-mail e entrar com ela**, recuperar a senha, e o campo de e-mail preenchido de volta depois de sair (com o de senha vazio). **Nenhum passo do fluxo avança por SQL, Studio ou painel de banco** — a conta sorteada da rodada nasce, confirma e entra só pelo app e pela mensagem capturada, e se algum SQL for necessário para isso a fase não passa, porque é exatamente o que o critério A1 proíbe. A conta-semente fixa `e2e@ganza.local`, que `scripts/local-supabase.sh` cria e confirma por `update` em `auth.users` **pelo id que ele próprio acabou de criar**, é preparação de ambiente para os roteiros herdados da feature 001 e não caminho de fluxo desta fase — o `report.md` diz isso com essas palavras e cola a prova de que a conta da rodada não foi alcançada (`changes.md`, CHG-010). **Atestado pelo dev humano**, não pelo QA; o `report.md` nomeia cada passo, comando e evidência.
-- [ ] A etapa de nova senha da recuperação tem saída explícita, e o que ela deixa para trás está atestado: `docs/002_conta_e_configuracoes/e2e/round_02/` traz o print da tela de entrar logo depois de acionar "Sair sem trocar a senha", e a cena do roteiro `patrol` que abandona a recuperação termina entrando com a senha antiga. **Fica aceito, e o dev humano atesta a fase sabendo disso: matar o app na etapa de nova senha deixa a sessão da recuperação válida no aparelho e a senha antiga valendo, sem nenhum aviso de que a troca não aconteceu** — o código de seis dígitos já provou posse do e-mail, e fechar esse resíduo exigiria persistir o escopo de recuperação em disco, trocando um estado raro por risco de trancar a pessoa numa tela sem saída (`changes.md`, CHG-009; `decisions.md`).
+- [ ] A etapa de nova senha da recuperação tem saída explícita, e o que ela deixa para trás está atestado: `rtk proxy grep -rn 'Sair sem trocar a senha' app/lib/modules/auth_module/presentation/password_recovery/` devolve a linha do controle, e `cd app && flutter test -r compact test/modules/auth_module/presentation/password_recovery/password_recovery_code_cubit_test.dart` passa — é o teste que assere o encerramento da sessão **antes** do desligamento do escopo de recuperação e a ausência de qualquer chamada de troca de senha. **Fica aceito, e o dev humano atesta a fase sabendo disso: matar o app na etapa de nova senha deixa a sessão da recuperação válida no aparelho e a senha antiga valendo, sem nenhum aviso de que a troca não aconteceu** — o código de seis dígitos já provou posse do e-mail, e fechar esse resíduo exigiria persistir o escopo de recuperação em disco, trocando um estado raro por risco de trancar a pessoa numa tela sem saída (`changes.md`, CHG-009; `decisions.md`). **A cena `patrol` do abandono e o print da tela de entrar não são cobrados nesta fase:** migraram para o lote de fechamento (§9; `changes.md`, CHG-011), e as rodadas já executadas em `docs/002_conta_e_configuracoes/e2e/round_01/` e `docs/002_conta_e_configuracoes/e2e/round_02/` continuam valendo como evidência da fase.
 - [ ] `rtk proxy grep -rn 'flutter_secure_storage' app/lib app/pubspec.yaml` não devolve nenhuma linha, e nenhum arquivo sob `app/lib/modules/auth_module/domain/` importa pacote de plataforma — a violação de camada da branch `feature/GZ-20-lembrar-login` não entrou.
 - [ ] `docs/decisions.md` com **D11** e **P4** marcadas como revogadas, e `docs/deploy/coolify.md` sem a instrução de redefinir senha pelo Studio.
 - [ ] `CHANGELOG.md`, seção `Unreleased`, atualizado no mesmo PR.
@@ -742,7 +755,9 @@ declara `leading:` com um token de `AppIcons`; é linha de DoD, não recomendaç
 `find.byTooltip('Ver transações')`, e a ação sai da `AppBar` para o drawer nesta
 fase. `flutter test` não cobre `patrol_test/`, e `flutter analyze` não pega
 string que deixou de casar: os dois roteiros ficariam verdes no CI e vermelhos no
-emulador. Daí a T2.6 e a T2.7 existirem separadas.
+emulador. Daí a T2.6 e a T2.7 existirem separadas. **As duas saíram desta fase**
+para o lote de fechamento (**D30**; §9), e o preço está escrito no risco **X3**:
+os dois roteiros herdados ficam vermelhos desde esta fase até o lote rodar.
 
 **Tarefas**
 
@@ -804,10 +819,9 @@ Consolidar as duas frentes antes de seguir.
   - `app/lib/app_router.dart` declara um `ShellRoute` contendo **apenas** os destinos de topo; `/transacoes/nova` e os destinos sob `/configuracoes/` continuam empilhados fora dele, para a `AppBar` deles manter o botão de voltar.
   - Nenhum `Scaffold` de página de topo deixa o `leading:` para o framework preencher: `rtk proxy grep -rn 'drawer:' app/lib` mostra o `Scaffold` do shell, e o mesmo `Scaffold` declara `leading:` com token de `app/lib/core/theme/app_icons.dart`. Sem isso o Flutter injeta um `DrawerButton` com glifo do Material, que `scripts/gates_guard.sh` não detecta porque procura o literal `Icons.`.
   - `rtk proxy grep -rn 'Icons\.' app/lib` não devolve nenhuma linha, e os arquivos `app/lib/modules/areas_module/presentation/areas/widgets/transactions_button.dart` e `.../sign_out_button.dart` não existem mais — as duas ações estão no drawer.
-  - Abrir o app, tocar no ícone de menu, ir para transações pelo drawer e voltar funciona sem perder a pilha: print da sequência em `docs/002_conta_e_configuracoes/e2e/round_03/03_navegacao_pelo_drawer.png`.
   - `cd app && dart format --set-exit-if-changed lib`, `flutter analyze` e `flutter test -r compact` terminam com código de saída `0`; da raiz, `bash scripts/gates_guard.sh; echo $?` imprime `0`.
 
-- [ ] **T2.6** — Instrumentar: atualizar `app/patrol_test/lista_transacoes_test.dart` e `app/patrol_test/registro_transacao_test.dart` para navegar pelo drawer, e escrever a cena nova que abre o drawer e chega a `/configuracoes`. · camada **testes** · `qa`
+- [ ] **T2.6** `[adiada · lote de fechamento]` — Instrumentar: atualizar `app/patrol_test/lista_transacoes_test.dart` e `app/patrol_test/registro_transacao_test.dart` para navegar pelo drawer, e escrever a cena nova que abre o drawer e chega a `/configuracoes`. · camada **testes** · `qa` · **fora do DoD da Fase 2** (§9; `changes.md`, CHG-012)
 
   **DoD da tarefa**
   - `rtk proxy grep -rn "byTooltip('Ver transações')" app/patrol_test/` não devolve nenhuma linha: os dois roteiros passaram a abrir o drawer e tocar no destino de transações por lá.
@@ -816,7 +830,7 @@ Consolidar as duas frentes antes de seguir.
   - Nenhum roteiro depende de coordenada de tela ou de índice posicional para achar o item do drawer: a busca é por chave ou por rótulo semântico — conferir lendo os dois arquivos.
   - Os roteiros continuam recusando alvo não local: rodar com a URL apontando para host remoto falha com mensagem explícita antes de tocar em qualquer conta; provar rodando e colando a mensagem.
 
-- [ ] **T2.7** — Executar: rodar os três roteiros contra a stack local e fechar `docs/002_conta_e_configuracoes/e2e/round_03/report.md`. · camada **testes** · `qa`
+- [ ] **T2.7** `[adiada · lote de fechamento]` — Executar: rodar os três roteiros contra a stack local e fechar `docs/002_conta_e_configuracoes/e2e/round_03/report.md`. · camada **testes** · `qa` · **fora do DoD da Fase 2** (§9; `changes.md`, CHG-012)
 
   **DoD da tarefa**
   - `docs/002_conta_e_configuracoes/e2e/round_03/report.md` liga cada passo dos três roteiros a um print, log ou saída de comando do mesmo diretório, nomeando o arquivo.
@@ -828,17 +842,23 @@ Consolidar as duas frentes antes de seguir.
 Instrumentar (T2.6) e executar (T2.7) ficam com o mesmo agente pela mesma razão
 da Fase 1: a T2.6 mexe em dois roteiros que já estavam verdes, e quem os alterou
 é quem sabe distinguir "a navegação nova está errada" de "a cena herdada
-esbarrou em outra coisa".
+esbarrou em outra coisa". **As duas rodam no lote de fechamento** (§9), e
+continuam juntas lá: adiar não desfaz o motivo de estarem no mesmo agente.
 
 **DoD da Fase 2**
 
-- [ ] Todas as tarefas de T2.1 a T2.7 com o campo `DoD:` marcado CUMPRIDO, em negrito, na própria linha: `rtk proxy grep -cE '^- \[x\] \*\*T2\.[0-9]+\*\*.*\*\*DoD: CUMPRIDO\*\*' docs/002_conta_e_configuracoes/03_plan.md` imprime `7`, e `rtk proxy grep -cE '^- \[.\] \*\*T2\.[0-9]+\*\*.*\*\*DoD: NÃO CUMPRIDO\*\*' docs/002_conta_e_configuracoes/03_plan.md` imprime `0`. O padrão ancora na fase e traz os asteriscos: sem os asteriscos a contagem inclui as próprias linhas de critério que citam o campo, e sem a âncora ela cresce a cada fase seguinte que marcar uma tarefa — nos dois casos o número nunca fecha.
+- [ ] As cinco tarefas que a fase leva ao PR 2 — T2.1 a T2.5, já que a **T2.6** e a **T2.7** estão adiadas para o lote de fechamento (§9) — com o campo `DoD:` marcado CUMPRIDO, em negrito, na própria linha: `rtk proxy grep -cE '^- \[x\] \*\*T2\.[0-9]+\*\*.*\*\*DoD: CUMPRIDO\*\*' docs/002_conta_e_configuracoes/03_plan.md` imprime `5`, e `rtk proxy grep -cE '^- \[.\] \*\*T2\.[0-9]+\*\*.*\*\*DoD: NÃO CUMPRIDO\*\*' docs/002_conta_e_configuracoes/03_plan.md` imprime `0`. O padrão ancora na fase e traz os asteriscos: sem os asteriscos a contagem inclui as próprias linhas de critério que citam o campo, e sem a âncora ela cresce a cada fase seguinte que marcar uma tarefa — nos dois casos o número nunca fecha.
 - [ ] `cd app && dart format --set-exit-if-changed lib patrol_test test`, `flutter analyze` e `flutter test -r compact` verdes; da raiz, `bash scripts/gates_guard.sh; echo $?` imprime `0`.
 - [ ] `rtk proxy grep -rn 'Icons\.' app/lib` não devolve nenhuma linha — o glifo do Material não voltou pelo `DrawerButton` que o `Scaffold` injeta.
-- [ ] `docs/002_conta_e_configuracoes/e2e/round_03/` — os **três** roteiros verdes na mesma rodada, provando que a mudança de navegação não quebrou o E2E herdado da feature 001.
-- [ ] E2E atestado pelo **dev humano**; o `report.md` da rodada nomeia cada passo e o que cada imagem prova.
 - [ ] `CHANGELOG.md`, seção `Unreleased`, atualizado no mesmo PR.
 - [ ] Job "App" verde no CI do PR.
+
+**O que esta fase não cobra mais:** a rodada `round_03` — os três roteiros verdes
+na mesma rodada e o atestado do dev humano sobre ela — saiu do gate do PR 2 e
+está na §9 (`changes.md`, CHG-012). A troca de navegação continua provada dentro
+da fase pelo teste de widget da **T2.4** e pelo
+`grep 'Icons\.'` acima; o que fica sem prova até o lote é o roteiro herdado da
+feature 001 seguir verde no emulador — risco **X3**, aceito por escrito.
 
 ---
 ### Fase 3 — Perfil do usuário · PR 3a (migration) + PR 3b
@@ -984,7 +1004,7 @@ Consolidar as duas frentes antes de seguir.
   - Nenhum barrel ganhou export novo: `app/lib/modules/auth_module/auth_module.dart` e `app/lib/modules/settings_module/settings_module.dart` continuam exportando só rota e DI, mais os três símbolos de sessão já documentados no do auth — conferir lendo os dois arquivos inteiros.
   - `cd app && dart format --set-exit-if-changed lib`, `flutter analyze` e `flutter test -r compact` terminam com código de saída `0`; da raiz, `bash scripts/gates_guard.sh; echo $?` imprime `0`.
 
-- [ ] **T3.9** — Instrumentar o E2E da fase: roteiro `patrol` que edita o nome, confere que o e-mail não é editável e troca a senha com a senha atual certa e com a errada. · camada **testes** · `qa`
+- [ ] **T3.9** `[adiada · lote de fechamento]` — Instrumentar o E2E da fase: roteiro `patrol` que edita o nome, confere que o e-mail não é editável e troca a senha com a senha atual certa e com a errada. · camada **testes** · `qa` · **fora do DoD da Fase 3** (§9; `changes.md`, CHG-012)
 
   **DoD da tarefa**
   - Existe um roteiro novo em `app/patrol_test/` com cenas nomeadas para: abrir Configurações → Conta, salvar um nome novo e vê-lo no cabeçalho do drawer, tentar editar o e-mail e não conseguir, trocar a senha com a senha atual **errada** e trocar com a certa.
@@ -993,7 +1013,7 @@ Consolidar as duas frentes antes de seguir.
   - Nenhuma senha aparece como literal fora da constante de fixture do próprio roteiro, e nenhuma é escrita em print ou log — conferir lendo o arquivo.
   - `cd app && dart format --set-exit-if-changed patrol_test` e `flutter analyze patrol_test` terminam com código de saída `0`; cada cena salva print e log **imediatamente após a asserção visual**, em `docs/002_conta_e_configuracoes/e2e/round_04/`, pelo callback de captura que `scripts/capture-e2e-evidence.py` já serve.
 
-- [ ] **T3.10** — Executar o E2E da fase contra a stack local e fechar `docs/002_conta_e_configuracoes/e2e/round_04/report.md`. · camada **testes** · `qa`
+- [ ] **T3.10** `[adiada · lote de fechamento]` — Executar o E2E da fase contra a stack local e fechar `docs/002_conta_e_configuracoes/e2e/round_04/report.md`. · camada **testes** · `qa` · **fora do DoD da Fase 3** (§9; `changes.md`, CHG-012)
 
   **DoD da tarefa**
   - `docs/002_conta_e_configuracoes/e2e/round_04/report.md` existe e liga **cada** passo do roteiro a um print, log ou saída de comando do mesmo diretório, nomeando o arquivo.
@@ -1003,17 +1023,26 @@ Consolidar as duas frentes antes de seguir.
   - A stack local voltou ao estado limpo: `scripts/local-supabase.sh down` seguido de `scripts/local-supabase.sh status` mostra a stack fora do ar, e nenhuma conta de teste ficou em ambiente que não seja o descartável.
 
 Instrumentar (T3.9) e executar (T3.10) ficam com o mesmo agente pela razão de
-sempre: quem escreve o driver é quem o depura quando a rodada falha.
+sempre: quem escreve o driver é quem o depura quando a rodada falha. **As duas
+rodam no lote de fechamento** (§9) e continuam juntas lá.
 
 **DoD da Fase 3**
 
-- [ ] Todas as tarefas de T3.1 a T3.10 com o campo `DoD:` marcado CUMPRIDO, em negrito, na própria linha: `rtk proxy grep -cE '^- \[x\] \*\*T3\.[0-9]+\*\*.*\*\*DoD: CUMPRIDO\*\*' docs/002_conta_e_configuracoes/03_plan.md` imprime `10`, e `rtk proxy grep -cE '^- \[.\] \*\*T3\.[0-9]+\*\*.*\*\*DoD: NÃO CUMPRIDO\*\*' docs/002_conta_e_configuracoes/03_plan.md` imprime `0`. O padrão ancora na fase e traz os asteriscos: sem os asteriscos a contagem inclui as próprias linhas de critério que citam o campo, e sem a âncora ela cresce a cada fase seguinte que marcar uma tarefa — nos dois casos o número nunca fecha.
+- [ ] As oito tarefas que a fase leva ao PR 3b — T3.1 a T3.8, já que a **T3.9** e a **T3.10** estão adiadas para o lote de fechamento (§9) — com o campo `DoD:` marcado CUMPRIDO, em negrito, na própria linha: `rtk proxy grep -cE '^- \[x\] \*\*T3\.[0-9]+\*\*.*\*\*DoD: CUMPRIDO\*\*' docs/002_conta_e_configuracoes/03_plan.md` imprime `8`, e `rtk proxy grep -cE '^- \[.\] \*\*T3\.[0-9]+\*\*.*\*\*DoD: NÃO CUMPRIDO\*\*' docs/002_conta_e_configuracoes/03_plan.md` imprime `0`. O padrão ancora na fase e traz os asteriscos: sem os asteriscos a contagem inclui as próprias linhas de critério que citam o campo, e sem a âncora ela cresce a cada fase seguinte que marcar uma tarefa — nos dois casos o número nunca fecha.
 - [ ] `cd app && dart format --set-exit-if-changed lib patrol_test test`, `flutter analyze` e `flutter test -r compact` verdes; da raiz, `bash scripts/gates_guard.sh; echo $?` imprime `0`.
 - [ ] Job "Banco — migrations aplicam limpo e RLS está ligada" verde no CI do PR da migration, e o PR da migration mergeado **antes** de o PR da fase abrir.
-- [ ] `docs/002_conta_e_configuracoes/e2e/round_04/` — nome salvo, e-mail não editável e troca de senha ponta a ponta, **atestados pelo dev humano**. O `report.md` nomeia cada passo, comando e evidência.
+- [ ] **A senha antiga deixa de valer depois da troca**, provado por saída de comando contra a stack local — invariante de segurança e, por isso, no gate do PR (**D30**). Numa conta de teste da stack local, trocar a senha pelo mesmo endpoint que o app chama em `updateUser(password:)` — `curl -sS -o /dev/null -w '%{http_code}\n' -X PUT "$SUPABASE_URL/auth/v1/user" -H "apikey: $ANON_KEY" -H "Authorization: Bearer <access_token>" -H 'Content-Type: application/json' -d '{"password":"<senha nova>"}'` imprimindo `200` — e então `curl -sS -o /dev/null -w '%{http_code}\n' -X POST "$SUPABASE_URL/auth/v1/token?grant_type=password" -H "apikey: $ANON_KEY" -H 'Content-Type: application/json' -d '{"email":"<conta>","password":"<senha antiga>"}'` imprime **`400`**, e o mesmo comando com a **senha nova** imprime `200` com `access_token` no corpo. As três saídas vão no corpo do PR. O que se cobra é o `400`: a chave do erro varia com a versão do GoTrue (`invalid_grant` nas antigas, `invalid_credentials` nas novas). **O que esta linha não prova** é que a tela de troca de senha chama esse endpoint — isso é a cena da T3.9, no lote de fechamento.
 - [ ] `docs/002_conta_e_configuracoes/decisions.md` registra, com a razão escrita, que a troca de e-mail fica fora desta feature **por escopo** — nenhuma fase a entrega, e reabri-la é chamada do humano —, e a tela de conta exibe esse motivo em texto visível, com o e-mail somente leitura.
 - [ ] `CHANGELOG.md`, seção `Unreleased`, atualizado no mesmo PR.
 - [ ] Jobs "App" e "Banco" verdes no CI.
+
+**O que esta fase não cobra mais:** a rodada `round_04` — nome salvo, e-mail não
+editável, troca de senha ponta a ponta e o atestado do dev humano — saiu do gate
+do PR 3b e está na §9 (`changes.md`, CHG-012). **A invariante que não foi junto:**
+que a senha antiga deixa de valer depois da troca virou linha do DoD desta fase,
+acima, provada por comando — migrou a prova, não a exigência. O que espera o lote
+é só a metade que depende da tela: que a troca feita pela página de Conta chegue
+ao servidor.
 
 ---
 
@@ -1205,11 +1234,11 @@ Consolidar as três frentes antes de seguir.
   **DoD da tarefa**
   - O gate é o router, e só ele: `rtk proxy grep -rln 'aiConfigured' app/lib` devolve exatamente arquivos sob `app/lib/core/session/`, `app/lib/core/widgets/navigation/` e `app/lib/app_router.dart` — nenhum arquivo sob `app/lib/modules/`. Corpo de página nunca decide se a tela funciona.
   - Com a IA não configurada, ir direto a `/chat` termina em `/configuracoes/ia`: teste de widget em `app/test/` que constrói o router, navega e assere a rota final. Remover a linha do `redirect` faz o teste falhar — provar removendo, colando a falha e restaurando.
-  - O `refreshListenable` do `createRouter()` é um `Listenable.merge` entre o notificador de sessão que já existia e um novo sobre o cubit de capacidades: configurar a IA e tocar no item de chat **sem nenhuma navegação manual no meio** leva ao destino, com print da sequência em `docs/002_conta_e_configuracoes/e2e/round_05/`. Sem o merge o app fica preso na tela recém-preenchida.
-  - O item de chat do drawer aparece **desabilitado com o motivo em texto visível**, não escondido, e anuncia esse motivo por `Semantics` — print em `docs/002_conta_e_configuracoes/e2e/round_05/02_drawer_chat_desabilitado.png` mais a saída do teste que assere o rótulo semântico.
+  - O `refreshListenable` do `createRouter()` é um `Listenable.merge` entre o notificador de sessão que já existia e um novo sobre o cubit de capacidades: `rtk proxy grep -n 'Listenable.merge' app/lib/app_router.dart` devolve a linha, e os dois notificadores aparecem dentro dela. Sem o merge o app fica preso na tela recém-preenchida. **A prova visual de que configurar a IA e tocar no chat leva ao destino sem navegação manual no meio migrou para o lote de fechamento** (§9).
+  - O item de chat do drawer aparece **desabilitado com o motivo em texto visível**, não escondido, e anuncia esse motivo por `Semantics`: teste de widget em `app/test/` que assere o rótulo semântico e o texto do motivo, com a saída do teste colada — ele falha se o item voltar a ser escondido ou perder o rótulo. **O print da tela migrou para o lote de fechamento** (§9); o teste **fica**, porque se prova por comando.
   - `app/lib/modules/settings_module/settings_routes.dart` declara `/configuracoes/ia` com constante de `path` e de `name`, sem `extra:`, fora do `ShellRoute`; `cd app && dart format --set-exit-if-changed lib test`, `flutter analyze` e `flutter test -r compact` terminam com código de saída `0`, e da raiz `bash scripts/gates_guard.sh; echo $?` imprime `0`.
 
-- [ ] **T4.12** — Instrumentar o E2E da fase: roteiro `patrol` que configura a IA, prova o gate antes e depois, e apaga a credencial. · camada **testes** · `qa`
+- [ ] **T4.12** `[adiada · lote de fechamento]` — Instrumentar o E2E da fase: roteiro `patrol` que configura a IA, prova o gate antes e depois, e apaga a credencial. · camada **testes** · `qa` · **fora do DoD da Fase 4** (§9; `changes.md`, CHG-012)
 
   **DoD da tarefa**
   - Existe um roteiro novo em `app/patrol_test/` com cenas nomeadas para: item de chat desabilitado com motivo visível, salvar a chave, item habilitado sem navegação manual no meio, tela mostrando os quatro últimos dígitos e nunca a chave, e remoção da credencial devolvendo o item ao estado desabilitado.
@@ -1218,34 +1247,47 @@ Consolidar as três frentes antes de seguir.
   - O roteiro recusa alvo que não seja local: rodar com a URL apontando para host remoto falha com mensagem explícita antes de tocar em qualquer conta — provar rodando e colando a mensagem.
   - `cd app && dart format --set-exit-if-changed patrol_test` e `flutter analyze patrol_test` terminam com código de saída `0`; cada cena salva print e log imediatamente após a asserção visual, em `docs/002_conta_e_configuracoes/e2e/round_05/`.
 
-- [ ] **T4.13** — Executar o E2E da fase e a prova de isolamento entre dois usuários, e fechar `docs/002_conta_e_configuracoes/e2e/round_05/report.md`. · camada **testes** · `qa`
+- [ ] **T4.13** `[adiada · lote de fechamento]` — Executar o E2E da fase e fechar `docs/002_conta_e_configuracoes/e2e/round_05/report.md`. · camada **testes** · `qa` · **fora do DoD da Fase 4** (§9; `changes.md`, CHG-012) — a prova de isolamento entre dois usuários **saiu daqui e virou a T4.14**, que fica na fase.
 
   **DoD da tarefa**
   - `docs/002_conta_e_configuracoes/e2e/round_05/report.md` existe e liga **cada** passo do roteiro a um print, log ou saída de comando do mesmo diretório, nomeando o arquivo; a saída do `patrol test` colada mostra a contagem de cenas e nenhuma falha.
-  - A prova de dois usuários roda contra a stack local e está no `report.md` com comando e saída literais: o usuário A salva uma credencial; o usuário B chama a Edge Function com o identificador da credencial de A e recebe `404`; B lê `/rest/v1/ai_user_credentials?id=eq.<id de A>` com o próprio JWT e recebe `200` com corpo `[]`.
-  - A prova de RLS no nível do banco também está no `report.md`: com `set local role authenticated` e `set local request.jwt.claims = '{"sub":"<B>","role":"authenticated"}'`, `select count(*) from public.ai_user_credentials` devolve `0`, precedido da conferência de que `select auth.uid()` devolve o uuid de B e não `NULL`.
   - Os modos de falha aparecem em estados **visualmente distintos**: um print com chave inválida recusada pelo provedor e um print com a tela sem conexão, cada um com a sua mensagem. Duas imagens diferentes, nomeadas no `report.md`.
   - Nenhum arquivo da rodada contém token, senha, refresh token ou chave de IA: `rtk proxy grep -rniE 'eyJ|refresh_token|"password"|AIza|sk-' docs/002_conta_e_configuracoes/e2e/round_05/` não devolve nenhuma linha.
   - `scripts/local-supabase.sh down` seguido de `scripts/local-supabase.sh status` mostra a stack fora do ar ao fim da rodada, e nenhuma chave de teste ficou em ambiente que não seja o descartável.
 
+- [ ] **T4.14** — Provar por comando o isolamento entre dois usuários e a RLS de `public.ai_user_credentials`, contra a stack local. · camada **testes** · `qa`
+
+  **DoD da tarefa**
+  - Existe `docs/002_conta_e_configuracoes/e2e/round_05/isolamento.md` com o comando e a saída **literais** de cada prova abaixo, a data da execução e o alvo, que é a stack local que `scripts/local-supabase.sh up` sobe — nenhuma prova roda contra servidor remoto.
+  - Com dois usuários distintos criados na stack local, o usuário A salva uma credencial de IA e o usuário B chama a Edge Function de credenciais com o identificador da credencial de A e recebe **404**; o arquivo cola a requisição e a resposta inteiras.
+  - Com o JWT do próprio B, `GET /rest/v1/ai_user_credentials?id=eq.<id da credencial de A>` responde **200** com corpo `[]`, nunca a linha de A, e o arquivo cola a saída literal.
+  - No banco, com `set local role authenticated` e `set local request.jwt.claims = '{"sub":"<uuid de B>","role":"authenticated"}'`, `select auth.uid()` devolve o uuid de B e **não** `NULL`, e só então `select count(*) from public.ai_user_credentials` devolve `0` — a conferência do `auth.uid()` vem antes porque contagem zero com `auth.uid()` nulo passaria pelo motivo errado.
+  - `rtk proxy grep -rniE 'eyJ|refresh_token|"password"|AIza|sk-' docs/002_conta_e_configuracoes/e2e/round_05/isolamento.md` não devolve nenhuma linha.
+
 Instrumentar (T4.12) e executar (T4.13) ficam com o mesmo agente pela razão de
-sempre. A prova de dois usuários fica na tarefa de **executar**, não na de
-instrumentar, porque ela é `curl` e `psql` contra a stack no ar — não tem driver
-para escrever.
+sempre, e **as duas rodam no lote de fechamento** (§9). **A prova de dois
+usuários não vai junto:** ela é `curl` e `psql` contra a stack no ar, não tem
+driver para escrever e prova invariante bloqueante do gauntlet — por isso virou a
+**T4.14**, que fica no PR 4b. Adiar teste de emulador é economia; adiar prova de
+isolamento seria tirar segurança do gate.
 
 **DoD da Fase 4**
 
-- [ ] Todas as tarefas de T4.1 a T4.13 com o campo `DoD:` marcado CUMPRIDO, em negrito, na própria linha: `rtk proxy grep -cE '^- \[x\] \*\*T4\.[0-9]+\*\*.*\*\*DoD: CUMPRIDO\*\*' docs/002_conta_e_configuracoes/03_plan.md` imprime `13`, e `rtk proxy grep -cE '^- \[.\] \*\*T4\.[0-9]+\*\*.*\*\*DoD: NÃO CUMPRIDO\*\*' docs/002_conta_e_configuracoes/03_plan.md` imprime `0`. O padrão ancora na fase e traz os asteriscos: sem os asteriscos a contagem inclui as próprias linhas de critério que citam o campo, e sem a âncora ela cresce a cada fase seguinte que marcar uma tarefa — nos dois casos o número nunca fecha.
+- [ ] As doze tarefas que a fase leva aos PRs 4a e 4b — T4.1 a T4.11 e a **T4.14**, já que a **T4.12** e a **T4.13** estão adiadas para o lote de fechamento (§9) — com o campo `DoD:` marcado CUMPRIDO, em negrito, na própria linha: `rtk proxy grep -cE '^- \[x\] \*\*T4\.[0-9]+\*\*.*\*\*DoD: CUMPRIDO\*\*' docs/002_conta_e_configuracoes/03_plan.md` imprime `12`, e `rtk proxy grep -cE '^- \[.\] \*\*T4\.[0-9]+\*\*.*\*\*DoD: NÃO CUMPRIDO\*\*' docs/002_conta_e_configuracoes/03_plan.md` imprime `0`. O padrão ancora na fase e traz os asteriscos: sem os asteriscos a contagem inclui as próprias linhas de critério que citam o campo, e sem a âncora ela cresce a cada fase seguinte que marcar uma tarefa — nos dois casos o número nunca fecha.
 - [ ] `cd app && dart format --set-exit-if-changed lib patrol_test test`, `flutter analyze` e `flutter test -r compact` verdes; `cd supabase/functions && deno fmt --check && deno lint && deno task check && deno task test` verde; da raiz, `bash scripts/gates_guard.sh; echo $?` imprime `0`.
 - [ ] `rtk proxy grep -rniE 'AIza|sk-|apiKey' app/lib` não devolve nenhuma linha — nenhuma chave de terceiro, nem placeholder, entrou no binário.
 - [ ] `rtk proxy grep -rln 'aiConfigured' app/lib` devolve só arquivos sob `app/lib/core/session/`, `app/lib/core/widgets/navigation/` e `app/lib/app_router.dart` — o gate mora no router, não no corpo de página.
-- [ ] `docs/002_conta_e_configuracoes/e2e/round_05/report.md` traz a prova de isolamento entre dois usuários **e** a prova de RLS no banco, com comandos e saídas literais, reproduzidas pelo QA independentemente do executor da fase.
-- [ ] E2E da rodada 05 **atestado pelo dev humano**, não pelo QA.
+- [ ] A prova de isolamento entre dois usuários **e** a prova de RLS no banco estão em `docs/002_conta_e_configuracoes/e2e/round_05/isolamento.md`, com comandos e saídas literais, **reproduzidas pelo QA independentemente do executor da fase** (tarefa **T4.14**). Esta linha é invariante bloqueante do gauntlet e se prova por saída de comando: **não é adiável** e não sai do gate do PR (**D30**).
 - [ ] `CLAUDE.md` reconciliado no mesmo PR: a invariante 4 passa a distinguir **credencial do projeto** (proibida no cliente, sem exceção) de **credencial do usuário** (entra pelo app, vive cifrada no servidor e nunca retorna ao cliente) — decisão **D24**.
 - [ ] `docs/002_conta_e_configuracoes/decisions.md` registra o achado da chave-mestra do Vault e a consequência: **nenhuma chave real de IA é salva em produção enquanto a pendência P12 não fechar.**
 - [ ] `docs/decisions.md` com a **D19** marcada como resolvida.
 - [ ] `CHANGELOG.md`, seção `Unreleased`, atualizado no mesmo PR.
 - [ ] Jobs "App", "Edge Functions" e "Banco" verdes no CI dos dois PRs.
+
+**O que esta fase não cobra mais:** a rodada `round_05` e o atestado do dev humano
+sobre ela saíram do gate do PR 4b e estão na §9 (`changes.md`, CHG-012). O que
+**não** saiu: o isolamento entre usuários e a RLS, acima, que continuam
+bloqueando o PR.
 
 ---
 ### Fase 5 — Integração bancária · PR 5a (migration) + PR 5b
@@ -1378,7 +1420,7 @@ migration cria. Vale worktree onde houver escrita simultânea.
   - Nada de conciliação vazou para esta fase: `rtk proxy grep -rniE 'reconcil|concilia' app/lib/modules/settings_module/` não devolve nenhuma linha.
   - `app/lib/modules/settings_module/settings_routes.dart` declara `/configuracoes/banco` com constante de `path` e de `name`, sem `extra:`, fora do `ShellRoute`; `cd app && dart format --set-exit-if-changed lib`, `flutter analyze` e `flutter test -r compact` terminam com código de saída `0`, e da raiz `bash scripts/gates_guard.sh; echo $?` imprime `0`.
 
-- [ ] **T5.7** — Instrumentar o E2E da fase: roteiro `patrol` que conecta contra a sandbox da Pluggy, vê o status e desconecta. · camada **testes** · `qa`
+- [ ] **T5.7** `[adiada · lote de fechamento]` — Instrumentar o E2E da fase: roteiro `patrol` que conecta contra a sandbox da Pluggy, vê o status e desconecta. · camada **testes** · `qa` · **fora do DoD da Fase 5** (§9; `changes.md`, CHG-012)
 
   **DoD da tarefa**
   - Existe um roteiro novo em `app/patrol_test/` com cenas nomeadas para: seção de banco não conectada, conectar contra a **sandbox** da Pluggy, status conectado com a instituição visível, desconectar com confirmação e voltar ao estado inicial.
@@ -1386,7 +1428,7 @@ migration cria. Vale worktree onde houver escrita simultânea.
   - Nenhum identificador de conexão, token da Pluggy ou credencial aparece em print ou log da rodada — conferir lendo o roteiro e o callback de captura.
   - `cd app && dart format --set-exit-if-changed patrol_test` e `flutter analyze patrol_test` terminam com código de saída `0`; cada cena salva print e log imediatamente após a asserção visual, em `docs/002_conta_e_configuracoes/e2e/round_06/`.
 
-- [ ] **T5.8** — Executar o E2E da fase e fechar `docs/002_conta_e_configuracoes/e2e/round_06/report.md`. · camada **testes** · `qa`
+- [ ] **T5.8** `[adiada · lote de fechamento]` — Executar o E2E da fase e fechar `docs/002_conta_e_configuracoes/e2e/round_06/report.md`. · camada **testes** · `qa` · **fora do DoD da Fase 5** (§9; `changes.md`, CHG-012)
 
   **DoD da tarefa**
   - `docs/002_conta_e_configuracoes/e2e/round_06/report.md` existe e liga **cada** passo do roteiro a um print, log ou saída de comando do mesmo diretório, nomeando o arquivo; a saída do `patrol test` colada mostra a contagem de cenas e nenhuma falha.
@@ -1398,19 +1440,26 @@ migration cria. Vale worktree onde houver escrita simultânea.
 Instrumentar (T5.7) e executar (T5.8) ficam com o mesmo agente pela razão de
 sempre. Aqui a separação pesa mais que nas outras fases: a execução depende de um
 serviço de terceiro, e distinguir "o roteiro está errado" de "a sandbox está
-fora" só é barato para quem escreveu o roteiro.
+fora" só é barato para quem escreveu o roteiro. **As duas rodam no lote de
+fechamento** (§9), e a dependência da sandbox é mais um motivo para elas não
+segurarem o PR de uma fase.
 
 **DoD da Fase 5**
 
-- [ ] Todas as tarefas de T5.1 a T5.8 com o campo `DoD:` marcado CUMPRIDO, em negrito, na própria linha: `rtk proxy grep -cE '^- \[x\] \*\*T5\.[0-9]+\*\*.*\*\*DoD: CUMPRIDO\*\*' docs/002_conta_e_configuracoes/03_plan.md` imprime `8`, e `rtk proxy grep -cE '^- \[.\] \*\*T5\.[0-9]+\*\*.*\*\*DoD: NÃO CUMPRIDO\*\*' docs/002_conta_e_configuracoes/03_plan.md` imprime `0`. O padrão ancora na fase e traz os asteriscos: sem os asteriscos a contagem inclui as próprias linhas de critério que citam o campo, e sem a âncora ela cresce a cada fase seguinte que marcar uma tarefa — nos dois casos o número nunca fecha.
+- [ ] As seis tarefas que a fase leva aos PRs 5a e 5b — T5.1 a T5.6, já que a **T5.7** e a **T5.8** estão adiadas para o lote de fechamento (§9) — com o campo `DoD:` marcado CUMPRIDO, em negrito, na própria linha: `rtk proxy grep -cE '^- \[x\] \*\*T5\.[0-9]+\*\*.*\*\*DoD: CUMPRIDO\*\*' docs/002_conta_e_configuracoes/03_plan.md` imprime `6`, e `rtk proxy grep -cE '^- \[.\] \*\*T5\.[0-9]+\*\*.*\*\*DoD: NÃO CUMPRIDO\*\*' docs/002_conta_e_configuracoes/03_plan.md` imprime `0`. O padrão ancora na fase e traz os asteriscos: sem os asteriscos a contagem inclui as próprias linhas de critério que citam o campo, e sem a âncora ela cresce a cada fase seguinte que marcar uma tarefa — nos dois casos o número nunca fecha.
 - [ ] `cd app && dart format --set-exit-if-changed lib patrol_test test`, `flutter analyze` e `flutter test -r compact` verdes; `cd supabase/functions && deno fmt --check && deno lint && deno task check && deno task test` verde; da raiz, `bash scripts/gates_guard.sh; echo $?` imprime `0`.
 - [ ] `rtk proxy grep -rni 'pluggy' app/lib` não devolve nenhuma linha — quem fala com a Pluggy é a Edge Function, e isso é invariante de arquitetura, não estilo.
 - [ ] `rtk proxy grep -rniE 'PLUGGY_CLIENT_SECRET=[^$]' .` não devolve nenhuma linha em nenhum arquivo versionado.
-- [ ] `docs/002_conta_e_configuracoes/e2e/round_06/` — conectar, ver status e desconectar contra a sandbox, **atestados pelo dev humano**, com os quatro estados de conexão em prints distintos.
-- [ ] A capacidade de banco vem da tabela: com uma conexão ativa a seção mostra conectado, e removida a linha do banco a seção volta a não conectado sem reinstalar o app — provar pelos dois prints da rodada.
 - [ ] `rtk proxy grep -rniE 'reconcil|concilia' app/lib/modules/settings_module/` não devolve nenhuma linha — a conciliação continua fora do escopo.
 - [ ] `CHANGELOG.md`, seção `Unreleased`, atualizado no mesmo PR.
 - [ ] Jobs "App", "Edge Functions" e "Banco" verdes no CI dos dois PRs.
+
+**O que esta fase não cobra mais:** a rodada `round_06` — conectar, ver status e
+desconectar contra a sandbox, com os quatro estados em prints distintos e o
+atestado do dev humano — e, junto dela, a linha que provava **pelos prints da
+rodada** que a capacidade de banco vem da tabela e não do binário. As duas estão
+na §9 (`changes.md`, CHG-012): a segunda foi arrastada pela primeira, porque a
+única prova que ela nomeava eram os prints.
 
 ---
 ### Fase 6 — Defesa do pipeline de IA · PR 6
@@ -1662,6 +1711,14 @@ fase fecha promessa que não esteja aqui.**
 | 7 | Conectar uma conta bancária, ver o status e desconectar, sem o app falar com a Pluggy | **5** (`e2e/round_06/`) |
 | 8 | O pipeline de IA nascer com privilégio zero da saída do modelo: nada em tabela final sem confirmação, custo e latência registrados, entrada limitada | **6** (prova negativa do corpus) |
 
+**A fase que fecha a promessa não é mais a fase que colhe a evidência.** Por
+**D30**, as rodadas `round_03` a `round_06` são executadas no lote de fechamento
+(§9): a fase continua responsável pela promessa e a fecha pelo resto do seu DoD,
+e a rodada nomeada acima é onde a evidência vai morar quando o lote rodar. Duas
+exceções, nas duas pontas: a `round_01` e a `round_02` **já foram executadas** e
+valem como estão; e a "prova de dois usuários" da promessa 5 **não** é rodada de
+E2E — é `curl` e `psql`, mora na **T4.14** e bloqueia o PR 4b.
+
 ---
 
 ## 7. Riscos e dependências que o DoD do roadmap não cobre
@@ -1686,7 +1743,7 @@ legitimamente precisa da chave coexiste com as que não precisam (X7).
 |---|---|---|---|
 | X1 | **O cadastro tranca calado se a confirmação for desligada sem o e-mail sair.** O risco mudou de forma em 20/08/2026: a **FD-022** desligou a confirmação automática, e com isso morreu o risco original — "qualquer endereço inventado vira conta confirmada". O que ficou é o inverso e é de ordem: com `GOTRUE_MAILER_AUTOCONFIRM: 'false'` e SMTP mudo, todo cadastro novo nasce não confirmado e **ninguém consegue entrar** — e nada no app acusa, porque o `signup` responde `200`. | Fase 1, e a virada da HML | As duas variáveis do GoTrue viram **no mesmo redeploy** das cinco de SMTP, nunca antes: a ordem está escrita em `docs/deploy/coolify.md`, seção "Ainda por fazer", e na **FD-022**. Na stack local o modo de falha não existe desde a T1.5 — o capturador recebe todo e-mail. Prova de que o caminho funciona antes de a HML virar: o E2E da Fase 1, que cria conta e confirma lendo o capturador. |
 | X2 | **O `Scaffold` com `drawer:` reintroduz o glifo do Material** e `scripts/gates_guard.sh` não pega: o guard procura o literal `Icons.`, e o `DrawerButton` injetado não escreve isso. | Fase 2 | Linha de DoD da T2.5: `leading:` explícito com token de `AppIcons`, e `grep -rn 'Icons\.' app/lib` vazio no DoD da fase. |
-| X3 | **`flutter test` não cobre `app/patrol_test/`** e `flutter analyze` não pega string que deixou de casar, então a troca de navegação deixa o CI verde e o emulador vermelho. | Fase 2 | T2.6 e T2.7, separadas de propósito, mais a linha do DoD da fase que exige os três roteiros verdes na mesma rodada. |
+| X3 | **`flutter test` não cobre `app/patrol_test/`** e `flutter analyze` não pega string que deixou de casar, então a troca de navegação deixa o CI verde e o emulador vermelho. | Fase 2, e daí até o lote de fechamento | **O tratamento mudou em 20/08/2026 e o risco cresceu** (`changes.md`, CHG-012): a T2.6 e a T2.7 saíram do gate do PR 2 por **D30**, e com elas a linha do DoD da fase que exigia os três roteiros verdes na mesma rodada. Os dois roteiros herdados da feature 001 ficam **vermelhos desde a Fase 2 até o lote rodar**, sem nada no CI acusando, e o descasamento de string se acumula pelas fases seguintes em vez de aparecer numa. **Aceito por escrito, e é o preço explícito da velocidade** — quem rodar o lote começa por estes dois arquivos, que são os mais prováveis de falhar. |
 | X4 | **A recuperação por OTP não cobre o clique no link do e-mail.** O GoTrue manda o link junto do código; quem clicar cai no navegador e não volta para o app. | Fase 1 | Limitação **conhecida e aceita**: o texto do e-mail e a tela de recuperação instruem a digitar o código. O deep link PKCE fica registrado em `docs/002_conta_e_configuracoes/decisions.md` como o passo seguinte, com o custo já levantado (source set de flavor + `GOTRUE_URI_ALLOW_LIST`). |
 | X5 | **A chave-mestra do Vault não está em volume.** Ela mora em `/etc/postgresql-custom/pgsodium_root.key`, na camada gravável do contêiner; `infra/local/docker-compose.yml` monta só `db-data:/var/lib/postgresql/data`. Recriar o contêiner do Postgres transforma todo segredo do Vault em ciphertext permanentemente indecifrável. | Fase 4 | Pendência **P12** mais a tarefa **T4.3**, que mede em produção, reproduz o modo de falha na stack local e deixa o trecho de compose pronto. Linha do DoD da fase: nenhuma chave real em produção antes de P12 fechar. |
 | X6 | **Exclusão de conta deixaria segredo órfão no Vault.** `public.ai_user_credentials` some por `on delete cascade`, mas `vault.secrets` não — o Vault não aceita FK para `auth.users`, e um segredo órfão é cifrado e eterno. | Fase 4 | Gatilho `before delete` em `public.ai_user_credentials`, na **T4.2**, que apaga o segredo junto. Resolvido por construção, com o DoD provando o caso pelo `delete` da própria conta e pela remoção temporária do gatilho. |
@@ -1712,9 +1769,63 @@ Legenda das fases: `[ ]` não iniciada · `[-]` em andamento · `[x]` mergeada e
 `CUMPRIDO` do `supervisor-dod`, registrado no campo `DoD:` da própria linha —
 tarefa sem esse veredito **não** é marcada, mesmo que o código pareça pronto.
 
-- [-] **Fase 1** — Auth completo: medir a sessão, cadastrar e recuperar senha · PR 1 (17 tarefas)
-- [ ] **Fase 2** — Drawer e a casca das Configurações · PR 2 (7 tarefas)
-- [ ] **Fase 3** — Perfil do usuário · PR 3a + PR 3b (10 tarefas)
-- [ ] **Fase 4** — Configuração de IA e o gating · PR 4a + PR 4b (13 tarefas)
-- [ ] **Fase 5** — Integração bancária · PR 5a + PR 5b (8 tarefas)
+- [-] **Fase 1** — Auth completo: medir a sessão, cadastrar e recuperar senha · PR 1 (17 tarefas — 16 no PR 1; a T1.16 está adiada para o lote de fechamento, §9)
+- [ ] **Fase 2** — Drawer e a casca das Configurações · PR 2 (7 tarefas — 5 no PR 2; T2.6 e T2.7 no lote de fechamento, §9)
+- [ ] **Fase 3** — Perfil do usuário · PR 3a + PR 3b (10 tarefas — 8 no PR 3b; T3.9 e T3.10 no lote de fechamento, §9)
+- [ ] **Fase 4** — Configuração de IA e o gating · PR 4a + PR 4b (14 tarefas — 12 nos PRs; T4.12 e T4.13 no lote de fechamento, §9; a T4.14 nasceu ao partir a prova de isolamento da execução do E2E)
+- [ ] **Fase 5** — Integração bancária · PR 5a + PR 5b (8 tarefas — 6 nos PRs; T5.7 e T5.8 no lote de fechamento, §9)
 - [ ] **Fase 6** — Defesa do pipeline de IA · PR 6 (9 tarefas)
+
+---
+
+## 9. Pendências do lote de fechamento
+
+A decisão **D30** de [`../decisions.md`](../decisions.md), de 20/08/2026, tirou do
+caminho crítico de cada fase todo teste automatizado que não seja linha de DoD de
+uma tarefa, e com ele as rodadas **novas** de E2E. O que sai de uma fase **não é
+cancelado** — vem para cá, com dono, arquivos e o bloco DoD que já estava
+escrito. Este lote roda depois da última fase de implementação da feature e é
+**fatiado em frentes disjuntas**, como qualquer outra fase: bloco monolítico de
+um agente só é fatiamento que não foi feito.
+
+| Origem | O que ficou pendente | Dono | Arquivos | Registro |
+|---|---|---|---|---|
+| Fase 1 · **T1.16** | A cena `patrol` do abandono da recuperação — pedir recuperação da conta-semente, digitar o código certo, acionar "Sair sem trocar a senha" sem preencher senha alguma e entrar de novo com a senha antiga —, com a evidência fechada no `report.md` da rodada 02. **O bloco DoD da tarefa continua escrito na Fase 1 e vale como está.** | `qa` | `app/patrol_test/`, `docs/002_conta_e_configuracoes/e2e/round_02/` | [`changes.md`](changes.md), CHG-011 |
+| Fase 1 · **T1.15** | A prova em emulador de que, depois de acionar "Sair sem trocar a senha", o app mostra a **tela de entrar** e não a lista de áreas: o print `docs/002_conta_e_configuracoes/e2e/round_02/20_saida_sem_trocar_senha.png`, com os campos de e-mail e senha visíveis. A cena da T1.16 produz esse print ao passar — executadas juntas, as duas linhas fecham numa rodada só. | `qa` | `docs/002_conta_e_configuracoes/e2e/round_02/` | [`changes.md`](changes.md), CHG-011 |
+| Fase 2 · **T2.6** e **T2.7** | Rodada `round_03`: atualizar os dois roteiros herdados da feature 001 para navegar pelo drawer, escrever a cena que chega a `/configuracoes`, executar os três roteiros na mesma rodada e fechar o `report.md`. Enquanto não rodar, os roteiros herdados estão vermelhos (risco **X3**). | `qa` (as duas com o mesmo agente) | `app/patrol_test/lista_transacoes_test.dart`, `app/patrol_test/registro_transacao_test.dart`, `app/patrol_test/` (cena nova), `docs/002_conta_e_configuracoes/e2e/round_03/` | [`changes.md`](changes.md), CHG-012 |
+| Fase 3 · **T3.9** e **T3.10** | Rodada `round_04`: roteiro que edita o nome, confere que o e-mail não é editável, troca a senha com a senha atual certa e errada, e **entra de novo com a senha nova provando que a antiga deixou de valer**; execução e `report.md`. | `qa` (as duas com o mesmo agente) | `app/patrol_test/` (roteiro novo), `docs/002_conta_e_configuracoes/e2e/round_04/` | [`changes.md`](changes.md), CHG-012 |
+| Fase 4 · **T4.12** e **T4.13** | Rodada `round_05`: roteiro que configura a IA, prova o gate antes e depois, mostra os quatro últimos dígitos e nunca a chave, e apaga a credencial; execução e `report.md`. **A prova de isolamento entre dois usuários não está aqui** — é a T4.14 e bloqueia o PR 4b. | `qa` (as duas com o mesmo agente) | `app/patrol_test/` (roteiro novo), `docs/002_conta_e_configuracoes/e2e/round_05/` | [`changes.md`](changes.md), CHG-012 |
+| Fase 5 · **T5.7** e **T5.8** | Rodada `round_06`: roteiro que conecta contra a **sandbox** da Pluggy, vê o status e desconecta, com os quatro estados em prints distintos; execução e `report.md`. Junto vem a prova de que a capacidade de banco vem da tabela e não do binário, que só era observável pelos prints da rodada. | `qa` (as duas com o mesmo agente) | `app/patrol_test/` (roteiro novo), `docs/002_conta_e_configuracoes/e2e/round_06/` | [`changes.md`](changes.md), CHG-012 |
+| Fase 2 · **T2.5** | O print `docs/002_conta_e_configuracoes/e2e/round_03/03_navegacao_pelo_drawer.png`: abrir o app, tocar no ícone de menu, ir para transações pelo drawer e voltar **sem perder a pilha**. Sai de graça junto da rodada `round_03`, que já navega por ali. | `qa`, na rodada `round_03` | `docs/002_conta_e_configuracoes/e2e/round_03/` | [`changes.md`](changes.md), CHG-013 |
+| Fase 4 · **T4.11** | Dois prints da rodada `round_05`: a sequência que mostra configurar a IA e tocar no chat levando ao destino **sem navegação manual no meio** (o `refreshListenable` fazendo efeito), e `docs/002_conta_e_configuracoes/e2e/round_05/02_drawer_chat_desabilitado.png`, o item de chat desabilitado com o motivo em texto visível. **O teste do rótulo semântico não veio para cá:** ficou no DoD da T4.11, porque se prova por comando. | `qa`, na rodada `round_05` | `docs/002_conta_e_configuracoes/e2e/round_05/` | [`changes.md`](changes.md), CHG-013 |
+
+**Como este lote se fatia:** a **instrumentação** das rodadas é paralela — cada
+uma escreve num roteiro próprio sob `app/patrol_test/` e num diretório de
+evidência próprio —, mas a **execução é serial**, porque há um emulador e uma
+stack local por vez, e duas rodadas simultâneas disputariam o mesmo aparelho e o
+mesmo banco. Dentro de cada rodada, instrumentar e executar continuam com o mesmo
+agente, pela razão já escrita em cada fase: quem escreve o driver é quem o depura
+quando a rodada falha. A T2.6 é a que mais provavelmente falha primeiro, e por
+isso abre o lote.
+
+**Esta tabela cresce, e cresce no mesmo commit do desvio.** As Fases 2 a 6 ainda
+não rodaram, e o que elas adiaram por **D30** já está aqui; cada prova nova que
+for adiada entra junto do `CHG` que a registra — pendência que não está escrita
+é pendência perdida.
+
+**As duas linhas acima foram movidas por decisão do orquestrador, não do humano.**
+Prints de emulador em bloco DoD de **tarefa** — T2.5 e duas linhas da T4.11 —
+seguiram a mesma régua já aplicada à T1.15 no começo desta sessão: manter as
+outras fases sob régua diferente deixaria a política incoerente entre fases. A
+base é a diretriz de velocidade que o humano deu em 20/08/2026 (**D30**), e a
+decisão é **reversível por esta tabela**: cada linha está aqui com caminho
+completo, e discordar custa devolvê-la ao bloco de onde saiu. **Nada foi removido
+em silêncio, e nada que se prove por comando migrou:** a linha da T4.11 que
+empacotava print com saída de teste foi **partida em duas**, e o teste do rótulo
+semântico continua no DoD da tarefa (`changes.md`, CHG-013).
+
+
+**As linhas acima são DoD do lote, não rodapé de pendência conhecida:** quem
+fechar o lote roda cada prova pela `fechar-etapa`, como em qualquer fase, e
+enquanto uma delas estiver aberta a feature 002 não é dada por entregue no
+[`../roadmap.md`](../roadmap.md).
