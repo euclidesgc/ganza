@@ -12,6 +12,7 @@ import 'package:ganza/modules/areas_module/presentation/areas/widgets/areas_body
 import 'package:ganza/modules/auth_module/auth_module.dart';
 import 'package:ganza/modules/auth_module/domain/usecases/change_password.dart';
 import 'package:ganza/modules/auth_module/presentation/change_password/change_password_cubit.dart';
+import 'package:ganza/modules/auth_module/presentation/change_password/change_password_page.dart';
 import 'package:ganza/modules/settings_module/domain/domain.dart';
 import 'package:ganza/modules/settings_module/presentation/account/account_cubit.dart';
 import 'package:ganza/modules/settings_module/settings_module.dart';
@@ -109,6 +110,39 @@ void main() {
 
       expect(find.byType(AreasBody), findsOneWidget);
       expect(find.byType(BackButton), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'a partir da tela inicial, drawer > Configurações > Conta > Trocar '
+    'senha chega a /configuracoes/conta/senha',
+    (tester) async {
+      final router = createRouter();
+      await tester.pumpWidget(envolver(router));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AreasBody), findsOneWidget);
+
+      await tester.tap(find.byTooltip('Abrir menu'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Configurações'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Conta'));
+      await tester.pumpAndSettle();
+
+      await tester.ensureVisible(find.text('Trocar senha'));
+      await tester.tap(find.text('Trocar senha'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(ChangePasswordPage), findsOneWidget);
+      expect(
+        GoRouterState.of(
+          tester.element(find.byType(ChangePasswordPage)),
+        ).uri.toString(),
+        AuthRoutes.changePasswordPath,
+      );
     },
   );
 }

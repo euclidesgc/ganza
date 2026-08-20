@@ -1049,7 +1049,7 @@ Instrumentar (T3.9) e executar (T3.10) ficam com o mesmo agente pela razão de
 sempre: quem escreve o driver é quem o depura quando a rodada falha. **As duas
 rodam no lote de fechamento** (§9) e continuam juntas lá.
 
-- [ ] **T3.11** — Pôr na tela de Conta o controle que leva à troca de senha: hoje a rota existe, está registrada e testada, e **nenhum widget a aciona**. · camada **presentation** · `especialista-apresentacao`
+- [x] **T3.11** — Pôr na tela de Conta o controle que leva à troca de senha: hoje a rota existe, está registrada e testada, e **nenhum widget a aciona**. · camada **presentation** · `especialista-apresentacao` · **DoD: CUMPRIDO**
 
   **DoD da tarefa**
   - A tela de Conta, sob `app/lib/modules/settings_module/presentation/account/`, exibe um controle com o texto exato **"Trocar senha"**, com rótulo textual visível e `Semantics`: `rtk proxy grep -rn 'Trocar senha' app/lib/modules/settings_module/presentation/account/` devolve a linha.

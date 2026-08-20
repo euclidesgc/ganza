@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../../core/error/failure.dart';
 import '../../../../../core/theme/theme.dart';
 import '../account_cubit.dart';
+import 'account_change_password_tile.dart';
 import 'account_display_name_field.dart';
 import 'account_email_field.dart';
 import 'account_failure_banner.dart';
@@ -69,6 +70,8 @@ class _AccountFormState extends State<AccountForm> {
             builder: (context, saving) =>
                 AccountSaveButton(saving: saving, onPressed: _save),
           ),
+          const SizedBox(height: AppSpacing.lg),
+          const AccountChangePasswordTile(),
         ],
       ),
     );
