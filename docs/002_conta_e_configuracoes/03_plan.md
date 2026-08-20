@@ -581,7 +581,7 @@ Consolidar as três frentes antes de seguir.
   - Teste em `app/test/modules/auth_module/data/repositories/auth_repository_impl_test.dart` faz o cliente lançar `otp_expired` na verificação do código e assere a mensagem acima; remover o ramo faz o teste falhar — provar revertendo, colar as duas saídas e restaurar.
   - `cd app && dart format --set-exit-if-changed lib test`, `flutter analyze` e `flutter test -r compact` terminam com código de saída `0`.
 
-- [ ] **T1.14** `[paralela · frente H · worktree]` — Fazer o link de confirmação que chega à caixa de e-mail da stack local resolver: hoje ele responde `404`, e quem atesta o E2E clicando nele conclui que o cadastro quebrou. · camada **infra** · `especialista-infra`
+- [x] **T1.14** `[paralela · frente H · worktree]` — Fazer o link de confirmação que chega à caixa de e-mail da stack local resolver: hoje ele responde `404`, e quem atesta o E2E clicando nele conclui que o cadastro quebrou. · camada **infra** · `especialista-infra` · **DoD: CUMPRIDO**
 
   **DoD da tarefa**
   - Um cadastro novo na stack local gera mensagem cuja URL de confirmação, **copiada da caixa local sem nenhuma edição** e requisitada com `curl -s -o /dev/null -w '%{http_code}'`, **não** devolve `404`; colar o código recebido e a URL com o token ofuscado.
