@@ -65,6 +65,7 @@ GoRouter createRouter({String initialLocation = AreasRoutes.path}) {
       AuthRoutes.signUpRoute,
       AuthRoutes.passwordRecoveryRequestRoute,
       AuthRoutes.passwordRecoveryCodeRoute,
+      AuthRoutes.changePasswordRoute,
     ],
   );
 }
