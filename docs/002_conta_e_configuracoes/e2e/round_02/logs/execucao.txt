@@ -1,0 +1,543 @@
+ Container ganza-local-meta-1 Stopping 
+ Container ganza-local-storage-1 Stopping 
+ Container ganza-local-studio-1 Stopping 
+ Container ganza-local-storage-1 Stopped 
+ Container ganza-local-storage-1 Removing 
+ Container ganza-local-storage-1 Removed 
+ Container ganza-local-studio-1 Stopped 
+ Container ganza-local-studio-1 Removing 
+ Container ganza-local-studio-1 Removed 
+ Container ganza-local-kong-1 Stopping 
+ Container ganza-local-kong-1 Stopped 
+ Container ganza-local-kong-1 Removing 
+ Container ganza-local-kong-1 Removed 
+ Container ganza-local-auth-1 Stopping 
+ Container ganza-local-functions-1 Stopping 
+ Container ganza-local-rest-1 Stopping 
+ Container ganza-local-auth-1 Stopped 
+ Container ganza-local-auth-1 Removing 
+ Container ganza-local-rest-1 Stopped 
+ Container ganza-local-rest-1 Removing 
+ Container ganza-local-auth-1 Removed 
+ Container ganza-local-mail-1 Stopping 
+ Container ganza-local-functions-1 Stopped 
+ Container ganza-local-functions-1 Removing 
+ Container ganza-local-rest-1 Removed 
+ Container ganza-local-functions-1 Removed 
+ Container ganza-local-mail-1 Stopped 
+ Container ganza-local-mail-1 Removing 
+ Container ganza-local-mail-1 Removed 
+ Container ganza-local-meta-1 Stopped 
+ Container ganza-local-meta-1 Removing 
+ Container ganza-local-meta-1 Removed 
+ Container ganza-local-db-1 Stopping 
+ Container ganza-local-db-1 Stopped 
+ Container ganza-local-db-1 Removing 
+ Container ganza-local-db-1 Removed 
+ Network ganza-local_default Removing 
+ Volume ganza-local_db-data Removing 
+ Volume ganza-local_deno-cache Removing 
+ Volume ganza-local_db-data Removed 
+ Volume ganza-local_storage-data Removing 
+ Volume ganza-local_deno-cache Removed 
+ Volume ganza-local_storage-data Removed 
+ Network ganza-local_default Removed 
+ Network ganza-local_default Creating 
+ Network ganza-local_default Created 
+ Volume ganza-local_storage-data Creating 
+ Volume ganza-local_storage-data Created 
+ Volume ganza-local_deno-cache Creating 
+ Volume ganza-local_deno-cache Created 
+ Volume ganza-local_db-data Creating 
+ Volume ganza-local_db-data Created 
+ Container ganza-local-mail-1 Creating 
+ Container ganza-local-db-1 Creating 
+ Container ganza-local-mail-1 Created 
+ Container ganza-local-db-1 Created 
+ Container ganza-local-meta-1 Creating 
+ Container ganza-local-functions-1 Creating 
+ Container ganza-local-auth-1 Creating 
+ Container ganza-local-storage-1 Creating 
+ Container ganza-local-rest-1 Creating 
+ Container ganza-local-rest-1 Created 
+ Container ganza-local-auth-1 Created 
+ Container ganza-local-functions-1 Created 
+ Container ganza-local-kong-1 Creating 
+ Container ganza-local-storage-1 Created 
+ Container ganza-local-meta-1 Created 
+ Container ganza-local-kong-1 Created 
+ Container ganza-local-studio-1 Creating 
+ Container ganza-local-studio-1 Created 
+ Container ganza-local-mail-1 Starting 
+ Container ganza-local-db-1 Starting 
+ Container ganza-local-mail-1 Started 
+ Container ganza-local-db-1 Started 
+ Container ganza-local-db-1 Waiting 
+ Container ganza-local-db-1 Waiting 
+ Container ganza-local-db-1 Waiting 
+ Container ganza-local-db-1 Waiting 
+ Container ganza-local-db-1 Waiting 
+ Container ganza-local-db-1 Healthy 
+ Container ganza-local-db-1 Healthy 
+ Container ganza-local-rest-1 Starting 
+ Container ganza-local-db-1 Healthy 
+ Container ganza-local-functions-1 Starting 
+ Container ganza-local-meta-1 Starting 
+ Container ganza-local-db-1 Healthy 
+ Container ganza-local-db-1 Healthy 
+ Container ganza-local-auth-1 Starting 
+ Container ganza-local-storage-1 Starting 
+ Container ganza-local-auth-1 Started 
+ Container ganza-local-storage-1 Started 
+ Container ganza-local-meta-1 Started 
+ Container ganza-local-rest-1 Started 
+ Container ganza-local-functions-1 Started 
+ Container ganza-local-kong-1 Starting 
+ Container ganza-local-kong-1 Started 
+ Container ganza-local-studio-1 Starting 
+ Container ganza-local-studio-1 Started 
+NOTICE:  extension "pgcrypto" already exists, skipping
+CREATE EXTENSION
+DO
+ALTER ROLE
+ALTER ROLE
+NOTICE:  role "authenticator" is already a member of role "anon"
+NOTICE:  role "authenticator" is already a member of role "authenticated"
+GRANT ROLE
+CREATE SCHEMA
+NOTICE:  schema "extensions" already exists, skipping
+NOTICE:  schema "vault" already exists, skipping
+CREATE SCHEMA
+GRANT
+GRANT
+GRANT
+ALTER DEFAULT PRIVILEGES
+ALTER DEFAULT PRIVILEGES
+NOTICE:  extension "pgcrypto" already exists, skipping
+CREATE EXTENSION
+CREATE EXTENSION
+CREATE EXTENSION
+NOTICE:  extension "supabase_vault" already exists, skipping
+CREATE EXTENSION
+CREATE TABLE
+ALTER TABLE
+CREATE POLICY
+CREATE TABLE
+ALTER TABLE
+CREATE POLICY
+CREATE INDEX
+CREATE FUNCTION
+CREATE TRIGGER
+CREATE TABLE
+CREATE INDEX
+ALTER TABLE
+CREATE POLICY
+DROP POLICY
+CREATE POLICY
+DROP POLICY
+CREATE POLICY
+DROP POLICY
+CREATE POLICY
+ Container ganza-local-auth-1 Restarting 
+ Container ganza-local-functions-1 Restarting 
+ Container ganza-local-rest-1 Restarting 
+ Container ganza-local-rest-1 Started 
+ Container ganza-local-auth-1 Started 
+ Container ganza-local-functions-1 Started 
+[0m[32mDownload[0m https://registry.npmjs.org/@supabase%2fauth-js
+[0m[32mDownload[0m https://registry.npmjs.org/@supabase%2ffunctions-js
+[0m[32mDownload[0m https://registry.npmjs.org/@supabase%2fphoenix
+[0m[32mDownload[0m https://registry.npmjs.org/@supabase%2fpostgrest-js
+[0m[32mDownload[0m https://registry.npmjs.org/@supabase%2frealtime-js
+[0m[32mDownload[0m https://registry.npmjs.org/@supabase%2fstorage-js
+[0m[32mDownload[0m https://registry.npmjs.org/@supabase%2fsupabase-js
+[0m[32mDownload[0m https://registry.npmjs.org/iceberg-js
+[0m[32mDownload[0m https://registry.npmjs.org/tslib
+[0m[32mDownload[0m https://deno.land/x/postgresjs@v3.4.4/mod.js
+[0m[32mDownload[0m https://jsr.io/@std/http/meta.json
+[0m[32mDownload[0m https://deno.land/x/postgresjs@v3.4.4/src/index.js
+[0m[32mDownload[0m https://deno.land/x/postgresjs@v3.4.4/types/index.d.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/process.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/os.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/fs.ts
+[0m[32mDownload[0m https://deno.land/x/postgresjs@v3.4.4/src/types.js
+[0m[32mDownload[0m https://deno.land/x/postgresjs@v3.4.4/src/connection.js
+[0m[32mDownload[0m https://deno.land/x/postgresjs@v3.4.4/src/query.js
+[0m[32mDownload[0m https://deno.land/x/postgresjs@v3.4.4/src/queue.js
+[0m[32mDownload[0m https://deno.land/x/postgresjs@v3.4.4/src/errors.js
+[0m[32mDownload[0m https://deno.land/x/postgresjs@v3.4.4/src/subscribe.js
+[0m[32mDownload[0m https://deno.land/x/postgresjs@v3.4.4/src/large.js
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/buffer.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/stream.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/_deno_unstable.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_utils.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/events.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal/validators.mjs
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal/errors.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_options.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/_util/assert.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/path/mod.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_process/process.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_process/exiting.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_process/streams.mjs
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal_binding/mod.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal/process/per_thread.mjs
+[0m[32mDownload[0m https://deno.land/std@0.132.0/fs/eol.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/_util/os.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_fs/_fs_access.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_fs/_fs_appendFile.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_fs/_fs_chmod.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_fs/_fs_chown.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_fs/_fs_close.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_fs/_fs_streams.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_fs/_fs_constants.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_fs/_fs_copy.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_fs/_fs_dir.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_fs/_fs_dirent.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_fs/_fs_exists.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_fs/_fs_fdatasync.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_fs/_fs_fstat.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_fs/_fs_fsync.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_fs/_fs_ftruncate.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_fs/_fs_futimes.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_fs/_fs_link.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_fs/_fs_lstat.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_fs/_fs_mkdir.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_fs/_fs_mkdtemp.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_fs/_fs_open.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_fs/_fs_read.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_fs/_fs_readdir.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_fs/_fs_readFile.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_fs/_fs_readlink.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_fs/_fs_realpath.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_fs/_fs_rename.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_fs/_fs_rmdir.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_fs/_fs_rm.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_fs/_fs_stat.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_fs/_fs_symlink.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_fs/_fs_truncate.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_fs/_fs_unlink.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_fs/_fs_utimes.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_fs/_fs_watch.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_fs/_fs_write.mjs
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_fs/_fs_write.d.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_fs/_fs_writev.mjs
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_fs/_fs_writev.d.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_fs/_fs_writeFile.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal/fs/utils.mjs
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal/fs/streams.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/util.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/hash/sha256.ts
+[0m[32mDownload[0m https://deno.land/x/postgresjs@v3.4.4/polyfills.js
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/crypto.ts
+[0m[32mDownload[0m https://deno.land/x/postgresjs@v3.4.4/src/result.js
+[0m[32mDownload[0m https://deno.land/x/postgresjs@v3.4.4/src/bytes.js
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_buffer.mjs
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_buffer.d.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_stream.mjs
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_stream.d.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/async/mod.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/testing/asserts.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/streams/conversion.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_events.mjs
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_events.d.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal/error_codes.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal/hide_stack_frames.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal/util/types.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal/normalize_encoding.mjs
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal/util/inspect.mjs
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal_binding/uv.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal_binding/constants.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal_binding/node_options.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/path/win32.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/path/posix.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/path/common.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/path/separator.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/path/_interface.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/path/glob.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_next_tick.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_process/stdio.mjs
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal_binding/async_wrap.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal_binding/buffer.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal_binding/config.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal_binding/cares_wrap.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal_binding/contextify.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal_binding/crypto.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal_binding/credentials.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal_binding/errors.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal_binding/fs.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal_binding/fs_dir.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal_binding/fs_event_wrap.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal_binding/heap_utils.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal_binding/http_parser.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal_binding/icu.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal_binding/inspector.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal_binding/js_stream.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal_binding/messaging.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal_binding/module_wrap.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal_binding/native_module.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal_binding/natives.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal_binding/options.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal_binding/os.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal_binding/pipe_wrap.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal_binding/performance.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal_binding/process_methods.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal_binding/report.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal_binding/serdes.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal_binding/signal_wrap.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal_binding/spawn_sync.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal_binding/stream_wrap.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal_binding/string_decoder.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal_binding/symbols.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal_binding/task_queue.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal_binding/tcp_wrap.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal_binding/timers.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal_binding/tls_wrap.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal_binding/trace_events.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal_binding/tty_wrap.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal_binding/types.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal_binding/udp_wrap.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal_binding/url.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal_binding/util.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal_binding/v8.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal_binding/worker.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal_binding/zlib.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_fs/_fs_common.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/path.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/fs/exists.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_global.d.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal/util.mjs
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal/url.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal/assert.mjs
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_util/_util_callbackify.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal/util/debuglog.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/util/types.mjs
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal/util/comparisons.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/net.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_crypto/randomBytes.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_crypto/randomFill.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_crypto/randomInt.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_crypto/pbkdf2.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_crypto/scrypt.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_crypto/timingSafeEqual.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_crypto/hash.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_crypto/crypto_browserify/public_encrypt/mod.js
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal/buffer.mjs
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal_binding/_utils.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/encoding/base64.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/encoding/base64url.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal/streams/_utils.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal/streams/add-abort-signal.mjs
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal/streams/destroy.mjs
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal/streams/utils.mjs
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal/streams/pipeline.mjs
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal/streams/legacy.mjs
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal/streams/compose.mjs
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal/streams/duplex.mjs
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal/streams/end-of-stream.mjs
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal/streams/passthrough.mjs
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/stream/promises.mjs
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal/streams/readable.mjs
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal/streams/transform.mjs
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal/streams/writable.mjs
+[0m[32mDownload[0m https://deno.land/std@0.132.0/async/abortable.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/async/deadline.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/async/debounce.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/async/deferred.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/async/delay.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/async/mux_async_iterator.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/async/pool.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/async/tee.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/fmt/colors.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/testing/_diff.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/io/buffer.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal/crypto/keys.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal_binding/_libuv_winerror.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/flags/mod.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/path/_constants.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/path/_util.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_core.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_fixed_queue.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal_binding/_node.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/bytes/mod.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal/net.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal_binding/connection_wrap.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal_binding/handle_wrap.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/path/mod.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/url.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/fmt/printf.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal/async_hooks.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal/stream_base_commons.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal/timers.mjs
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal/dtrace.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/dns.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_crypto/constants.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_crypto/types.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/_wasm_crypto/mod.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/encoding/hex.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_crypto/crypto_browserify/public_encrypt/public_encrypt.js
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_crypto/crypto_browserify/public_encrypt/private_decrypt.js
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal/blob.mjs
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal/streams/from.mjs
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal/streams/state.mjs
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/string_decoder.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal/streams/buffer_list.mjs
+[0m[32mDownload[0m https://deno.land/std@0.132.0/bytes/bytes_list.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/io/types.d.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal/crypto/util.mjs
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal_binding/_winerror.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/bytes/equals.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal_binding/node_file.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/path/win32.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/path/posix.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/path/common.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/path/separator.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/path/_interface.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/path/glob.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal/idna.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/internal/querystring.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/querystring.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/timers.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_dns/_utils.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/_wasm_crypto/crypto.mjs
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_crypto/crypto_browserify/parse_asn1/mod.js
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_crypto/crypto_browserify/randombytes.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_crypto/crypto_browserify/public_encrypt/mgf.js
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_crypto/crypto_browserify/public_encrypt/xor.js
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_crypto/crypto_browserify/bn.js/bn.js
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_crypto/crypto_browserify/public_encrypt/with_public.js
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_crypto/crypto_browserify/browserify_rsa.js
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/path/_constants.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/path/_util.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/_wasm_crypto/crypto.wasm.mjs
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_crypto/crypto_browserify/parse_asn1/asn1.js
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_crypto/crypto_browserify/parse_asn1/fix_proc.js
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_crypto/crypto_browserify/browserify_aes/mod.js
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_crypto/crypto_browserify/asn1.js/mod.js
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_crypto/crypto_browserify/parse_asn1/certificate.js
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_crypto/crypto_browserify/evp_bytes_to_key.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_crypto/crypto_browserify/browserify_aes/modes/mod.js
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_crypto/crypto_browserify/browserify_aes/encrypter.js
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_crypto/crypto_browserify/browserify_aes/decrypter.js
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_crypto/crypto_browserify/asn1.js/base/node.js
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_crypto/crypto_browserify/asn1.js/base/buffer.js
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_crypto/crypto_browserify/asn1.js/base/reporter.js
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_crypto/crypto_browserify/asn1.js/encoders/der.js
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_crypto/crypto_browserify/asn1.js/encoders/pem.js
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_crypto/crypto_browserify/asn1.js/decoders/der.js
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_crypto/crypto_browserify/asn1.js/decoders/pem.js
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_crypto/crypto_browserify/asn1.js/constants/der.js
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_crypto/crypto_browserify/browserify_aes/modes/ecb.js
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_crypto/crypto_browserify/browserify_aes/modes/cbc.js
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_crypto/crypto_browserify/browserify_aes/modes/cfb.js
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_crypto/crypto_browserify/browserify_aes/modes/cfb8.js
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_crypto/crypto_browserify/browserify_aes/modes/cfb1.js
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_crypto/crypto_browserify/browserify_aes/modes/ofb.js
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_crypto/crypto_browserify/browserify_aes/modes/ctr.js
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_crypto/crypto_browserify/browserify_aes/auth_cipher.js
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_crypto/crypto_browserify/browserify_aes/stream_cipher.js
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_crypto/crypto_browserify/cipher_base.js
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_crypto/crypto_browserify/browserify_aes/aes.js
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_crypto/crypto_browserify/browserify_aes/xor.ts
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_crypto/crypto_browserify/browserify_aes/incr32.js
+[0m[32mDownload[0m https://deno.land/std@0.132.0/node/_crypto/crypto_browserify/browserify_aes/ghash.js
+[0m[32mDownload[0m https://jsr.io/@std/http/1.1.3_meta.json
+[0m[32mDownload[0m https://jsr.io/@std/http/1.1.3/status.ts
+[0m[32mDownload[0m https://registry.npmjs.org/@supabase/supabase-js/-/supabase-js-2.112.3.tgz
+[0m[32mDownload[0m https://registry.npmjs.org/@supabase/storage-js/-/storage-js-2.112.3.tgz
+[0m[32mDownload[0m https://registry.npmjs.org/@supabase/postgrest-js/-/postgrest-js-2.112.3.tgz
+[0m[32mDownload[0m https://registry.npmjs.org/@supabase/auth-js/-/auth-js-2.112.3.tgz
+[0m[32mDownload[0m https://registry.npmjs.org/@supabase/functions-js/-/functions-js-2.112.3.tgz
+[0m[32mDownload[0m https://registry.npmjs.org/@supabase/realtime-js/-/realtime-js-2.112.3.tgz
+[0m[32mDownload[0m https://registry.npmjs.org/iceberg-js/-/iceberg-js-0.8.1.tgz
+[0m[32mDownload[0m https://registry.npmjs.org/tslib/-/tslib-2.8.1.tgz
+[0m[32mDownload[0m https://registry.npmjs.org/@supabase/phoenix/-/phoenix-0.4.5.tgz
+ Container ganza-local-functions-1 Restarting 
+ Container ganza-local-rest-1 Restarting 
+ Container ganza-local-studio-1 Restarting 
+ Container ganza-local-rest-1 Started 
+ Container ganza-local-functions-1 Started 
+ Container ganza-local-studio-1 Started 
+
+── pré-requisitos
+PASS  senhas descartáveis lidas do próprio roteiro
+PASS  capturador de e-mail local no ar
+PASS  ambiente completo
+PASS  endereço desta execução: e2e-fffcnzcniumd@ganza.local
+curl: (7) Failed to connect to 127.0.0.1 port 8765 after 0 ms: Couldn't connect to server
+PASS  servidor de captura pronto
+
+── emulador
+PASS  emulador Pixel_8_Pro pronto (API 35)
+PASS  diálogos de erro do sistema suprimidos — nenhum ANR tapa os prints
+
+── partida — o endereço da execução ainda não tem conta
+PASS  entrar antes de cadastrar devolve 400 — o endereço está livre
+
+── cena criar_conta · cadastro pela tela, sem sessão no fim
+PASS  cena 'criar_conta' — Patrol verde e print(s): 10_conta_criada_confirme_email
+
+── cena entrar_sem_confirmar · a conta existe e mesmo assim não entra
+PASS  cena 'entrar_sem_confirmar' — Patrol verde e print(s): 11_entrar_sem_confirmar
+
+── cena confirmar_e_entrar · token da mensagem capturada, depois login pela tela
+PASS  cena 'confirmar_e_entrar' — Patrol verde e print(s): 12_dentro_do_app_com_a_conta_nova 13_email_lembrado_apos_sair
+
+── cena recuperar_senha · código errado, senha fraca, código certo, senha trocada
+PASS  cena 'recuperar_senha' — Patrol verde e print(s): 14_codigo_errado_recusado 15_nova_senha_apos_codigo_certo 16_senha_nova_fraca_recusada 17_dentro_do_app_apos_trocar_a_senha 18_senha_antiga_recusada 19_entrar_com_a_senha_nova
+
+── servidor · a conta da rodada, conferida pelo caminho público
+PASS  a senha do cadastro não entra mais (400)
+PASS  a senha definida na recuperação entra (200)
+2 mensagem(ns) capturada(s) para o endereço da rodada
+PASS  mensagens da rodada resumidas em mensagens_capturadas.json (sem token e sem código)
+
+── resultado
+✓ rodada 02 verde — evidências em /home/euclidesgc/development/ganza/docs/002_conta_e_configuracoes/e2e/round_02
+
+── limpeza
+ Container ganza-local-storage-1 Stopping 
+ Container ganza-local-studio-1 Stopping 
+ Container ganza-local-meta-1 Stopping 
+ Container ganza-local-storage-1 Stopped 
+ Container ganza-local-storage-1 Removing 
+ Container ganza-local-storage-1 Removed 
+ Container ganza-local-studio-1 Stopped 
+ Container ganza-local-studio-1 Removing 
+ Container ganza-local-studio-1 Removed 
+ Container ganza-local-kong-1 Stopping 
+ Container ganza-local-kong-1 Stopped 
+ Container ganza-local-kong-1 Removing 
+ Container ganza-local-kong-1 Removed 
+ Container ganza-local-auth-1 Stopping 
+ Container ganza-local-functions-1 Stopping 
+ Container ganza-local-rest-1 Stopping 
+ Container ganza-local-auth-1 Stopped 
+ Container ganza-local-auth-1 Removing 
+ Container ganza-local-rest-1 Stopped 
+ Container ganza-local-rest-1 Removing 
+ Container ganza-local-auth-1 Removed 
+ Container ganza-local-mail-1 Stopping 
+ Container ganza-local-rest-1 Removed 
+ Container ganza-local-functions-1 Stopped 
+ Container ganza-local-functions-1 Removing 
+ Container ganza-local-functions-1 Removed 
+ Container ganza-local-mail-1 Stopped 
+ Container ganza-local-mail-1 Removing 
+ Container ganza-local-mail-1 Removed 
+ Container ganza-local-meta-1 Stopped 
+ Container ganza-local-meta-1 Removing 
+ Container ganza-local-meta-1 Removed 
+ Container ganza-local-db-1 Stopping 
+ Container ganza-local-db-1 Stopped 
+ Container ganza-local-db-1 Removing 
+ Container ganza-local-db-1 Removed 
+ Network ganza-local_default Removing 
+ Volume ganza-local_storage-data Removing 
+ Volume ganza-local_db-data Removing 
+ Volume ganza-local_deno-cache Removing 
+ Volume ganza-local_storage-data Removed 
+ Volume ganza-local_db-data Removed 
+ Volume ganza-local_deno-cache Removed 
+ Network ganza-local_default Removed 
+EXIT=0

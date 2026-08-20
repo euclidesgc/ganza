@@ -51,6 +51,15 @@ ULTIMO_EMAIL=0
 
 export PATH="$PATH:$HOME/.puro/shared/pub_cache/bin:$HOME/.pub-cache/bin:${ANDROID_HOME:-$HOME/Android/Sdk}/platform-tools:${ANDROID_HOME:-$HOME/Android/Sdk}/emulator"
 
+ROTEIRO="$APP/patrol_test/conta_e_recuperacao_test.dart"
+
+# A conferência pelo caminho público precisa das MESMAS senhas que o roteiro
+# digita na tela. Repeti-las aqui as deixa divergir em silêncio na primeira vez
+# que o roteiro mudar, e a rodada reprova por um motivo que não é o dela.
+senha_do_roteiro() { # <constante>
+  sed -n "s/^const $1 = '\(.*\)';\$/\1/p" "$ROTEIRO"
+}
+
 falhas=0
 ok()   { printf 'PASS  %s\n' "$*"; }
 nok()  { printf 'FAIL  %s\n' "$*"; falhas=$((falhas + 1)); }
@@ -89,6 +98,11 @@ done
 for bin in adb emulator patrol curl python3; do
   command -v "$bin" >/dev/null || { nok "binário ausente: $bin"; exit 1; }
 done
+SENHA_DO_CADASTRO="$(senha_do_roteiro _senhaInicial)"
+SENHA_DA_RECUPERACAO="$(senha_do_roteiro _senhaNova)"
+[ -n "$SENHA_DO_CADASTRO" ] && [ -n "$SENHA_DA_RECUPERACAO" ] \
+  && ok 'senhas descartáveis lidas do próprio roteiro' \
+  || { nok "não foi possível ler as senhas de $ROTEIRO"; exit 1; }
 curl -fsS "$MAILPIT_HOST/api/v1/info" >/dev/null \
   && ok 'capturador de e-mail local no ar' \
   || { nok "capturador de e-mail não respondeu em $MAILPIT_HOST"; exit 1; }
@@ -138,7 +152,7 @@ adb -s "$SERIAL" reverse "tcp:$EVIDENCE_PORT" "tcp:$EVIDENCE_PORT" >/dev/null
 etapa 'partida — o endereço da execução ainda não tem conta'
 entrada="$(curl -sS -X POST "$SUPABASE_URL/auth/v1/token?grant_type=password" \
   -H "apikey: $ANON_KEY" -H 'Content-Type: application/json' \
-  -d "{\"email\":\"$ENDERECO\",\"password\":\"ganza-local-primeira\"}" \
+  -d "{\"email\":\"$ENDERECO\",\"password\":\"$SENHA_DO_CADASTRO\"}" \
   -o /dev/null -w '%{http_code}')"
 [ "$entrada" = '400' ] \
   && ok "entrar antes de cadastrar devolve $entrada — o endereço está livre" \
@@ -191,22 +205,22 @@ cena entrar_sem_confirmar 11_entrar_sem_confirmar
 etapa 'cena confirmar_e_entrar · token da mensagem capturada, depois login pela tela'
 cena confirmar_e_entrar 12_dentro_do_app_com_a_conta_nova 13_email_lembrado_apos_sair
 
-etapa 'cena recuperar_senha · código errado, código certo, senha trocada'
+etapa 'cena recuperar_senha · código errado, senha fraca, código certo, senha trocada'
 aguardar_janela_de_email
 cena recuperar_senha \
   14_codigo_errado_recusado 15_nova_senha_apos_codigo_certo \
-  16_dentro_do_app_apos_trocar_a_senha 17_senha_antiga_recusada \
-  18_entrar_com_a_senha_nova
+  16_senha_nova_fraca_recusada 17_dentro_do_app_apos_trocar_a_senha \
+  18_senha_antiga_recusada 19_entrar_com_a_senha_nova
 
 # ─────────────────────────── o que o servidor viu, sem token nem senha ──
 etapa 'servidor · a conta da rodada, conferida pelo caminho público'
 antiga="$(curl -sS -X POST "$SUPABASE_URL/auth/v1/token?grant_type=password" \
   -H "apikey: $ANON_KEY" -H 'Content-Type: application/json' \
-  -d "{\"email\":\"$ENDERECO\",\"password\":\"ganza-local-primeira\"}" \
+  -d "{\"email\":\"$ENDERECO\",\"password\":\"$SENHA_DO_CADASTRO\"}" \
   -o /dev/null -w '%{http_code}')"
 nova="$(curl -sS -X POST "$SUPABASE_URL/auth/v1/token?grant_type=password" \
   -H "apikey: $ANON_KEY" -H 'Content-Type: application/json' \
-  -d "{\"email\":\"$ENDERECO\",\"password\":\"ganza-local-trocada\"}" \
+  -d "{\"email\":\"$ENDERECO\",\"password\":\"$SENHA_DA_RECUPERACAO\"}" \
   -o /dev/null -w '%{http_code}')"
 [ "$antiga" = '400' ] \
   && ok "a senha do cadastro não entra mais ($antiga)" \

@@ -7,6 +7,40 @@ estado final, sem preservar neles uma versão obsoleta do planejamento.
 
 ## Mudanças registradas
 
+### CHG-008 - A rodada 02 reprovou por defeito do app, e a prova do conserto não tinha onde morar
+
+- **Data:** 2026-08-20
+- **Fase/PR:** Fase 1 (PR 1), tarefa T1.11.
+- **Planejado originalmente:** a T1.11 executaria o roteiro da T1.10 e fecharia
+  a evidência. Nenhuma tarefa da fase previa mexer no app durante a execução.
+- **Por que não foi possível prosseguir:** a cena `recuperar_senha` parou com
+  `setState() or markNeedsBuild() called during build` vindo do `Router`. O
+  construtor do `PasswordRecoveryCodeCubit` chama `begin()`, e o `create` do
+  `BlocProvider` é **lazy** — ele roda durante o build da árvore de rotas —, de
+  modo que o `notifyListeners` síncrono reentrava no `GoRouter`, que escuta o
+  escopo pelo `refreshListenable`, no meio do build dele. **Em release isso fica
+  dentro de um `assert`**, o que faria a falha existir sem aparecer.
+- **Alternativas consideradas:** (a) tirar o `begin()` do construtor do cubit,
+  para um callback pós-frame ou para o `pageBuilder` — move o problema, porque o
+  `pageBuilder` também é chamado em fase de build; (b) adiar a mudança de
+  `_isActive` junto com a notificação — abre uma janela em que o `redirect` lê
+  `false` com a pessoa já na tela do código, e a manda para `/entrar`;
+  (c) adiar **só** o `notifyListeners`.
+- **Decisão tomada:** (c), em `app/lib/core/session/password_recovery_scope.dart`
+  (commit `c278c9f`). `_isActive` continua mudando de forma síncrona — o
+  `redirect` do mesmo frame já lê o valor novo — e a notificação é adiada para
+  depois do frame corrente quando a chamada acontece em fase de build.
+- **Resumo da resolução:** o teste `app/test/core/session/password_recovery_scope_test.dart`
+  reproduz o formato exato do defeito sem depender do go_router, e foi visto
+  falhar com a correção revertida. A primeira linha do DoD da T1.11 passou a
+  cobrar o log da rodada **versionado**, em `logs/execucao.txt`, sem a frase do
+  defeito: o critério anterior era atestado sem lugar de repouso, que nenhum
+  supervisor cego consegue confirmar — foi o `DOD INVÁLIDO` que o revelou.
+- **Reconciliação documental:** `03_plan.md`, primeira linha do DoD da **T1.11**;
+  `CHANGELOG.md`, seção `Unreleased`. A extensão `.txt` segue o que a round_01
+  já fazia em `logs/gotrue_requisicoes.txt`, porque `*.log` está no `.gitignore`
+  e a prova precisa chegar ao PR.
+
 ### CHG-007 - O segundo modo de falha do E2E era um que o roteiro evita, e a alternativa não era falha nenhuma
 
 - **Data:** 2026-08-20

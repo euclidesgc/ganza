@@ -51,6 +51,11 @@ const _endereco = String.fromEnvironment('E2E_ENDERECO');
 const _senhaInicial = 'exemplo-local-primeira';
 const _senhaNova = 'exemplo-local-trocada';
 
+/// Curta de propósito: o servidor exige seis caracteres e a tela não valida
+/// tamanho localmente, então este valor é o que produz a recusa de senha fraca
+/// sem depender de nenhuma outra condição.
+const _senhaCurta = 'curta';
+
 const _emailNaoConfirmado = 'Confirme seu e-mail antes de entrar.';
 const _credencialIncorreta = 'E-mail ou senha incorretos.';
 const _sessaoExpirada = 'Sua sessão expirou. Entre de novo.';
@@ -62,6 +67,11 @@ const _sessaoExpirada = 'Sua sessão expirou. Entre de novo.';
 const _codigoRecusado =
     'Código inválido ou vencido. Confira e digite de novo, ou volte '
     'para pedir um novo código.';
+
+/// Segundo modo de falha do fluxo de recuperação (**CHG-007**,
+/// `docs/002_conta_e_configuracoes/changes.md`). Asserido por extenso pela
+/// mesma razão do código recusado: o print registra, a asserção cobra.
+const _avisoDeSenhaCurta = 'A senha precisa ter pelo menos 6 caracteres.';
 
 const _hostsDaStackLocal = {'127.0.0.1', 'localhost', '0.0.0.0', '10.0.2.2'};
 
@@ -239,8 +249,8 @@ Future<void> _cenaRecuperarSenha(WidgetTester tester) async {
   expect(find.byType(CodeStepForm), findsOneWidget);
   expect(find.byType(NewPasswordStepForm), findsNothing);
   expect(_textoDoCampo(tester, _campoDoCodigo), errado);
-  expect(_textoDoErroDaEtapaDoCodigo(tester), _codigoRecusado);
-  expect(_textoDoErroDaEtapaDoCodigo(tester), isNot(_sessaoExpirada));
+  expect(_textoDoErro(tester, _erroDaEtapaDoCodigo), _codigoRecusado);
+  expect(_textoDoErro(tester, _erroDaEtapaDoCodigo), isNot(_sessaoExpirada));
   await _capturar(tester, '14_codigo_errado_recusado');
 
   await _preencher(tester, _campoDoCodigo, codigo);
@@ -249,15 +259,26 @@ Future<void> _cenaRecuperarSenha(WidgetTester tester) async {
   await _capturar(tester, '15_nova_senha_apos_codigo_certo');
 
   final etapaDaSenha = find.byType(NewPasswordStepForm);
-  await _preencher(tester, _campoDe(etapaDaSenha, 'Nova senha'), _senhaNova);
-  await _preencher(
-    tester,
-    _campoDe(etapaDaSenha, 'Confirme a nova senha'),
-    _senhaNova,
-  );
+  final campoDaSenhaNova = _campoDe(etapaDaSenha, 'Nova senha');
+  final campoDaConfirmacao = _campoDe(etapaDaSenha, 'Confirme a nova senha');
+
+  await _preencher(tester, campoDaSenhaNova, _senhaCurta);
+  await _preencher(tester, campoDaConfirmacao, _senhaCurta);
+  await _tocar(tester, find.widgetWithText(FilledButton, 'Salvar nova senha'));
+  await _aguardar(tester, _erroDaEtapaDaSenha);
+
+  expect(find.byType(NewPasswordStepForm), findsOneWidget);
+  expect(_textoDoCampo(tester, campoDaSenhaNova), _senhaCurta);
+  expect(_textoDoCampo(tester, campoDaConfirmacao), _senhaCurta);
+  expect(_textoDoErro(tester, _erroDaEtapaDaSenha), _avisoDeSenhaCurta);
+  expect(_textoDoErro(tester, _erroDaEtapaDaSenha), isNot(_sessaoExpirada));
+  await _capturar(tester, '16_senha_nova_fraca_recusada');
+
+  await _preencher(tester, campoDaSenhaNova, _senhaNova);
+  await _preencher(tester, campoDaConfirmacao, _senhaNova);
   await _tocar(tester, find.widgetWithText(FilledButton, 'Salvar nova senha'));
   await _aguardarEntradaNoApp(tester);
-  await _capturar(tester, '16_dentro_do_app_apos_trocar_a_senha');
+  await _capturar(tester, '17_dentro_do_app_apos_trocar_a_senha');
 
   await _tocar(tester, find.byTooltip('Sair'));
   await _aguardar(tester, _botaoEntrar);
@@ -266,10 +287,10 @@ Future<void> _cenaRecuperarSenha(WidgetTester tester) async {
   await _tocar(tester, _botaoEntrar);
   await _aguardar(tester, _erroDaTelaDeEntrar(_credencialIncorreta));
   expect(find.byTooltip('Sair'), findsNothing);
-  await _capturar(tester, '17_senha_antiga_recusada');
+  await _capturar(tester, '18_senha_antiga_recusada');
 
   await _entrar(tester, _senhaNova);
-  await _capturar(tester, '18_entrar_com_a_senha_nova');
+  await _capturar(tester, '19_entrar_com_a_senha_nova');
 }
 
 /// O caminho que a pessoa percorre ao abrir a caixa de entrada e clicar no
@@ -444,16 +465,18 @@ Finder _erroDaTelaDeEntrar(String mensagem) => find.descendant(
 
 /// O `FailureBanner` fica sempre montado e vira `SizedBox.shrink()` sem
 /// mensagem — o que prova que o erro apareceu é existir texto dentro dele.
-Finder get _erroDaEtapaDoCodigo => find.descendant(
-  of: find.descendant(
-    of: find.byType(CodeStepForm),
-    matching: find.byType(FailureBanner),
-  ),
+Finder _erroDaEtapa(Finder etapa) => find.descendant(
+  of: find.descendant(of: etapa, matching: find.byType(FailureBanner)),
   matching: find.byType(Text),
 );
 
-String? _textoDoErroDaEtapaDoCodigo(WidgetTester tester) =>
-    tester.widget<Text>(_erroDaEtapaDoCodigo).data;
+Finder get _erroDaEtapaDoCodigo => _erroDaEtapa(find.byType(CodeStepForm));
+
+Finder get _erroDaEtapaDaSenha =>
+    _erroDaEtapa(find.byType(NewPasswordStepForm));
+
+String? _textoDoErro(WidgetTester tester, Finder erro) =>
+    tester.widget<Text>(erro).data;
 
 String? _textoDoCampo(WidgetTester tester, Finder campo) =>
     tester.widget<TextField>(campo).controller?.text;
