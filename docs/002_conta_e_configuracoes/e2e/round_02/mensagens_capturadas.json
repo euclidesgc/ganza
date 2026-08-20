@@ -1,0 +1,16 @@
+[
+  {
+    "assunto": "Reset Your Password",
+    "recebida_em": "2026-08-20T14:07:17.948Z",
+    "tipo": "recovery",
+    "traz_link_com_token": true,
+    "traz_codigo_de_seis_digitos": true
+  },
+  {
+    "assunto": "Confirm Your Email",
+    "recebida_em": "2026-08-20T14:00:22.288Z",
+    "tipo": "signup",
+    "traz_link_com_token": true,
+    "traz_codigo_de_seis_digitos": true
+  }
+]

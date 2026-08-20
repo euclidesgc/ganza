@@ -1,0 +1,8 @@
+$ adb -s emulator-5554 shell run-as br.com.ganza.ganza.dev ls -1 /data/data/br.com.ganza.ganza.dev/shared_prefs/
+FlutterSharedPreferences.xml
+
+$ adb -s emulator-5554 shell run-as br.com.ganza.ganza.dev cat .../shared_prefs/FlutterSharedPreferences.xml | grep -oE 'name="[^"]+"'
+name="flutter.sb-10-auth-token"
+
+Nenhum valor foi copiado para esta rodada. Do conteudo da chave so ficou
+registrado o tamanho: 2821 bytes de JSON.

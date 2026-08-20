@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 
+import 'core/session/session.dart';
 import 'injection.dart';
 import 'modules/areas_module/areas_module.dart';
 import 'modules/auth_module/auth_module.dart';
@@ -12,19 +13,49 @@ import 'modules/transactions_module/transactions_module.dart';
 /// mesmo `lib/` serve Android e Web.
 GoRouter createRouter() {
   final sessions = getIt<ObserveCurrentUser>()();
+  final recoveryScope = getIt<PasswordRecoveryScope>();
 
   return GoRouter(
     initialLocation: AreasRoutes.path,
-    refreshListenable: _SessionListenable(sessions),
+    refreshListenable: Listenable.merge([
+      _SessionListenable(sessions),
+      recoveryScope,
+    ]),
     redirect: (context, state) {
-      final signedIn = getIt<GetCurrentUser>()() != null;
-      final goingToLogin = state.matchedLocation == AuthRoutes.loginPath;
+      final location = state.matchedLocation;
 
-      if (!signedIn && !goingToLogin) return AuthRoutes.loginPath;
-      if (signedIn && goingToLogin) return AreasRoutes.path;
-      return null;
+      // O verifyOTP da recuperação de senha entrega uma sessão válida do
+      // GoTrue, igual a um login normal. Sem este terceiro estado a guarda
+      // trataria isso como sessão comum e mandaria para a raiz antes de o
+      // usuário ver o campo de nova senha — PasswordRecoveryScope é o único
+      // sinal que distingue os dois casos.
+      if (recoveryScope.isActive) {
+        return location == AuthRoutes.passwordRecoveryCodePath
+            ? null
+            : AuthRoutes.passwordRecoveryCodePath;
+      }
+
+      final signedIn = getIt<GetCurrentUser>()() != null;
+      const publicPaths = {
+        AuthRoutes.loginPath,
+        AuthRoutes.signUpPath,
+        AuthRoutes.passwordRecoveryRequestPath,
+        AuthRoutes.passwordRecoveryCodePath,
+      };
+
+      if (!signedIn) {
+        return publicPaths.contains(location) ? null : AuthRoutes.loginPath;
+      }
+      return publicPaths.contains(location) ? AreasRoutes.path : null;
     },
-    routes: [AreasRoutes.route, AuthRoutes.route, TransactionsRoutes.route],
+    routes: [
+      AreasRoutes.route,
+      AuthRoutes.route,
+      AuthRoutes.signUpRoute,
+      AuthRoutes.passwordRecoveryRequestRoute,
+      AuthRoutes.passwordRecoveryCodeRoute,
+      TransactionsRoutes.route,
+    ],
   );
 }
 

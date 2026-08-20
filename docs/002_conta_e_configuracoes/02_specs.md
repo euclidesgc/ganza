@@ -29,7 +29,7 @@ Levantado no repositório, não presumido. É contra isto que o plano fatia.
 | `app/lib/modules/auth_module/auth_module.dart` | exporta rota, DI e o contrato de sessão — `AuthenticatedUser`, `ObserveCurrentUser`, `GetCurrentUser` e `SignOut` (o `CLAUDE.md` fala em "três símbolos" e o arquivo exporta quatro; a exceção é a mesma) | tela nova que precise de use case do auth mora **dentro** do auth; a exceção não se amplia |
 | `app/lib/app_router.dart` | router **plano**, sem `ShellRoute`; guarda binária `getIt<GetCurrentUser>()() != null`; `refreshListenable` é um único `ChangeNotifier` sobre o stream de sessão | menu lateral exige shell; recuperação de senha exige um **terceiro** estado na guarda; gating exige `Listenable.merge` |
 | `app/lib/bootstrap.dart` | `Supabase.initialize` sem `authOptions` | valem os defaults `persistSession = true` e `autoRefreshToken = true`; access e refresh token ficam em `SharedPreferences` |
-| `infra/local/docker-compose.yml`, `docs/deploy/coolify.md` | sem `GOTRUE_SESSIONS_TIMEBOX` e sem `GOTRUE_SESSIONS_INACTIVITY_TIMEOUT`; `SMTP_HOST`/`SMTP_USER`/`SMTP_PASS` vazios | pelo código **a sessão não deveria cair**; e não há como enviar e-mail de recuperação de um ambiente real |
+| `infra/local/docker-compose.yml`, `docs/deploy/coolify.md` | sem `GOTRUE_SESSIONS_TIMEBOX` e sem `GOTRUE_SESSIONS_INACTIVITY_TIMEOUT`. A stack local já roda `GOTRUE_MAILER_AUTOCONFIRM: 'false'` com capturador de e-mail (T1.5); na HML, `SMTP_HOST`/`SMTP_USER`/`SMTP_PASS` ainda vazios, e a virada entra no redeploy do SMTP | pelo código **a sessão não deveria cair** — e a T1.1 mediu que não cai; a recuperação se prova inteira na stack local, sem esperar a HML |
 | `app/lib/core/` | tem `config`, `error`, `format`, `network`, `observability`, `theme`, `widgets` — **não tem `session/`** | escopo de recuperação e capacidades do usuário são pasta nova |
 | `app/lib/core/widgets/widgets.dart` | exporta só `brand/brand.dart` e `pulse/pulse.dart` | menu lateral e campo de segredo entram como tiers novos, com barrel próprio |
 | `app/lib/core/theme/app_theme.dart` | sem `DrawerThemeData`, `ListTileThemeData`, `SwitchThemeData` | sem tematizar, o menu vem com elevação e *surface tint* do M3, contra "material humilde" |
@@ -58,7 +58,11 @@ Levantado no repositório, não presumido. É contra isto que o plano fatia.
 
 Os dois últimos coexistem de propósito: são fluxos diferentes com exigências diferentes. Um arquivo de use case por operação, cada um com um único método público `call()`.
 
+**Os cinco membros não chegam na mesma fase, e isso é deliberado.** Os quatro primeiros são da **Fase 1** (tarefas T1.3, domain, e T1.6, data), porque é ela que entrega cadastro e recuperação; `changePassword` é da **Fase 3** (T3.3, T3.5, T3.7 e T3.8), porque só ali existe a tela de conta que o usa. Contrato ampliado em duas etapas, não em uma — quem ler só esta tabela conclui errado que a Fase 1 devia declarar os cinco.
+
 A tradução de erro é feita pelo **código** do erro do GoTrue, nunca por busca de substring na mensagem em inglês — mensagem de provedor muda sem aviso e a busca por texto falha em silêncio. Cobertura mínima, com texto próprio em pt-BR e distinto entre si: `invalid_credentials`, `email_not_confirmed`, `user_already_exists`, `weak_password`, `over_email_send_rate_limit`, `signup_disabled`. Nenhum deles pode cair na mensagem de sessão expirada.
+
+**`user_already_exists` é caso morto na configuração atual, e fica no código assim mesmo.** Medido em 20/08/2026: com a confirmação de e-mail exigida, repetir o cadastro do mesmo endereço devolve `200` sem `error_code` (ver §7.1) — o código nunca chega ao app. Ele permanece traduzido porque a configuração que o dispara existe, e apagá-lo é regressão silenciosa esperando a próxima virada de ambiente. **O que ele não pode ser é promessa de tela:** nenhuma interface desta feature exibe mensagem específica de "e-mail já cadastrado" (**FD-024**).
 
 ### 3.2 Perfil, credencial de IA e conexão bancária
 
@@ -200,9 +204,30 @@ O destino protegido hoje é o item de chat do menu, que existe apagado desde a c
 
 A guarda atual é binária e manda todo mundo com sessão para a raiz. Tanto o `AuthChangeEvent.passwordRecovery` do GoTrue quanto a verificação do código de recuperação **entregam uma sessão válida** — sem um terceiro estado, a pessoa digita o código certo, é logada e **nunca vê o campo de nova senha**. O escopo em memória de `app/lib/core/session/` resolve isso sem nenhuma dependência do contrato de auth, que é o que permite construí-lo em paralelo.
 
-## 7. Recuperação de senha
+## 7. Cadastro, confirmação de e-mail e recuperação de senha
+
+### 7.1 Cadastro e confirmação de e-mail
+
+**O cadastro não termina dentro do app — termina na caixa de entrada.** Com a confirmação de e-mail exigida (**FD-022**), `signUp` devolve a conta criada **sem sessão** e com `email_confirmed_at` nulo. O app não tem para onde navegar: não há sessão, e a guarda de rota manda para a tela de entrar. **Duas réguas governam essa tela**, e as duas são de produto, não de implementação:
+
+1. **Nunca afirmar que a conta está pronta para usar.** O desfecho de sucesso do cadastro é uma mensagem que diz o que falta — confirmar o endereço — e onde procurar. Sem ela, a pessoa toca "criar conta", vê a tela não mudar e conclui que falhou.
+2. **Nunca revelar se o endereço já tinha conta.** O texto de sucesso é **o mesmo** para endereço novo e para endereço repetido.
+
+A segunda régua nasceu de medição, não de gosto. **Medido contra o GoTrue da stack local em 20/08/2026:** repetir o cadastro do mesmo endereço, fora da janela de reenvio, devolve `HTTP 200` com `identities` preenchido e **sem** `error_code` — resposta **idêntica** à do cadastro novo. O app não consegue distinguir os dois casos pelo caminho do erro, e a única forma de conseguir seria consultar a existência do e-mail antes de cadastrar, o que é erguer de propósito um **oráculo de enumeração de contas** num app que guarda extrato bancário. A mensagem única é escolha (**FD-024**).
+
+**A confirmação acontece fora do app, e isso é desenho, não omissão.** Não existe tela de código de confirmação — o que chega na mensagem é aberto pela pessoa, no cliente de e-mail dela, e quem verifica é o próprio GoTrue. O app tem duas responsabilidades e só duas: dizer que a confirmação falta, e aceitar a entrada depois que ela ocorrer. É por isso que a decisão **D25** (código digitado em vez de deep link) **não se aplica aqui**: ela existe para trazer a sessão de volta ao app na recuperação de senha; na confirmação não há sessão para trazer — a pessoa confirma e **entra normalmente**, pela tela de entrar. Espelhar a tela de OTP aqui seria escopo novo sem problema para resolver.
+
+**Consequência para o E2E:** o roteiro faz o que o navegador da pessoa faria — extrai da mensagem capturada o que ela traz e completa a verificação por ali —, e **nunca** avança marcando a conta como confirmada no banco. Confirmar por SQL prova que o banco aceita `update`, não que alguém consegue usar o app. Detalhe que engana quem for depurar: `GOTRUE_SITE_URL` vale `http://127.0.0.1:3000` na stack local, endereço onde não há nada servindo — o redirecionamento **depois** da verificação falha, e isso é irrelevante, porque a conta já foi confirmada quando o GoTrue processou o pedido. Não é bug a consertar.
+
+**A janela de reenvio é curta e visível.** Duas tentativas seguidas do mesmo endereço batem em `over_email_send_rate_limit`, com janela de cerca de 60 segundos. Isso não é erro de duplicidade e não pode ser exibido como falha do cadastro: o texto diz que o pedido foi recente e que basta esperar. Vale para quem toca o botão duas vezes e vale para o roteiro de E2E, que **não repete cadastro em sequência**.
+
+### 7.2 Recuperação de senha
 
 **Por código de seis dígitos digitado, não por deep link.** O caminho OTP (`verifyOTP` com `OtpType.recovery`) custa **uma tela a mais** e **zero** configuração de plataforma. O deep link PKCE custa `intent-filter` `VIEW`/`BROWSABLE` no `AndroidManifest.xml` **por flavor** — e hoje só existem os source sets `main/`, `debug/` e `profile/`, com `applicationIdSuffix = ".dev"` fazendo o esquema diferir entre dev e prod —, mais `GOTRUE_URI_ALLOW_LIST` e `GOTRUE_SITE_URL` no servidor, que valem `http://127.0.0.1:3000` nos dois ambientes. Nenhuma dessas peças é testável no CI, e todas quebram calado.
+
+**O código recusado é o desfecho mais provável desta tela, e tem texto fixo.** O GoTrue devolve `otp_expired` tanto para código inexistente quanto para código vencido — o mesmo código para os dois —, e a tela **não tenta separá-los**: distinguir diria a quem chuta se um código já foi válido, o que é oráculo de força bruta sobre seis dígitos (**FD-026**, mesmo princípio da **FD-025**). A mensagem cobre os dois casos e nomeia as duas saídas: **"Código inválido ou vencido. Confira e digite de novo, ou volte para pedir um novo código."** Ela diz "volte para pedir" porque a tela do código não tem reenvio — quem precisa de outro código usa o botão "Cancelar e voltar para o login" (`cancel_recovery_link.dart`), a única saída dessa etapa; se o reenvio virar botão, o texto muda junto. Pedir outro dentro de 60 segundos esbarra em `over_email_send_rate_limit`, que tem mensagem própria e distinta. **O fluxo tem dois modos de falha que a pessoa alcança sozinha, e são estes:** código recusado, aqui, e **senha nova fraca**, no passo seguinte — cada um com mensagem própria e ação corretiva legível. O pedido de recuperação para endereço que nunca teve conta **não é um deles**: por anti-enumeração ele responde igual ao de endereço existente (**FD-024**, **FD-025**), e cobrar dele um estado distinto seria pedir o oposto do que a segurança garante. Já o limite de reenvio é falha de ambiente, não do fluxo, e o roteiro de E2E é desenhado para não encostar nele. **Nenhum desfecho desta tela pode cair na mensagem genérica de erro inesperado nem na de sessão expirada:** foi exatamente o que aconteceu enquanto `otp_expired` não estava traduzido, e o texto genérico escondia a única ação corretiva que a pessoa tinha.
+
+**A etapa de nova senha tem saída própria: "Sair sem trocar a senha"** (`sign_out_without_changing_password_link.dart`, montado por `new_password_step_form.dart`). Ela existe porque essa etapa não tem botão de cancelar: o `verifyOTP` do passo anterior já autenticou a sessão, e sem uma saída explícita a pessoa ficaria presa entre digitar a senha nova ou fechar o app com uma sessão de recuperação ligada. Ao tocar, o fluxo encerra a sessão (`signOut`) antes de desligar o escopo de recuperação, e devolve a pessoa à tela de entrar: a sessão fica encerrada, e a senha antiga continua valendo — nada foi trocado. O resíduo de matar o app nessa etapa em vez de usar o botão, e a razão de ficar aceito em vez de fechado, estão em **FD-029** (`decisions.md`).
 
 O lado Dart do deep link já está pronto (`detectSessionInUri = true` por default), então trocar depois é barato e a tela de código continua valendo como caminho alternativo. **Limitação conhecida e aceita:** o GoTrue manda o link junto do código, e quem clicar cai no navegador sem voltar para o app — o texto do e-mail e a tela instruem a digitar.
 
@@ -231,10 +256,10 @@ A prova negativa da fase é um corpus adversarial versionado passando pelo pipel
 
 | # | Decisão | Fonte |
 |---|---|---|
-| 1 | A Fase 1 **mede** a persistência de sessão antes de implementar "lembrar" | `bootstrap.dart` sem `authOptions` + ausência de timeout nos dois ambientes |
+| 1 | ~~A Fase 1 **mede** a persistência de sessão antes de implementar "lembrar"~~ **Medido em 20/08/2026 (T1.1):** a sessão **não cai** — sobrevive a `force-stop` e a `reboot`, e o app sequer chama o servidor ao reabrir. **"Lembrar login" saiu do escopo** (**FD-023**); no lugar entrou a **T1.12**, que preenche de volta só o e-mail, em memória | `bootstrap.dart` sem `authOptions` + ausência de timeout nos dois ambientes; evidência em `e2e/round_01/` |
 | 2 | Recuperação por código de seis dígitos, não por deep link | custo de configuração de plataforma não testável no CI |
 | 3 | O nome vai em `display_name`, não em `settings jsonb` | escalar lido a cada abertura; `jsonb` trocaria tipo e restrição por nada |
-| 4 | O e-mail é somente leitura | confirmação automática ligada e sem SMTP: trocar sem prova de posse tranca a pessoa para fora |
+| 4 | O e-mail é somente leitura | ~~confirmação automática ligada e sem SMTP: trocar sem prova de posse tranca a pessoa para fora~~ **A razão técnica caiu com a FD-022** (o servidor passou a exigir prova de posse de endereço novo). A decisão não muda, e o motivo agora é **escopo**: nenhuma fase desta feature entrega o fluxo de troca de e-mail, e reabri-lo é chamada do dono do produto (**FD-014**) |
 | 5 | Troca de senha logado exige a senha atual | o app guarda extrato bancário; aparelho destravado não pode bastar para tomar a conta |
 | 6 | A tela de senha mora no `auth_module`, com rota `/configuracoes/conta/senha` | manter o barrel do auth como está custa menos que ampliar a exceção documentada |
 | 7 | Isolamento da chave é o desenho de dois passos, não o cofre | o cofre é global ao projeto e não tem noção de dono |
@@ -249,13 +274,13 @@ A prova negativa da fase é um corpus adversarial versionado passando pelo pipel
 
 ## 10. Dependências humanas
 
-Nenhuma é trabalho de agente. Cada uma exige conta externa ou decisão do humano, e o fatiamento isola o que depende delas.
+Nenhuma é trabalho de agente. Cada uma exige conta externa ou decisão do humano, e o fatiamento isola o que depende delas. **B1 a B5 é a numeração provisória do rascunho; os rótulos definitivos são P9 a P13**, na mesma ordem, em [`03_plan.md`](03_plan.md) §1 — e é lá que o estado de cada uma se lê.
 
 | # | O que falta | O que bloqueia |
 |---|---|---|
-| B1 | Conta de e-mail para SMTP (Gmail com App Password) | **só** a validação da recuperação num ambiente real; o E2E usa o capturador local |
-| B2 | Cadastro aberto com confirmação automática: aceitar a dívida ou desligar a confirmação | a decisão, não o código — a tela de cadastro funciona nos dois casos |
-| B3 | Destino da branch `feature/GZ-20-lembrar-login` | nada. A abordagem está descartada por escrito; apagar branch é irreversível e a ordem é do humano |
+| ~~B1~~ | ~~Conta de e-mail para SMTP (Gmail com App Password)~~ **Resolvida em 20/08/2026:** o App Password existe e as cinco variáveis entram na HML no redeploy da **FD-022** | nada mais. O E2E sempre usou o capturador local |
+| ~~B2~~ | ~~Cadastro aberto com confirmação automática: aceitar a dívida ou desligar a confirmação~~ **Decidida em 20/08/2026 (FD-022):** cadastro aberto **com** confirmação de e-mail, `ENABLE_EMAIL_AUTOCONFIRM=false` | nada mais. A ordem da virada — as duas variáveis do GoTrue junto do SMTP — está em `docs/deploy/coolify.md` |
+| B3 | Destino da branch `feature/GZ-20-lembrar-login` | nada. A abordagem está descartada por escrito, e a medição da T1.1 desmentiu a premissa dela (**FD-023**); apagar branch é irreversível e a ordem é do humano |
 | B4 | Montar a chave-mestra do cofre em volume no servidor | **a primeira chave real de IA em produção**, e só isso |
 | B5 | Conta e credenciais do provedor bancário | a fase de integração bancária inteira, do primeiro comando ao E2E |
 
@@ -263,7 +288,7 @@ Nenhuma é trabalho de agente. Cada uma exige conta externa ou decisão do human
 
 | # | Risco | Tratamento |
 |---|---|---|
-| X1 | **Cadastro público sem prova de posse do e-mail** com confirmação automática ligada: qualquer endereço inventado vira conta confirmada | Bloqueio **B2**. Se a dívida for aceita, entra em `docs/decisions.md` com o gatilho escrito para ser paga |
+| X1 | **O cadastro tranca calado se a confirmação for desligada sem o e-mail sair.** O risco original — endereço inventado virando conta confirmada — morreu com a **FD-022**, que desligou a confirmação automática; o que ficou é o inverso: sem SMTP entregando, ninguém confirma e ninguém entra, e o `signup` continua respondendo `200` | As duas variáveis do GoTrue viram **no mesmo redeploy** das cinco de SMTP, nunca antes. Na stack local o modo de falha não existe: o capturador recebe todo e-mail |
 | X2 | **O menu reintroduz o glifo do Material** pelo `DrawerButton` que o `Scaffold` injeta, e o guard não pega | `leading:` explícito por token, e `grep -rn 'Icons\.' app/lib` vazio no DoD da fase |
 | X3 | **`flutter test` não cobre `app/patrol_test/`**: a troca de navegação deixa o CI verde e o emulador vermelho | Instrumentar e executar em tarefas separadas, e os roteiros herdados verdes **na mesma rodada** |
 | X4 | **A chave-mestra do cofre não está em volume**: recriar o contêiner do banco torna todo segredo indecifrável | Medir em produção sem mudar estado, reproduzir a falha na stack local, deixar o trecho de compose pronto — e nenhuma chave real em produção antes de **B4** |

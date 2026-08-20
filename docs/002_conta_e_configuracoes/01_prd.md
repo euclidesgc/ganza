@@ -4,7 +4,12 @@ Enriquece [`02_specs.md`](02_specs.md). O que está lá não se repete aqui: est
 
 Decisões desta feature estão em [`decisions.md`](decisions.md). Desvios já
 resolvidos e a reconciliação documental correspondente estão em
-[`changes.md`](changes.md); este PRD descreve somente o estado final.
+[`changes.md`](changes.md).
+
+**O que vale é o texto corrente.** Onde uma afirmação deste PRD deixou de ser
+verdade, ela fica ~~riscada~~ no lugar, seguida da data, de quem a revogou e do
+que passou a valer — mesmo padrão de `docs/decisions.md`. Texto riscado é
+histórico: não é requisito, não é escopo e não se implementa.
 
 ## 1. Resultado esperado
 
@@ -39,7 +44,9 @@ O menu lateral nasce ampliável — hoje ele leva a Configurações, e Configura
 
 ### 3.1 Por que o e-mail não se troca aqui
 
-No estado atual do servidor, aplicar um endereço novo não exige prova de posse. Um dígito errado move a conta para um endereço que a pessoa não controla — e o único caminho de volta, a recuperação de senha, vai para lá. O campo fica somente leitura **com o motivo visível**, não escondido atrás de um campo que não responde ao toque.
+~~No estado atual do servidor, aplicar um endereço novo não exige prova de posse. Um dígito errado move a conta para um endereço que a pessoa não controla — e o único caminho de volta, a recuperação de senha, vai para lá.~~ **Revogado em 20/08/2026 pela FD-022 de [`decisions.md`](decisions.md)** (desvio em [`changes.md`](changes.md), `CHG-001`): a confirmação automática de e-mail foi desligada e o SMTP foi decidido, então o servidor passa a exigir prova de posse de endereço novo. A justificativa técnica caiu.
+
+**O e-mail continua somente leitura por escopo, não por impedimento.** Nenhuma fase desta feature entrega o fluxo de troca de endereço, e reabri-lo é chamada do dono do produto. O campo fica somente leitura **com o motivo visível**, não escondido atrás de um campo que não responde ao toque — o motivo escrito na tela é o de escopo, e trocá-lo por um motivo técnico que já não existe seria mentir para quem lê.
 
 ### 3.2 Por que a chave é do usuário, e por que isso não fere a invariante 4
 
@@ -111,7 +118,11 @@ Linguagem de produto. A prova executável de cada linha mora no DoD de fase, em 
 | A9 | conectar um banco, distinguir os quatro estados por texto e desconectar com confirmação |
 | A10 | ter certeza de que a conta ao lado não lê nada dela — provado com **duas** contas, não deduzido da política |
 
-**A3 é critério de aceite e é a primeira medição da feature.** Pelo código, a sessão já deveria persistir: o app inicializa o Supabase com os defaults de sessão persistida e renovação automática, e não há tempo de inatividade configurado em nenhum ambiente. Se ela persistir, a caixinha "lembrar" sai do escopo **por escrito**; se não persistir, o passo exato em que ela cai vira tarefa nomeada. Implementar antes de medir é remédio para doença não diagnosticada — e o remédio que já existia numa branch guardava a senha da pessoa **em claro** no aparelho.
+~~**A3 é critério de aceite e é a primeira medição da feature.** Pelo código, a sessão já deveria persistir: o app inicializa o Supabase com os defaults de sessão persistida e renovação automática, e não há tempo de inatividade configurado em nenhum ambiente. Se ela persistir, a caixinha "lembrar" sai do escopo **por escrito**; se não persistir, o passo exato em que ela cai vira tarefa nomeada.~~ **Condicional fechada em 20/08/2026 pela FD-023 de [`decisions.md`](decisions.md)** (desvio em [`changes.md`](changes.md), `CHG-002`).
+
+**A3 foi medido e passou; "lembrar login" saiu do escopo.** A medição da Fase 1 está em [`e2e/round_01/report.md`](e2e/round_01/report.md): a sessão sobreviveu a encerrar o app e a reiniciar o aparelho, e nas reaberturas o app **sequer chamou o servidor** — restaurou a sessão do disco. O dono do produto confirmou o mesmo no aparelho dele: só volta a pedir credencial **depois de apertar "Sair"**, que é o comportamento correto de um sign-out, não um defeito a corrigir. Some a doença, some o remédio — e o remédio que já existia numa branch guardava a senha da pessoa **em claro** no aparelho.
+
+O que restava era um incômodo menor, e ele entrou no lugar: **ao voltar à tela de entrar, o campo de e-mail vem preenchido**, sobrando só a senha para digitar. E-mail não é credencial, o campo de senha continua nascendo vazio, e o valor é guardado **apenas em memória** — encerrar o app depois de sair traz o campo vazio, limitação aceita por escrito. Implementar antes de medir era remédio para doença não diagnosticada; medir primeiro trocou uma caixinha que guardaria senha por uma linha que não guarda segredo nenhum.
 
 ## 7. Fora de escopo (explícito)
 
@@ -120,7 +131,8 @@ Linguagem de produto. A prova executável de cada linha mora no DoD de fase, em 
 | O chat, os cards de confirmação, a interpretação de mensagem | feature 003 |
 | **Conciliação**: casar lançamento do extrato com registro, categorizar em lote, matemática financeira | feature 005 |
 | Painel de custo de IA, orçamento por categoria, escolher provedor por tipo de tarefa | feature 009 |
-| **Troca de e-mail** | depende de SMTP e da decisão sobre confirmação automática de cadastro |
+| **Troca de e-mail** | ~~depende de SMTP e da decisão sobre confirmação automática de cadastro~~ **Revisto em 20/08/2026 (`CHG-001`):** as duas premissas caíram — o SMTP foi decidido (**FD-002**) e a confirmação automática foi desligada (**FD-022**). Continua fora **por escopo**: nenhuma fase desta feature entrega o fluxo, e reabrir é chamada do dono do produto |
+| **"Lembrar login"** (caixinha que guarda a credencial no aparelho) | avaliado e descartado **por medição** em 20/08/2026: a sessão já sobrevive a encerrar o app e a reiniciar o aparelho ([`e2e/round_01/report.md`](e2e/round_01/report.md)), então não há doença a tratar. Razão em [`decisions.md`](decisions.md) (**FD-023**), desvio em [`changes.md`](changes.md) (`CHG-002`). No lugar entrou só o **e-mail preenchido de volta**, em memória |
 | Login social, dois fatores, biometria, PIN local | não é objetivo da v1 |
 | Convite, papéis, permissões, compartilhamento entre contas | isolamento não é colaboração |
 | Excluir a conta pela interface | o caminho existe no banco (apagar a conta leva a credencial e o segredo junto); a tela não |
@@ -132,9 +144,13 @@ Linguagem de produto. A prova executável de cada linha mora no DoD de fase, em 
 
 ## 8. Exceções e casos de borda
 
+**Uma regra atravessa duas linhas desta tabela: o app não confirma nem nega que um endereço já tem conta** — nem no cadastro, nem na recuperação de senha. Resposta que separe "endereço conhecido" de "endereço desconhecido" transforma a tela num consultor de quem tem conta no ganzá, e num app que guarda extrato bancário essa lista é o alvo. As duas linhas são a mesma regra aplicada em dois lugares, não coincidência (**FD-024** de [`decisions.md`](decisions.md), §7.1 de [`02_specs.md`](02_specs.md)). Nas recusas de cadastro que existem de verdade — senha fraca, cadastro fechado, pedido recente — o formulário preserva o que foi digitado.
+
 | Situação | Comportamento esperado |
 |---|---|
-| Cadastro com e-mail já existente | Mensagem própria, distinta de qualquer outra; o formulário preserva o que foi digitado |
+| Cadastro aceito, e-mail ainda não confirmado | É o desfecho normal, não uma falha: a tela diz que falta confirmar o endereço e onde procurar, e **nunca** afirma que a conta está pronta para usar. A conta nasce sem sessão e não há para onde navegar — sem esse texto, a pessoa toca "criar conta", vê a tela não mudar e conclui que falhou |
+| Cadastro com e-mail já existente | ~~Mensagem própria, distinta de qualquer outra; o formulário preserva o que foi digitado~~ **Revogado em 20/08/2026 pela FD-024 de [`decisions.md`](decisions.md)** (desvio em [`changes.md`](changes.md), `CHG-003`): **a mesma mensagem do endereço novo**, palavra por palavra. Medido contra o servidor real em 20/08/2026 — repetir o cadastro do mesmo endereço devolve resposta de sucesso **idêntica** à do endereço novo, sem erro nenhum para traduzir. Distinguir só seria possível perguntando antes se o e-mail existe, que é o oráculo de enumeração proibido acima: não distinguir é o comportamento **desejado**, não uma conformação |
+| Cadastro do mesmo endereço duas vezes seguidas | Recusa por **pedido recente**, com janela de cerca de um minuto: texto próprio dizendo que basta esperar, nunca erro de duplicidade e nunca "o cadastro falhou". Quem toca o botão duas vezes cai aqui — e é por isso que o roteiro de E2E não repete cadastro em sequência |
 | Senha nova fraca | Mensagem própria dizendo o que falta |
 | Cadastro desligado no servidor | Mensagem própria ("cadastro fechado"), nunca erro genérico nem tela em branco |
 | Recuperação pedida para e-mail inexistente | **Mesma** resposta do e-mail existente. Responder "essa conta não existe" entrega a lista de quem tem conta |
@@ -185,8 +201,9 @@ Em nenhuma das três entra chave, senha, token, e-mail ou conteúdo de mensagem 
 
 ## 11. Dependências e riscos
 
-- **SMTP virou bloqueio.** A pendência **P4** dizia "não bloqueia nada hoje"; com recuperação de senha no escopo, ela bloqueia. Provedor decidido: **Gmail com App Password** — o domínio é `supabase.ganza.bmjtech.duckdns.org`, e o DuckDNS não permite registro SPF/DKIM/DMARC, o que elimina Resend, Brevo, SES e Postmark. Criar a conta é do humano; o E2E não espera por ela, porque a stack local usa capturador de e-mail próprio.
-- **Cadastro aberto com confirmação automática cria conta sem prova de posse do e-mail.** Qualquer endereço inventado vira conta confirmada. Decisão do humano: aceitar a dívida com o gatilho de pagamento escrito, ou desligar a confirmação automática — o que exige o SMTP **antes**.
+- **SMTP virou bloqueio, e passou a bloquear mais do que a recuperação de senha.** A pendência **P4** dizia "não bloqueia nada hoje"; com recuperação de senha no escopo, ela bloqueia. Provedor decidido: **Gmail com App Password** — o domínio é `supabase.ganza.bmjtech.duckdns.org`, e o DuckDNS não permite registro SPF/DKIM/DMARC, o que elimina Resend, Brevo, SES e Postmark. ~~Criar a conta é do humano~~ **Resolvido em 20/08/2026 (FD-022):** o App Password existe e a **P9** deixou de ser pendência aberta; o que falta é preencher as variáveis de SMTP no ambiente de homologação. Como a confirmação de e-mail passou a ser exigida, o SMTP agora bloqueia também o **cadastro**, não só a recuperação. O E2E não espera por nada disso, porque a stack local usa capturador de e-mail próprio.
+- ~~**Cadastro aberto com confirmação automática cria conta sem prova de posse do e-mail.** Qualquer endereço inventado vira conta confirmada. Decisão do humano: aceitar a dívida com o gatilho de pagamento escrito, ou desligar a confirmação automática — o que exige o SMTP **antes**.~~ **Decidido em 20/08/2026 pela FD-022 de [`decisions.md`](decisions.md)** (desvio em [`changes.md`](changes.md), `CHG-001`): o dono recusou a dívida e escolheu **cadastro aberto _com_ confirmação de e-mail**. Endereço inventado não vira mais conta confirmada.
+- **O risco que sobrou mudou de forma: é de ordem, não de dívida.** Desligar a confirmação automática **antes** de o e-mail estar saindo tranca todo cadastro novo **em silêncio** — o servidor responde `200` à criação de conta de qualquer jeito, e a pessoa só descobriria o problema pelo e-mail que nunca chega. Por isso as duas chaves do cadastro viram no **mesmo redeploy** do SMTP, nunca antes. Em produto isso significa uma coisa só: enquanto o e-mail não estiver comprovadamente saindo, ninguém de fora consegue entrar no app, e o sintoma não aparece na tela.
 - **A chave-mestra do cofre não está em volume no servidor.** Recriar o contêiner do banco transformaria todo segredo salvo em texto cifrado indecifrável. Consequência de produto: **nenhuma chave real de IA é salva em produção** enquanto isso não for resolvido; a feature inteira se desenvolve e se prova contra a stack local descartável.
 - **As credenciais do provedor bancário são do projeto**, criadas em conta que só o humano abre. Bloqueiam a fase de banco do primeiro comando ao E2E, e o plano não tenta contornar com modo simulado: inventar um provedor falso custaria mais que esperar e provaria outra coisa. Pedir a credencial ao usuário não é saída: BYOK está descartado em [`decisions.md`](decisions.md) (FD-019).
 - **O plano pessoal gratuito da Pluggy vale para contas nominais do titular** — a página do "Meu Pluggy" o condiciona a isso e a FAQ diz que uso comercial exige plano pago (`https://www.pluggy.ai/meu-pluggy`, consultado em 19/08/2026), o que confirma a ressalva de `docs/plano.md` §3. Abrir o app para outras pessoas **com integração bancária real** exige a conta do projeto: gratuita no ambiente de desenvolvimento (100 conexões, sem sincronização automática) ou paga a partir de R$ 2.500/mês (`https://www.pluggy.ai/precos`). É decisão comercial do humano, não técnica, e não bloqueia conectar contra a sandbox.

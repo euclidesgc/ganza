@@ -18,7 +18,9 @@ Estado da infraestrutura do ganza no servidor compartilhado. O passo a passo de 
 
 ## Serviço `ganza-supabase` · `lqsjrqqs6r8rnggbvwpi4nuf`
 
-Oito contêineres, todos `healthy` — bem abaixo dos ~2,5 GB que a stack completa custaria. O `edge-functions` voltou na decisão **D10**, quando a lógica migrou do NestJS para ele.
+Oito contêineres, todos `healthy` — bem abaixo dos ~2,5 GB que a stack completa custaria. O `edge-functions` voltou na decisão **D10**, quando a lógica migrou do NestJS para ele; antes dela eram sete, e é esse o número que a **F0.3** de [`../decisions.md`](../decisions.md) registra como retrato da Fase 0.
+
+**Oito é a conta da HML. A stack local tem nove:** [`../../infra/local/docker-compose.yml`](../../infra/local/docker-compose.yml) sobe os mesmos oito mais o capturador de e-mail que a Fase 1 da feature 002 instalou, para o E2E ler o código de recuperação sem depender de SMTP. Contar nove aqui, ou oito lá, é comparar ambiente errado.
 
 | Contêiner | Imagem | RAM |
 |---|---|---|
@@ -33,11 +35,11 @@ Oito contêineres, todos `healthy` — bem abaixo dos ~2,5 GB que a stack comple
 
 > ### O painel mostra "Degraded" — e isso é esperado
 >
-> O Coolify guardou no banco dele os cards dos 15 serviços do template original. Os 8 que removemos do compose aparecem como **Exited**, e o cabeçalho do serviço fica **Degraded** por causa deles. **Não é falha:** "Exited" ali significa "não faz parte da stack".
+> O Coolify guardou no banco dele os cards dos 15 serviços do template original. Os 7 que removemos do compose aparecem como **Exited**, e o cabeçalho do serviço fica **Degraded** por causa deles. **Não é falha:** "Exited" ali significa "não faz parte da stack".
 >
 > O `Supabase Rest` aparece como *Running (unknown, excluded)* — a imagem do PostgREST não traz healthcheck. Ele responde 200 normalmente.
 >
-> Limpar os órfãos exigiria editar o banco do próprio Coolify (que serve driva e love-secret) ou recriar o serviço. Nenhum dos dois vale o risco por um rótulo. **Confira a saúde pelos 7 contêineres da tabela acima, não pelo cabeçalho.**
+> Limpar os órfãos exigiria editar o banco do próprio Coolify (que serve driva e love-secret) ou recriar o serviço. Nenhum dos dois vale o risco por um rótulo. **Confira a saúde pelos 8 contêineres da tabela acima, não pelo cabeçalho.**
 
 ### O que foi deliberadamente deixado de fora
 
@@ -92,13 +94,22 @@ Verificado: `GET /functions/v1/health` com `apikey` devolve `{"status":"ok","dat
 
 ## Autenticação
 
-Conta única (`euclides.catunda@gmail.com`), criada com `ENABLE_EMAIL_AUTOCONFIRM=true` e **cadastro fechado em seguida** com `DISABLE_SIGNUP=true` — o app é monousuário por desenho, e endpoint de signup aberto na internet é convite sem porteiro. Verificado: a tentativa devolve `422 signup_disabled`.
+**A HML roda desde 20/08/2026 a configuração que vale:** cadastro aberto pelo app, com confirmação de e-mail obrigatória — `DISABLE_SIGNUP=false` e `ENABLE_EMAIL_AUTOCONFIRM=false`. O ganzá deixou de ser monousuário — passa a ser multiusuário por isolamento, cada conta enxergando só os próprios dados pela RLS (**D28** em [`../decisions.md`](../decisions.md), que revoga a D11 e, com ela, o `422 signup_disabled` que esta seção verificava). A conta criada sob a D11 (`euclides.catunda@gmail.com`) continua válida — deixa de ser a única, não some.
 
-> **Ao mexer em env do GoTrue, espere o redeploy terminar antes de testar.** O contêiner antigo continua servindo durante a troca: um teste feito no meio da janela mostrou signup funcionando com a config nova já salva. A stack tem **oito** contêineres — conte-os antes de concluir qualquer coisa.
+As duas variáveis mudam **juntas**, e a ordem importa nos dois sentidos: com a confirmação automática ligada, qualquer endereço inventado vira conta confirmada sem prova de posse do e-mail; com ela desligada e sem e-mail saindo, ninguém confirma conta nenhuma e o cadastro tranca. Por isso a virada entrou no mesmo redeploy do SMTP (**D26**), em 20/08/2026.
 
-Redefinir senha, enquanto não há SMTP: pelo Studio, em `https://supabase.ganza.bmjtech.duckdns.org`.
+No serviço do Coolify as chaves se chamam `DISABLE_SIGNUP` e `ENABLE_EMAIL_AUTOCONFIRM`; o template do Supabase as repassa ao GoTrue como `GOTRUE_DISABLE_SIGNUP` e `GOTRUE_MAILER_AUTOCONFIRM`, que são os nomes escritos em [`../../infra/local/docker-compose.yml`](../../infra/local/docker-compose.yml). Procurar só um dos dois pares dá falso negativo.
+
+> **Ao mexer em env do GoTrue, espere o redeploy terminar antes de testar.** O contêiner antigo continua servindo durante a troca: um teste feito no meio da janela mostrou signup funcionando com a config nova já salva. A stack da HML tem **oito** contêineres (a local, nove — ver o topo deste arquivo) — conte-os antes de concluir qualquer coisa.
+
+Redefinir senha é pelo fluxo de recuperação do próprio app: pede-se o e-mail, o GoTrue envia um código de seis dígitos e a pessoa o digita (`FD-003` em [`../002_conta_e_configuracoes/decisions.md`](../002_conta_e_configuracoes/decisions.md)). Depende do SMTP, configurado desde 20/08/2026 — ver "SMTP" logo abaixo. Na stack local o e-mail não sai para a internet: a Fase 1 da feature 002 instala um capturador em `infra/local/`, e é dele que o código é lido.
+
+### SMTP
+
+Provedor Gmail com App Password (**D26**), porque o domínio é DuckDNS e ali SPF/DKIM/DMARC são impossíveis — porta `587` com STARTTLS. Cinco variáveis cadastradas no serviço `ganza-supabase` do Coolify: `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` (a App Password, de conta com 2FA — não a senha da conta) e `SMTP_ADMIN_EMAIL`. Valores só no painel do Coolify — nunca no repositório, nem parcial, nem mascarado.
+
+**Como se prova que o SMTP entrega, não só que aceita o pedido:** `POST /auth/v1/recover` com a `apikey` anônima e um e-mail existente devolve `200` mesmo com o SMTP quebrado — o GoTrue enfileira o envio e responde antes de a entrega acontecer. O `200` prova só que a rota aceitou o pedido; não prova que o e-mail chegou. A prova é o recebimento na caixa do destinatário: verificado em 20/08/2026, e-mail de recuperação recebido na caixa de entrada principal do Gmail (fora da pasta de spam).
 
 ## Ainda por fazer
 
-- **SMTP** para os e-mails de autenticação — `SMTP_HOST`/`SMTP_USER`/`SMTP_PASS` estão vazios. Sem isso, confirmação de e-mail e recuperação de senha não saem.
 - Front web em `ganza.bmjtech.duckdns.org` (Fase 8).

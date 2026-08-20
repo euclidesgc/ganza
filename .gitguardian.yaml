@@ -7,3 +7,5 @@ secret:
     # foram "3 secrets uncovered" no PR #5, todos dentro deste arquivo.
     # Ignorar o caminho é preciso; afrouxar as regras para o repo, não.
     - "scripts/git-hooks/**"
+    - "scripts/e2e-002-auth.sh"                                                    # senhas de conta descartável em stack local, host validado (só 127.0.0.1/10.0.2.2)
+    - "app/test/modules/auth_module/data/repositories/auth_repository_impl_test.dart"  # placeholder mocktail, sem credencial real

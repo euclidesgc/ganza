@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../../core/theme/theme.dart';
 import '../login_cubit.dart';
 import 'ganza_wordmark.dart';
+import 'login_auth_links.dart';
 import 'login_error_banner.dart';
 
 class LoginForm extends StatefulWidget {
@@ -16,6 +17,12 @@ class LoginForm extends StatefulWidget {
 class _LoginFormState extends State<LoginForm> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _emailController.text = context.read<LoginCubit>().lastSignedInEmail ?? '';
+  }
 
   @override
   void dispose() {
@@ -71,6 +78,8 @@ class _LoginFormState extends State<LoginForm> {
                   child: Text(inProgress ? 'Entrando…' : 'Entrar'),
                 ),
               ),
+              const SizedBox(height: AppSpacing.md),
+              const LoginAuthLinks(),
             ],
           ),
         ),
