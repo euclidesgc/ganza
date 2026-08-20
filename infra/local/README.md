@@ -24,8 +24,22 @@ de desenvolvimento quanto a VPS ARM sem troca de tag. Caixa de entrada:
 http://127.0.0.1:54325.
 
 Ler a última mensagem capturada (o código de recuperação/confirmação vem na
-linha "Alternatively, enter the code: XXXXXX" do corpo):
+linha "Alternatively, enter the code: XXXXXX" do corpo, e o link de
+confirmação vem na linha "Confirm your email address ( ... )"):
 
 ```sh
 curl -s "http://127.0.0.1:54325/api/v1/message/$(curl -s 'http://127.0.0.1:54325/api/v1/messages?limit=1' | jq -r '.messages[0].ID')" | jq -r '.Text'
 ```
+
+### Por que o link de confirmação tem que sair com `/auth/v1/verify`
+
+O Kong só expõe `/auth/v1/*` para o serviço `auth` (`kong.yml`), então o link
+enviado por e-mail precisa nascer já com esse prefixo — `API_EXTERNAL_URL`
+sozinho não garante isso. O GoTrue monta o link concatenando
+`API_EXTERNAL_URL` com o path configurado em `GOTRUE_MAILER_URLPATHS_*`
+(`CONFIRMATION`/`INVITE`/`RECOVERY`/`EMAIL_CHANGE`); sem essas variáveis o
+GoTrue usa o path default `/verify`, e como é um path absoluto, a resolução
+de URL descarta o path de `API_EXTERNAL_URL` e mantém só host:porta — o
+e-mail sai com `http://127.0.0.1:54321/verify`, que o Kong devolve `404`. As
+quatro variáveis em `docker-compose.yml` apontam esse path para
+`/auth/v1/verify`, igual ao `.env.example` oficial do Supabase self-hosted.

@@ -139,6 +139,13 @@ class AuthRepositoryImpl implements AuthRepository {
       'weak_password' => const ValidationFailure(
         'A senha precisa ter pelo menos 6 caracteres.',
       ),
+      // Código errado e código vencido chegam com o mesmo `otp_expired`
+      // (FD-026, docs/002_conta_e_configuracoes/decisions.md): distingui-los
+      // na tela diria a quem chuta se um código já foi válido algum dia.
+      'otp_expired' => const ValidationFailure(
+        'Código inválido ou vencido. Confira e digite de novo, ou volte '
+        'para pedir um novo código.',
+      ),
       'over_email_send_rate_limit' => const UnexpectedFailure(
         'Muitos pedidos em pouco tempo. Aguarde um instante e tente de novo.',
       ),

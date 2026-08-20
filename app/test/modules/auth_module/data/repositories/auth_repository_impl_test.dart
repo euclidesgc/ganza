@@ -19,6 +19,10 @@ void main() {
   const emailValido = 'pessoa@exemplo.invalid';
   const senhaQualquer = 'nao-e-uma-senha-real';
 
+  setUpAll(() {
+    registerFallbackValue(OtpType.recovery);
+  });
+
   setUp(() {
     client = _MockSupabaseClient();
     auth = _MockGoTrueClient();
@@ -87,6 +91,42 @@ void main() {
       );
 
       expect(resultado.getLeft().toNullable(), isA<ValidationFailure>());
+    });
+  });
+
+  group('AuthRepositoryImpl.verifyRecoveryCode', () {
+    // otp_expired cobre código errado e código vencido ao mesmo tempo
+    // (FD-026, docs/002_conta_e_configuracoes/decisions.md) — não há como
+    // testar os dois separadamente porque o GoTrue não os separa.
+    test('código errado ou vencido devolve a mensagem que orienta a corrigir, '
+        'não a genérica de erro inesperado', () async {
+      when(
+        () => auth.verifyOTP(
+          email: any(named: 'email'),
+          token: any(named: 'token'),
+          type: any(named: 'type'),
+        ),
+      ).thenThrow(
+        const AuthException(
+          'Token has expired or is invalid',
+          code: 'otp_expired',
+        ),
+      );
+
+      final resultado = await repository.verifyRecoveryCode(
+        email: emailValido,
+        token: '000000',
+      );
+
+      expect(
+        resultado,
+        const Left<Failure, Unit>(
+          ValidationFailure(
+            'Código inválido ou vencido. Confira e digite de novo, ou '
+            'volte para pedir um novo código.',
+          ),
+        ),
+      );
     });
   });
 }
