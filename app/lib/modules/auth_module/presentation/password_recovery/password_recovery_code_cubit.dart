@@ -1,0 +1,58 @@
+import 'package:bloc/bloc.dart';
+import 'package:equatable/equatable.dart';
+
+import '../../../../core/error/failure.dart';
+import '../../../../core/session/session.dart';
+import '../../domain/usecases/update_password.dart';
+import '../../domain/usecases/verify_recovery_code.dart';
+
+part 'password_recovery_code_state.dart';
+
+class PasswordRecoveryCodeCubit extends Cubit<PasswordRecoveryCodeState> {
+  PasswordRecoveryCodeCubit(
+    this._verifyRecoveryCode,
+    this._updatePassword,
+    this._recoveryScope,
+  ) : super(const PasswordRecoveryCodeAwaitingCode()) {
+    // PasswordRecoveryScope liga assim que esta tela nasce: o verifyOTP a
+    // seguir autentica a sessão, e sem o escopo a guarda de rota trataria
+    // isso como login normal e mandaria o usuário para a raiz antes de ele
+    // ver o campo de nova senha.
+    _recoveryScope.begin();
+  }
+
+  final VerifyRecoveryCode _verifyRecoveryCode;
+  final UpdatePassword _updatePassword;
+  final PasswordRecoveryScope _recoveryScope;
+
+  Future<void> verifyCode({required String email, required String code}) async {
+    emit(const PasswordRecoveryCodeVerifying());
+
+    final result = await _verifyRecoveryCode(email: email, token: code);
+    if (isClosed) return;
+
+    emit(
+      result.fold(
+        (failure) => PasswordRecoveryCodeVerifyFailed(failure),
+        (_) => const PasswordRecoveryCodeAwaitingPassword(),
+      ),
+    );
+  }
+
+  Future<void> submitNewPassword({required String newPassword}) async {
+    emit(const PasswordRecoveryCodeUpdating());
+
+    final result = await _updatePassword(newPassword: newPassword);
+    if (isClosed) return;
+
+    result.fold((failure) => emit(PasswordRecoveryCodeUpdateFailed(failure)), (
+      _,
+    ) {
+      // PasswordRecoveryScope desliga só aqui, depois da senha trocada: é
+      // o sinal que devolve à guarda de rota o caminho normal de sessão
+      // válida — sem ele o usuário ficaria preso nesta tela para sempre.
+      _recoveryScope.end();
+      emit(const PasswordRecoveryCodeCompleted());
+    });
+  }
+}
