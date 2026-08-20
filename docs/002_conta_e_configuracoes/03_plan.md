@@ -8,7 +8,7 @@ escopo: ele distribui o DoD entre as fases e acrescenta o que falta para cada
 fase se sustentar sozinha.**
 
 Estado: **Fase 1 em andamento** · branch `feature/GZ-24-conta-e-configuracoes`
-(de `develop`) · seis fases fatiadas em 65 tarefas · **T1.1 a T1.14 com
+(de `develop`) · seis fases fatiadas em 66 tarefas · **T1.1 a T1.14 com
 `CUMPRIDO`**; **próximo passo: despachar a T1.15 — a etapa de nova senha da
 recuperação não tem saída, e abandoná-la deixa a pessoa dentro do app com a
 senha antiga valendo (`changes.md`, CHG-009). Depois dela, a T1.17 fecha a fase;
@@ -813,12 +813,12 @@ os dois são compartilhados e ficam inteiros na T2.5.
 
 Consolidar as duas frentes antes de seguir.
 
-- [ ] **T2.5** — Montar o `ShellRoute` restrito aos destinos de topo em `app/lib/app_router.dart`, com o drawer no `Scaffold` do shell e `leading:` explícito por token de `AppIcons`; registrar o módulo em `app/lib/injection.dart`; remover os dois `IconButton` da `AppBar` da `AreasPage`, cujas ações passam para o drawer. · camada **infra/presentation** · `especialista-infra`
+- [x] **T2.5** — Montar o `ShellRoute` restrito aos destinos de topo em `app/lib/app_router.dart`, com o drawer no `Scaffold` do shell e `leading:` explícito por token de `AppIcons`; registrar o módulo em `app/lib/injection.dart`; remover os dois `IconButton` da `AppBar` da `AreasPage`, cujas ações passam para o drawer. · camada **infra/presentation** · `especialista-infra` · **DoD: CUMPRIDO**
 
   **DoD da tarefa**
   - `app/lib/app_router.dart` declara um `ShellRoute` contendo **apenas** os destinos de topo; `/transacoes/nova` e os destinos sob `/configuracoes/` continuam empilhados fora dele, para a `AppBar` deles manter o botão de voltar.
   - Nenhum `Scaffold` de página de topo deixa o `leading:` para o framework preencher: `rtk proxy grep -rn 'drawer:' app/lib` mostra o `Scaffold` do shell, e o mesmo `Scaffold` declara `leading:` com token de `app/lib/core/theme/app_icons.dart`. Sem isso o Flutter injeta um `DrawerButton` com glifo do Material, que `scripts/gates_guard.sh` não detecta porque procura o literal `Icons.`.
-  - `rtk proxy grep -rn 'Icons\.' app/lib` não devolve nenhuma linha, e os arquivos `app/lib/modules/areas_module/presentation/areas/widgets/transactions_button.dart` e `.../sign_out_button.dart` não existem mais — as duas ações estão no drawer.
+  - `rtk proxy grep -rnE '(^|[^A-Za-z])Icons\.' app/lib` não devolve nenhuma linha — **o padrão é ancorado de propósito e não se simplifica para `'Icons\.'`**: sem a âncora ele casa `Icons.` como pedaço de `AppIcons.`, que é justamente o token que o Gate 4 obriga a usar, e o critério passa a reprovar as 10 linhas legítimas que o repositório já tem. E os arquivos `app/lib/modules/areas_module/presentation/areas/widgets/transactions_button.dart` e `app/lib/modules/areas_module/presentation/areas/widgets/sign_out_button.dart` não existem mais — as duas ações estão no drawer.
   - `cd app && dart format --set-exit-if-changed lib`, `flutter analyze` e `flutter test -r compact` terminam com código de saída `0`; da raiz, `bash scripts/gates_guard.sh; echo $?` imprime `0`.
 
 - [ ] **T2.6** `[adiada · lote de fechamento]` — Instrumentar: atualizar `app/patrol_test/lista_transacoes_test.dart` e `app/patrol_test/registro_transacao_test.dart` para navegar pelo drawer, e escrever a cena nova que abre o drawer e chega a `/configuracoes`. · camada **testes** · `qa` · **fora do DoD da Fase 2** (§9; `changes.md`, CHG-012)
@@ -839,6 +839,17 @@ Consolidar as duas frentes antes de seguir.
   - Nenhum arquivo da rodada contém token, senha ou refresh token: `rtk proxy grep -rniE 'eyJ|refresh_token|"password"' docs/002_conta_e_configuracoes/e2e/round_03/` não devolve nenhuma linha.
   - `scripts/local-supabase.sh down` seguido de `scripts/local-supabase.sh status` mostra a stack fora do ar ao fim da rodada.
 
+- [x] **T2.8** — Devolver `/configuracoes` para dentro do `ShellRoute` de `app/lib/app_router.dart` e consertar o teste que impedia isso. · camada **infra/presentation** · `especialista-infra` · **DoD: CUMPRIDO**
+
+  **DoD da tarefa**
+  - Em `app/lib/app_router.dart`, a rota `/configuracoes` é declarada **dentro** do `routes:` do `ShellRoute`, e nenhuma sub-rota de `/configuracoes/` entra ali — conferir lendo o arquivo. A tela de Configurações passa a ter o drawer e **não** tem seta de voltar.
+  - `app/test/modules/settings_module/presentation/settings_home_page_test.dart` **não monta `GoRouter` próprio**: ele exercita o router do app, construído pela mesma função de `app/lib/app_router.dart` que o `bootstrap` usa, com a mesma chave de navegador root — `rtk proxy grep -n 'GoRouter(' app/test/modules/settings_module/presentation/settings_home_page_test.dart` não devolve nenhuma linha.
+  - Um teste desse arquivo navega para `/configuracoes` e assere que o drawer está alcançável a partir dela e que a `AppBar` não traz botão de voltar; `cd app && flutter test -r compact test/modules/settings_module` sai `0`.
+  - Tirar `/configuracoes` de dentro do `ShellRoute` faz esse teste falhar — provar tirando, colar a saída vermelha e restaurar. Sem essa reversão o teste prova que passa, não que mede.
+  - `cd app && dart format --set-exit-if-changed lib test`, `flutter analyze` e `flutter test -r compact` terminam com código de saída `0`; da raiz, `bash scripts/gates_guard.sh; echo $?` imprime `0`.
+
+A **T2.8** nasce de um desvio registrado em [`changes.md`](changes.md) (CHG-014): o executor da T2.5 tirou `/configuracoes` do shell para fazer um teste passar, e o contrato da §3 diz o contrário. **O contrato não cede** — quem estava errado era o teste, que montava um `GoRouter` isolado sem a chave root e por isso não suportava `parentNavigatorKey`. Teste de widget não decide topologia de navegação.
+
 Instrumentar (T2.6) e executar (T2.7) ficam com o mesmo agente pela mesma razão
 da Fase 1: a T2.6 mexe em dois roteiros que já estavam verdes, e quem os alterou
 é quem sabe distinguir "a navegação nova está errada" de "a cena herdada
@@ -847,9 +858,9 @@ continuam juntas lá: adiar não desfaz o motivo de estarem no mesmo agente.
 
 **DoD da Fase 2**
 
-- [ ] As cinco tarefas que a fase leva ao PR 2 — T2.1 a T2.5, já que a **T2.6** e a **T2.7** estão adiadas para o lote de fechamento (§9) — com o campo `DoD:` marcado CUMPRIDO, em negrito, na própria linha: `rtk proxy grep -cE '^- \[x\] \*\*T2\.[0-9]+\*\*.*\*\*DoD: CUMPRIDO\*\*' docs/002_conta_e_configuracoes/03_plan.md` imprime `5`, e `rtk proxy grep -cE '^- \[.\] \*\*T2\.[0-9]+\*\*.*\*\*DoD: NÃO CUMPRIDO\*\*' docs/002_conta_e_configuracoes/03_plan.md` imprime `0`. O padrão ancora na fase e traz os asteriscos: sem os asteriscos a contagem inclui as próprias linhas de critério que citam o campo, e sem a âncora ela cresce a cada fase seguinte que marcar uma tarefa — nos dois casos o número nunca fecha.
+- [ ] As seis tarefas que a fase leva ao PR 2 — T2.1 a T2.5 e a **T2.8**, já que a **T2.6** e a **T2.7** estão adiadas para o lote de fechamento (§9) — com o campo `DoD:` marcado CUMPRIDO, em negrito, na própria linha: `rtk proxy grep -cE '^- \[x\] \*\*T2\.[0-9]+\*\*.*\*\*DoD: CUMPRIDO\*\*' docs/002_conta_e_configuracoes/03_plan.md` imprime `6`, e `rtk proxy grep -cE '^- \[.\] \*\*T2\.[0-9]+\*\*.*\*\*DoD: NÃO CUMPRIDO\*\*' docs/002_conta_e_configuracoes/03_plan.md` imprime `0`. O padrão ancora na fase e traz os asteriscos: sem os asteriscos a contagem inclui as próprias linhas de critério que citam o campo, e sem a âncora ela cresce a cada fase seguinte que marcar uma tarefa — nos dois casos o número nunca fecha.
 - [ ] `cd app && dart format --set-exit-if-changed lib patrol_test test`, `flutter analyze` e `flutter test -r compact` verdes; da raiz, `bash scripts/gates_guard.sh; echo $?` imprime `0`.
-- [ ] `rtk proxy grep -rn 'Icons\.' app/lib` não devolve nenhuma linha — o glifo do Material não voltou pelo `DrawerButton` que o `Scaffold` injeta.
+- [ ] `rtk proxy grep -rnE '(^|[^A-Za-z])Icons\.' app/lib` não devolve nenhuma linha — **o padrão é ancorado de propósito e não se simplifica para `'Icons\.'`**: sem a âncora ele casa `Icons.` como pedaço de `AppIcons.`, que é justamente o token que o Gate 4 obriga a usar, e o critério passa a reprovar as 10 linhas legítimas que o repositório já tem — o glifo do Material não voltou pelo `DrawerButton` que o `Scaffold` injeta.
 - [ ] `CHANGELOG.md`, seção `Unreleased`, atualizado no mesmo PR.
 - [ ] Job "App" verde no CI do PR.
 
@@ -1277,7 +1288,7 @@ isolamento seria tirar segurança do gate.
 
 - [ ] As doze tarefas que a fase leva aos PRs 4a e 4b — T4.1 a T4.11 e a **T4.14**, já que a **T4.12** e a **T4.13** estão adiadas para o lote de fechamento (§9) — com o campo `DoD:` marcado CUMPRIDO, em negrito, na própria linha: `rtk proxy grep -cE '^- \[x\] \*\*T4\.[0-9]+\*\*.*\*\*DoD: CUMPRIDO\*\*' docs/002_conta_e_configuracoes/03_plan.md` imprime `12`, e `rtk proxy grep -cE '^- \[.\] \*\*T4\.[0-9]+\*\*.*\*\*DoD: NÃO CUMPRIDO\*\*' docs/002_conta_e_configuracoes/03_plan.md` imprime `0`. O padrão ancora na fase e traz os asteriscos: sem os asteriscos a contagem inclui as próprias linhas de critério que citam o campo, e sem a âncora ela cresce a cada fase seguinte que marcar uma tarefa — nos dois casos o número nunca fecha.
 - [ ] `cd app && dart format --set-exit-if-changed lib patrol_test test`, `flutter analyze` e `flutter test -r compact` verdes; `cd supabase/functions && deno fmt --check && deno lint && deno task check && deno task test` verde; da raiz, `bash scripts/gates_guard.sh; echo $?` imprime `0`.
-- [ ] `rtk proxy grep -rniE 'AIza|sk-|apiKey' app/lib` não devolve nenhuma linha — nenhuma chave de terceiro, nem placeholder, entrou no binário.
+- [ ] `rtk proxy grep -rnE '(^|[^A-Za-z])(AIza[A-Za-z0-9_-]{20,}|sk-[A-Za-z0-9]{16,})' app/lib` não devolve nenhuma linha — nenhuma chave de terceiro, nem placeholder com forma de chave, entrou no binário. **O padrão casa o literal, não o identificador:** `apiKey` sozinho reprovaria o token `AppIcons.apiKey` de `app/lib/core/theme/app_icons.dart` (o ícone de chave, nomeado pela função, como o Gate 4 manda) e o comentário sobre o cabeçalho `apikey` em `app/lib/modules/transactions_module/data/repositories/transactions_repository_impl.dart` — duas linhas legítimas que hoje existem.
 - [ ] `rtk proxy grep -rln 'aiConfigured' app/lib` devolve **os três** caminhos `app/lib/core/session/`, `app/lib/core/widgets/navigation/` e `app/lib/app_router.dart` — e nenhum outro. O "nenhum outro" sozinho passaria com saída vazia; é a presença dos três que prova que o gate existe, e a ausência do resto que prova que ele mora no router e não no corpo de página.
 - [ ] A prova de isolamento entre dois usuários **e** a prova de RLS no banco estão em `docs/002_conta_e_configuracoes/e2e/round_05/isolamento.md`, com comandos e saídas literais, **reproduzidas pelo QA independentemente do executor da fase** (tarefa **T4.14**). Esta linha é invariante bloqueante do gauntlet e se prova por saída de comando: **não é adiável** e não sai do gate do PR (**D30**).
 - [ ] `CLAUDE.md` reconciliado no mesmo PR: a invariante 4 passa a distinguir **credencial do projeto** (proibida no cliente, sem exceção) de **credencial do usuário** (entra pelo app, vive cifrada no servidor e nunca retorna ao cliente) — decisão **D24**.
@@ -1773,7 +1784,7 @@ Legenda das fases: `[ ]` não iniciada · `[-]` em andamento · `[x]` mergeada e
 tarefa sem esse veredito **não** é marcada, mesmo que o código pareça pronto.
 
 - [-] **Fase 1** — Auth completo: medir a sessão, cadastrar e recuperar senha · PR 1 (17 tarefas — 16 no PR 1; a T1.16 está adiada para o lote de fechamento, §9)
-- [ ] **Fase 2** — Drawer e a casca das Configurações · PR 2 (7 tarefas — 5 no PR 2; T2.6 e T2.7 no lote de fechamento, §9)
+- [ ] **Fase 2** — Drawer e a casca das Configurações · PR 2 (8 tarefas — 6 no PR 2, com a T2.8 nascida do CHG-014; T2.6 e T2.7 no lote de fechamento, §9)
 - [ ] **Fase 3** — Perfil do usuário · PR 3a + PR 3b (10 tarefas — 8 no PR 3b; T3.9 e T3.10 no lote de fechamento, §9)
 - [ ] **Fase 4** — Configuração de IA e o gating · PR 4a + PR 4b (14 tarefas — 12 nos PRs; T4.12 e T4.13 no lote de fechamento, §9; a T4.14 nasceu ao partir a prova de isolamento da execução do E2E)
 - [ ] **Fase 5** — Integração bancária · PR 5a + PR 5b (8 tarefas — 6 nos PRs; T5.7 e T5.8 no lote de fechamento, §9)

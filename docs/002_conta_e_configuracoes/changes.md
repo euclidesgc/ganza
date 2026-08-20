@@ -7,6 +7,55 @@ estado final, sem preservar neles uma versão obsoleta do planejamento.
 
 ## Mudanças registradas
 
+### CHG-014 - O contrato de navegação não cede a um teste mal montado, e a T2.5 deixa uma tarefa para trás
+
+- **Data:** 2026-08-20
+- **Fase/PR:** Fase 2 (PR 2), durante a execução da **T2.5**.
+- **Planejado originalmente:** a tabela de rotas da §3 do plano fixa
+  `/configuracoes` **dentro** do `ShellRoute` e todas as sub-rotas
+  (`/configuracoes/conta`, `/configuracoes/conta/senha`, `/configuracoes/ia`,
+  `/configuracoes/banco`) **fora** dele. A razão está no desenho e não é
+  cosmética: `/configuracoes` é um **destino de topo**, listado no drawer, e o
+  shell é justamente o que carrega o drawer. As sub-rotas ficam fora para cada
+  uma manter `AppBar` própria com seta de voltar — é o que a **T3.8** já cobra.
+- **Por que não foi possível prosseguir:** o executor aninhou
+  `SettingsRoutes.route` no shell com `parentNavigatorKey` nas sub-rotas, como o
+  contrato pede, e
+  `app/test/modules/settings_module/presentation/settings_home_page_test.dart`
+  quebrou: o teste monta um `GoRouter` **próprio e isolado, sem a chave de
+  navegador root**, e o go_router lança assert quando uma rota referencia uma
+  chave que aquele router não conhece. Ele reverteu e deixou `/configuracoes`
+  como rota de topo, fora do shell — com o efeito de a tela de Configurações
+  ganhar seta de voltar e **perder o drawer**.
+- **Alternativas consideradas:** (a) **o contrato cede** — aceitar Configurações
+  fora do shell, mais barato e sem tarefa nova, ao preço de a pessoa não alcançar
+  o drawer de dentro das Configurações e ter de voltar antes de trocar de área;
+  (b) **o teste é que estava mal montado** — corrigir o teste para exercitar o
+  router do app em vez de um router de mentira, e devolver `/configuracoes` ao
+  shell.
+- **Decisão tomada:** (b), pelo `tech-lead`. **O contrato não cede.** Um teste de
+  widget que monta um `GoRouter` isolado não conhece a topologia do app e não
+  pode ditá-la — a cauda não balança o cachorro. E a alternativa (a) contraria a
+  promessa 3 da §6 do plano, "navegação de topo por drawer": um item de drawer
+  que leva a uma tela **sem** drawer é exatamente o que essa promessa nega. O
+  defeito é do harness do teste, não do router. **Nasce a T2.8**
+  (`especialista-infra`, camada infra/presentation, no PR 2): devolver
+  `/configuracoes` ao `ShellRoute` e reescrever o teste para exercitar o router
+  do app, com bloco DoD próprio de cinco linhas — incluindo a reversão, que tirar
+  a rota do shell faz o teste falhar.
+- **Resumo da resolução:** nada do contrato mudou; o que mudou foi o
+  reconhecimento de que a prova estava errada. A Fase 2 passa de 7 para **8**
+  tarefas e leva **6** ao PR 2 (T2.1 a T2.5 e T2.8; T2.6 e T2.7 seguem no lote de
+  fechamento), e a feature vai de 65 para **66**. O estado atual do código —
+  `/configuracoes` fora do shell — é **desvio conhecido e temporário**, fechado
+  pela T2.8 antes do PR 2. Regra que fica: quando um teste impede a topologia
+  correta, o conserto é no teste; "conserte o router, não o teste" vale para
+  regressão de comportamento, não para harness que não sabe montar o alvo.
+- **Reconciliação documental:** `docs/002_conta_e_configuracoes/03_plan.md` —
+  tarefa **T2.8** com bloco DoD e a nota que a explica, contagem do DoD da Fase 2,
+  §8 Progresso e o cabeçalho. A tabela de rotas da §3 **não muda**: ela já dizia o
+  certo. `01_prd.md`, `02_specs.md` e `decisions.md` desta pasta não mudam.
+
 ### CHG-013 - Print de emulador em DoD de tarefa segue a mesma régua, e a senha antiga troca de prova em vez de sair do gate
 
 - **Data:** 2026-08-20
