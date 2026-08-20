@@ -131,6 +131,31 @@ abstract final class AppTheme {
         ),
       ),
       dividerTheme: DividerThemeData(color: ganza.outline, space: 1),
+      drawerTheme: DrawerThemeData(
+        backgroundColor: scheme.surface,
+        elevation: 0,
+        surfaceTintColor: Colors.transparent,
+        shadowColor: Colors.transparent,
+      ),
+      listTileTheme: ListTileThemeData(
+        minTileHeight: AppSpacing.touchTarget,
+        iconColor: scheme.onSurface,
+        textColor: scheme.onSurface,
+        contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+      ),
+      switchTheme: SwitchThemeData(
+        thumbColor: WidgetStateProperty.resolveWith(
+          (states) => states.contains(WidgetState.selected)
+              ? scheme.primary
+              : ganza.mutedInk,
+        ),
+        trackColor: WidgetStateProperty.resolveWith(
+          (states) => states.contains(WidgetState.selected)
+              ? scheme.secondary
+              : ganza.outline,
+        ),
+        trackOutlineColor: WidgetStateProperty.all(Colors.transparent),
+      ),
     );
   }
 }
