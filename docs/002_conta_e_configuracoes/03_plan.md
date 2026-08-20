@@ -1058,7 +1058,7 @@ rodam no lote de fechamento** (§9) e continuam juntas lá.
   - Remover o controle da tela de Conta faz esse teste falhar — provar removendo, colar a saída vermelha e restaurar.
   - `cd app && dart format --set-exit-if-changed lib test`, `flutter analyze` e `flutter test -r compact` terminam com código de saída `0`; da raiz, `bash scripts/gates_guard.sh; echo $?` imprime `0`.
 
-- [ ] **T3.12** — Fazer `scripts/gates_guard.sh` acusar rota nomeada declarada e **nunca navegada**, que é a classe de defeito que deixou a troca de senha inalcançável. · camada **infra** · `especialista-infra`
+- [x] **T3.12** — Fazer `scripts/gates_guard.sh` acusar rota nomeada declarada e **nunca navegada**, que é a classe de defeito que deixou a troca de senha inalcançável. · camada **infra** · `especialista-infra` · **DoD: CUMPRIDO**
 
   **DoD da tarefa**
   - `scripts/gates_guard.sh` passa a acusar toda constante de rota nomeada declarada em `app/lib/**/*_routes.dart` que não tenha **nenhuma** referência de navegação por nome em `app/lib` (`goNamed`, `pushNamed`, `replaceNamed` ou equivalente): `rtk proxy grep -n 'Named' scripts/gates_guard.sh` devolve pelo menos uma linha, e hoje não devolve nenhuma.
