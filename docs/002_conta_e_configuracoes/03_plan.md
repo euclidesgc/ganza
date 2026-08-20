@@ -501,7 +501,7 @@ sobrou virou a **T1.12**.
 Consolidar as três frentes na branch da fase. Daqui até a T1.6 é sequencial —
 a camada data implementa o contrato que a frente A acabou de fechar.
 
-- [ ] **T1.6** — Implementar os quatro métodos novos em `app/lib/modules/auth_module/data/repositories/auth_repository_impl.dart`, trocar a tradução de erro por mapeamento sobre o código do GoTrue e fazer o `signUp` devolver desfecho idêntico para endereço novo e repetido. · camada **data** · `especialista-dados` · **DoD: reaberta pela `CHG-005`** — o veredito anterior valia para as linhas anteriores e não alcança as duas que mudaram
+- [x] **T1.6** — Implementar os quatro métodos novos em `app/lib/modules/auth_module/data/repositories/auth_repository_impl.dart`, trocar a tradução de erro por mapeamento sobre o código do GoTrue e fazer o `signUp` devolver desfecho idêntico para endereço novo e repetido. · camada **data** · `especialista-dados` · **DoD: reaberta pela `CHG-005`** — o veredito anterior valia para as linhas anteriores e não alcança as duas que mudaram · **DoD: CUMPRIDO** (reaberta pela CHG-005, recumprida)
 
   **DoD da tarefa**
   - `app/lib/modules/auth_module/data/repositories/auth_repository_impl.dart` implementa `signUp`, `resetPasswordForEmail`, `verifyRecoveryCode` e `updatePassword`, e continua sendo o **único** arquivo do módulo com `try`/`catch`: `rtk proxy grep -rn 'catch (' app/lib/modules/auth_module/` só devolve linhas desse arquivo.
@@ -511,7 +511,7 @@ a camada data implementa o contrato que a frente A acabou de fechar.
   - Nenhum método do arquivo devolve senha, token ou objeto de sessão para fora: todo retorno é `Either<Failure, …>` sobre entidade de `app/lib/modules/auth_module/domain/entities/` ou sobre `Unit`.
   - `cd app && dart format --set-exit-if-changed lib/modules/auth_module` e `flutter analyze lib/modules/auth_module` terminam com código de saída `0` — agora sem escopar, porque o contrato voltou a ter implementação.
 
-- [ ] **T1.7** `[paralela · frente D · worktree]` — Criar `app/lib/modules/auth_module/presentation/sign_up/`: cubit com estado `sealed` via `part of`, página `StatelessWidget` com `static Widget pageBuilder` e os widgets de campo em `widgets/`. · camada **presentation** · `especialista-apresentacao`
+- [x] **T1.7** `[paralela · frente D · worktree]` — Criar `app/lib/modules/auth_module/presentation/sign_up/`: cubit com estado `sealed` via `part of`, página `StatelessWidget` com `static Widget pageBuilder` e os widgets de campo em `widgets/`. · camada **presentation** · `especialista-apresentacao` · **DoD: CUMPRIDO**
 
   **DoD da tarefa**
   - `app/lib/modules/auth_module/presentation/sign_up/sign_up_cubit.dart` declara o estado `sealed` no mesmo arquivo via `part of`, com um `final class` por desfecho, e nenhum `import` contendo `/data/` aparece em nenhum arquivo sob `app/lib/modules/auth_module/presentation/sign_up/`.

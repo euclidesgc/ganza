@@ -9,7 +9,10 @@ import '../../../auth_routes.dart';
 /// e não entende por que não consegue entrar em seguida. O texto evita
 /// afirmar que a conta foi criada agora: o GoTrue devolve `200` tanto para
 /// endereço inédito quanto para um repetido, e revelar a diferença
-/// exporia quais endereços têm conta (FD-024).
+/// exporia quais endereços têm conta (FD-024). A linha sobre recuperar a
+/// senha aparece para todo mundo, sempre — é isso que a torna segura
+/// (FD-025): quem só está confirmando um cadastro novo a ignora, e quem já
+/// tinha conta ganha uma saída sem que a tela precise admitir o motivo.
 class SignUpConfirmationNotice extends StatelessWidget {
   const SignUpConfirmationNotice({required this.email, super.key});
 
@@ -46,6 +49,12 @@ class SignUpConfirmationNotice extends StatelessWidget {
                       Text(
                         'Enviamos um e-mail de confirmação para $email. '
                         'Confirme o endereço para poder entrar.',
+                        style: context.texts.bodyMedium,
+                      ),
+                      const SizedBox(height: AppSpacing.sm),
+                      Text(
+                        'Já tinha uma conta? Use "Esqueci minha senha" na '
+                        'tela de entrar.',
                         style: context.texts.bodyMedium,
                       ),
                     ],
