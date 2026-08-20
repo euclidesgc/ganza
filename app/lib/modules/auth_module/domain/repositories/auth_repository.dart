@@ -28,4 +28,9 @@ abstract interface class AuthRepository {
   });
 
   Future<Either<Failure, Unit>> updatePassword({required String newPassword});
+
+  Future<Either<Failure, Unit>> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  });
 }

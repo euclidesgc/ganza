@@ -1,5 +1,6 @@
 export 'entities/authenticated_user.dart';
 export 'repositories/auth_repository.dart';
+export 'usecases/change_password.dart';
 export 'usecases/get_current_user.dart';
 export 'usecases/observe_current_user.dart';
 export 'usecases/reset_password_for_email.dart';

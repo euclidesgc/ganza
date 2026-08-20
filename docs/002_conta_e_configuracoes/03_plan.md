@@ -946,7 +946,7 @@ está — o `settings_module` navega pelo nome da rota, que já é público.
   - Sem a substituição de `public.handle_new_user()` o primeiro caso devolveria nulo: provar revertendo só esse trecho, reaplicando e colando a saída diferente, e então restaurar.
   - `psql -tAc "select count(*) from pg_policies where schemaname='public' and tablename='profiles'"` continua devolvendo `1`, e essa política segue com `id = (select auth.uid())` em `qual` **e** em `with_check` — a migration não afrouxou a RLS que já existia.
 
-- [ ] **T3.2** `[paralela · frente A · worktree]` — Criar a camada domain de perfil em `app/lib/modules/settings_module/domain/`: entidade de perfil, contrato de repositório e um use case por operação. · camada **domain** · `especialista-dominio`
+- [x] **T3.2** `[paralela · frente A · worktree]` — Criar a camada domain de perfil em `app/lib/modules/settings_module/domain/`: entidade de perfil, contrato de repositório e um use case por operação. · camada **domain** · `especialista-dominio` · **DoD: CUMPRIDO**
 
   **DoD da tarefa**
   - `app/lib/modules/settings_module/domain/entities/user_profile.dart` declara uma classe imutável que estende `Equatable`, com identificador, e-mail, nome de exibição opcional e fuso; `rtk proxy grep -n 'fromMap\|toMap' app/lib/modules/settings_module/domain/entities/user_profile.dart` não devolve nenhuma linha.
@@ -955,7 +955,7 @@ está — o `settings_module` navega pelo nome da rota, que já é público.
   - `rtk proxy grep -rn "^import" app/lib/modules/settings_module/domain/` devolve só `package:equatable`, `package:fpdart` e caminhos relativos dentro de `domain/` ou de `app/lib/core/error/` — nenhum `package:flutter`, nenhum `package:supabase_flutter`, nenhum caminho contendo `/data/`.
   - `cd app && dart format --set-exit-if-changed lib/modules/settings_module/domain` e `flutter analyze lib/modules/settings_module/domain` terminam com código de saída `0`. O analyze é escopado de propósito: a implementação do contrato ainda não existe e acusaria erro fora da pasta.
 
-- [ ] **T3.3** `[paralela · frente B · worktree]` — Acrescentar `changePassword` ao contrato em `app/lib/modules/auth_module/domain/repositories/auth_repository.dart` e o use case correspondente, sem tocar no membro de troca de senha que o fluxo de recuperação usa. · camada **domain** · `especialista-dominio`
+- [x] **T3.3** `[paralela · frente B · worktree]` — Acrescentar `changePassword` ao contrato em `app/lib/modules/auth_module/domain/repositories/auth_repository.dart` e o use case correspondente, sem tocar no membro de troca de senha que o fluxo de recuperação usa. · camada **domain** · `especialista-dominio` · **DoD: CUMPRIDO**
 
   **DoD da tarefa**
   - `app/lib/modules/auth_module/domain/repositories/auth_repository.dart` declara `changePassword`, que recebe **a senha atual e a nova** e devolve `Future<Either<Failure, Unit>>`, e o membro de troca de senha sem senha atual continua no arquivo — os dois coexistem, porque o fluxo de recuperação não tem senha atual para pedir.
