@@ -7,6 +7,48 @@ estado final, sem preservar neles uma versão obsoleta do planejamento.
 
 ## Mudanças registradas
 
+### CHG-017 - A troca de senha estava pronta e inalcançável, e é a terceira vez que a soma não entrega o fluxo
+
+- **Data:** 2026-08-20
+- **Fase/PR:** Fase 3 (PR 3b), achado pelo executor da T3.8.
+- **Planejado originalmente:** a **T3.7** faria a tela de troca de senha e a
+  **T3.8** registraria a rota `/configuracoes/conta/senha` fora do `ShellRoute`,
+  mais o DI. As duas cumpriram o que prometiam, com DoD aprovado.
+- **Por que não foi possível prosseguir:** **nenhum widget aciona a rota.** A tela
+  de Conta não tem link para trocar a senha, e a funcionalidade ficou navegável
+  por nome e inalcançável por quem usa o app. Nenhum DoD pegou porque o link não
+  era dito por nenhuma das duas tarefas — a T3.8 cobra a entrada de **Conta** na
+  home de Configurações, não a de senha dentro da tela de Conta.
+- **Alternativas consideradas:** (a) tratar como esquecimento e mandar consertar
+  sem registrar — deixa a classe do problema viva; (b) só acrescentar linha ao
+  DoD da Fase 3 — alguém teria de executá-la de todo modo, e linha de fase sem
+  tarefa dona é exatamente o defeito da **T2.4**; (c) criar a tarefa do link
+  **e** atacar a classe, com rede mecânica e rede por fase.
+- **Decisão tomada:** (c), pelo `tech-lead`. Nasce a **T3.11**
+  (`especialista-apresentacao`, no PR 3b): controle **"Trocar senha"** na tela de
+  Conta, navegando pela rota nomeada, provado por **teste de cadeia** em
+  `app/test/app_router_test.dart` que parte de `/`, abre o menu e toca até
+  `/configuracoes/conta/senha` — mais a reversão. Nasce a **T3.12**
+  (`especialista-infra`, no PR 3b, paralela à T3.11 porque só toca
+  `scripts/gates_guard.sh`): o guard passa a acusar rota nomeada declarada e
+  nunca navegada, com escape para rota alcançada só por `redirect`. **A classe do
+  problema virou a D32** de `docs/decisions.md`, com as duas redes e a condição
+  que a T2.4 ensinou: linha de DoD de fase precisa nomear em qual bloco de tarefa
+  a prova é escrita.
+- **Resumo da resolução:** a Fase 3 vai de 10 para **12** tarefas e leva **9** ao
+  PR 3b; a feature, de 67 para **69**. As Fases 4 e 5 ganharam a linha de
+  alcançabilidade **com dono**: a da Fase 4 é escrita pela **T4.11** (uma linha
+  nova no bloco) e a da Fase 5 pela **T5.6** (linha existente estendida, para o
+  bloco não passar de seis). A Fase 6 fica isenta por não entregar tela. **Se o
+  PR 3b ficar grande, a T3.12 é a que se move de fase sem perder nada** — ela
+  protege o futuro, não esta entrega.
+- **Reconciliação documental:** `docs/decisions.md` (**D32**);
+  `docs/002_conta_e_configuracoes/03_plan.md` — tarefas **T3.11** e **T3.12** com
+  bloco DoD, nota de dependência, linha de alcançabilidade no DoD das Fases 3, 4
+  e 5, linha nova no bloco da T4.11, linha estendida no da T5.6, contagem do DoD
+  da Fase 3, §8 Progresso e cabeçalho. `01_prd.md` e `02_specs.md` não mudam: o
+  fluxo prometido sempre foi este, o que faltava era o widget que o alcança.
+
 ### CHG-016 - O DoD da Fase 3 mandava a migration para o PR errado, e o número de tarefas quase foi corrigido para o lado errado
 
 - **Data:** 2026-08-20
