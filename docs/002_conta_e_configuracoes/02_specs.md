@@ -29,7 +29,7 @@ Levantado no repositório, não presumido. É contra isto que o plano fatia.
 | `app/lib/modules/auth_module/auth_module.dart` | exporta rota, DI e o contrato de sessão — `AuthenticatedUser`, `ObserveCurrentUser`, `GetCurrentUser` e `SignOut` (o `CLAUDE.md` fala em "três símbolos" e o arquivo exporta quatro; a exceção é a mesma) | tela nova que precise de use case do auth mora **dentro** do auth; a exceção não se amplia |
 | `app/lib/app_router.dart` | router **plano**, sem `ShellRoute`; guarda binária `getIt<GetCurrentUser>()() != null`; `refreshListenable` é um único `ChangeNotifier` sobre o stream de sessão | menu lateral exige shell; recuperação de senha exige um **terceiro** estado na guarda; gating exige `Listenable.merge` |
 | `app/lib/bootstrap.dart` | `Supabase.initialize` sem `authOptions` | valem os defaults `persistSession = true` e `autoRefreshToken = true`; access e refresh token ficam em `SharedPreferences` |
-| `infra/local/docker-compose.yml`, `docs/deploy/coolify.md` | sem `GOTRUE_SESSIONS_TIMEBOX` e sem `GOTRUE_SESSIONS_INACTIVITY_TIMEOUT`; `SMTP_HOST`/`SMTP_USER`/`SMTP_PASS` vazios | pelo código **a sessão não deveria cair**; e não há como enviar e-mail de recuperação de um ambiente real |
+| `infra/local/docker-compose.yml`, `docs/deploy/coolify.md` | sem `GOTRUE_SESSIONS_TIMEBOX` e sem `GOTRUE_SESSIONS_INACTIVITY_TIMEOUT`. A stack local já roda `GOTRUE_MAILER_AUTOCONFIRM: 'false'` com capturador de e-mail (T1.5); na HML, `SMTP_HOST`/`SMTP_USER`/`SMTP_PASS` ainda vazios, e a virada entra no redeploy do SMTP | pelo código **a sessão não deveria cair** — e a T1.1 mediu que não cai; a recuperação se prova inteira na stack local, sem esperar a HML |
 | `app/lib/core/` | tem `config`, `error`, `format`, `network`, `observability`, `theme`, `widgets` — **não tem `session/`** | escopo de recuperação e capacidades do usuário são pasta nova |
 | `app/lib/core/widgets/widgets.dart` | exporta só `brand/brand.dart` e `pulse/pulse.dart` | menu lateral e campo de segredo entram como tiers novos, com barrel próprio |
 | `app/lib/core/theme/app_theme.dart` | sem `DrawerThemeData`, `ListTileThemeData`, `SwitchThemeData` | sem tematizar, o menu vem com elevação e *surface tint* do M3, contra "material humilde" |
@@ -57,6 +57,8 @@ Levantado no repositório, não presumido. É contra isto que o plano fatia.
 | `changePassword` | trocar a senha **logado**, confirmando a atual antes |
 
 Os dois últimos coexistem de propósito: são fluxos diferentes com exigências diferentes. Um arquivo de use case por operação, cada um com um único método público `call()`.
+
+**Os cinco membros não chegam na mesma fase, e isso é deliberado.** Os quatro primeiros são da **Fase 1** (tarefas T1.3, domain, e T1.6, data), porque é ela que entrega cadastro e recuperação; `changePassword` é da **Fase 3** (T3.3, T3.5, T3.7 e T3.8), porque só ali existe a tela de conta que o usa. Contrato ampliado em duas etapas, não em uma — quem ler só esta tabela conclui errado que a Fase 1 devia declarar os cinco.
 
 A tradução de erro é feita pelo **código** do erro do GoTrue, nunca por busca de substring na mensagem em inglês — mensagem de provedor muda sem aviso e a busca por texto falha em silêncio. Cobertura mínima, com texto próprio em pt-BR e distinto entre si: `invalid_credentials`, `email_not_confirmed`, `user_already_exists`, `weak_password`, `over_email_send_rate_limit`, `signup_disabled`. Nenhum deles pode cair na mensagem de sessão expirada.
 
@@ -249,13 +251,13 @@ A prova negativa da fase é um corpus adversarial versionado passando pelo pipel
 
 ## 10. Dependências humanas
 
-Nenhuma é trabalho de agente. Cada uma exige conta externa ou decisão do humano, e o fatiamento isola o que depende delas.
+Nenhuma é trabalho de agente. Cada uma exige conta externa ou decisão do humano, e o fatiamento isola o que depende delas. **B1 a B5 é a numeração provisória do rascunho; os rótulos definitivos são P9 a P13**, na mesma ordem, em [`03_plan.md`](03_plan.md) §1 — e é lá que o estado de cada uma se lê.
 
 | # | O que falta | O que bloqueia |
 |---|---|---|
-| B1 | Conta de e-mail para SMTP (Gmail com App Password) | **só** a validação da recuperação num ambiente real; o E2E usa o capturador local |
-| B2 | Cadastro aberto com confirmação automática: aceitar a dívida ou desligar a confirmação | a decisão, não o código — a tela de cadastro funciona nos dois casos |
-| B3 | Destino da branch `feature/GZ-20-lembrar-login` | nada. A abordagem está descartada por escrito; apagar branch é irreversível e a ordem é do humano |
+| ~~B1~~ | ~~Conta de e-mail para SMTP (Gmail com App Password)~~ **Resolvida em 20/08/2026:** o App Password existe e as cinco variáveis entram na HML no redeploy da **FD-022** | nada mais. O E2E sempre usou o capturador local |
+| ~~B2~~ | ~~Cadastro aberto com confirmação automática: aceitar a dívida ou desligar a confirmação~~ **Decidida em 20/08/2026 (FD-022):** cadastro aberto **com** confirmação de e-mail, `ENABLE_EMAIL_AUTOCONFIRM=false` | nada mais. A ordem da virada — as duas variáveis do GoTrue junto do SMTP — está em `docs/deploy/coolify.md` |
+| B3 | Destino da branch `feature/GZ-20-lembrar-login` | nada. A abordagem está descartada por escrito, e a medição da T1.1 desmentiu a premissa dela (**FD-023**); apagar branch é irreversível e a ordem é do humano |
 | B4 | Montar a chave-mestra do cofre em volume no servidor | **a primeira chave real de IA em produção**, e só isso |
 | B5 | Conta e credenciais do provedor bancário | a fase de integração bancária inteira, do primeiro comando ao E2E |
 
@@ -263,7 +265,7 @@ Nenhuma é trabalho de agente. Cada uma exige conta externa ou decisão do human
 
 | # | Risco | Tratamento |
 |---|---|---|
-| X1 | **Cadastro público sem prova de posse do e-mail** com confirmação automática ligada: qualquer endereço inventado vira conta confirmada | Bloqueio **B2**. Se a dívida for aceita, entra em `docs/decisions.md` com o gatilho escrito para ser paga |
+| X1 | **O cadastro tranca calado se a confirmação for desligada sem o e-mail sair.** O risco original — endereço inventado virando conta confirmada — morreu com a **FD-022**, que desligou a confirmação automática; o que ficou é o inverso: sem SMTP entregando, ninguém confirma e ninguém entra, e o `signup` continua respondendo `200` | As duas variáveis do GoTrue viram **no mesmo redeploy** das cinco de SMTP, nunca antes. Na stack local o modo de falha não existe: o capturador recebe todo e-mail |
 | X2 | **O menu reintroduz o glifo do Material** pelo `DrawerButton` que o `Scaffold` injeta, e o guard não pega | `leading:` explícito por token, e `grep -rn 'Icons\.' app/lib` vazio no DoD da fase |
 | X3 | **`flutter test` não cobre `app/patrol_test/`**: a troca de navegação deixa o CI verde e o emulador vermelho | Instrumentar e executar em tarefas separadas, e os roteiros herdados verdes **na mesma rodada** |
 | X4 | **A chave-mestra do cofre não está em volume**: recriar o contêiner do banco torna todo segredo indecifrável | Medir em produção sem mudar estado, reproduzir a falha na stack local, deixar o trecho de compose pronto — e nenhuma chave real em produção antes de **B4** |

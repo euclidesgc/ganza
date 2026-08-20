@@ -7,10 +7,10 @@ canônico está no [`docs/roadmap.md`](../roadmap.md). **Este plano não inventa
 escopo: ele distribui o DoD entre as fases e acrescenta o que falta para cada
 fase se sustentar sozinha.**
 
-Estado: **Fase 1 não iniciada** · branch `feature/GZ-24-conta-e-configuracoes`
-(de `develop`) · plano consolidado, seis fases fatiadas em 58 tarefas;
-**próximo passo: despachar a T1.1 — medir a persistência da sessão no aparelho
-antes de implementar qualquer coisa**.
+Estado: **Fase 1 em andamento** · branch `feature/GZ-24-conta-e-configuracoes`
+(de `develop`) · seis fases fatiadas em 59 tarefas · **T1.1 a T1.5 com
+`CUMPRIDO`**; **próximo passo: despachar a T1.6 — implementar na camada data os
+quatro métodos que a T1.3 declarou**.
 
 ---
 
@@ -139,24 +139,35 @@ fatiamento foi feito para que o bloqueio custe o mínimo. **P9 a P13 são os
 rótulos definitivos dos cinco bloqueios**; quem encontrar `B1` a `B5` em texto
 anterior está lendo a numeração provisória dos rascunhos, na mesma ordem.
 
-**P9 — App Password do Gmail e as cinco variáveis de SMTP.** O provedor já está
-decidido (**D26**); o que falta é humano: gerar o App Password na conta Google
-com 2FA e cadastrar `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` e
-`SMTP_ADMIN_EMAIL` no Coolify. `docs/deploy/coolify.md` registra hoje
-`SMTP_HOST`, `SMTP_USER` e `SMTP_PASS` vazios, e `infra/local/docker-compose.yml`
-não declara nenhuma variável de mail. **O que isto bloqueia:** só a validação do
-fluxo de recuperação **na HML**. O E2E da Fase 1 roda contra a stack local e lê o
-e-mail do capturador que a T1.5 instala — não espera por esta pendência.
+**Duas delas já caíram.** Em 20/08/2026 a **P10** foi decidida e a **P9**,
+resolvida — ver a **FD-022** de [`decisions.md`](decisions.md) e o `CHG-001` de
+[`changes.md`](changes.md). Continuam abertas **P11**, **P12** e **P13**, e
+nenhuma delas bloqueia a Fase 1.
 
-**P10 — cadastro aberto ou fechado.** A decisão **D11** de `docs/decisions.md`
-diz "conta única, cadastro fechado, o app é monousuário por desenho", e a stack
-está com `GOTRUE_DISABLE_SIGNUP: 'false'` e `GOTRUE_MAILER_AUTOCONFIRM: 'true'`.
-Esta feature entrega tela de cadastro, o que revoga a D11. Com autoconfirm
-ligado, `POST /auth/v1/signup` cria contas **confirmadas sem nenhuma prova de
-posse do e-mail** — qualquer endereço inventado vira conta. As duas saídas são do
-humano: aceitar a dívida (mais barato hoje, exige P9 para sair dela depois) ou
-desligar o autoconfirm (exige P9 **antes**, senão ninguém confirma conta
-nenhuma). A T1.2 registra a escolha; ela não a toma.
+**P9 — App Password do Gmail e as cinco variáveis de SMTP. Resolvida em
+20/08/2026.** O provedor já estava decidido (**D26**) e o que faltava era humano:
+gerar o App Password na conta Google com 2FA e cadastrar `SMTP_HOST`,
+`SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` e `SMTP_ADMIN_EMAIL` no Coolify. **O App
+Password existe**, e as cinco variáveis entram na HML no mesmo redeploy da virada
+do GoTrue que a **FD-022** exige — o que resta é operação de servidor, não
+decisão. O estado corrente da HML é registrado em `docs/deploy/coolify.md`, seção
+"Ainda por fazer", que é a fonte a consultar antes de testar recuperação lá. A
+stack local não depende disso desde a T1.5: `infra/local/docker-compose.yml` já
+declara as variáveis de mail apontando para o capturador.
+
+**P10 — cadastro aberto ou fechado. Decidida em 20/08/2026: cadastro aberto _com_
+confirmação de e-mail.** A decisão **D11** de `docs/decisions.md` dizia "conta
+única, cadastro fechado, o app é monousuário por desenho"; esta feature entrega
+tela de cadastro, o que a revoga (**D28**). Das duas saídas — aceitar a dívida do
+autoconfirm ligado ou desligá-lo —, o humano recusou a mais barata: com
+`GOTRUE_MAILER_AUTOCONFIRM: 'true'`, `POST /auth/v1/signup` criaria contas
+**confirmadas sem nenhuma prova de posse do e-mail**, e qualquer endereço
+inventado viraria conta num endpoint público. Vale `GOTRUE_DISABLE_SIGNUP:
+'false'` com `GOTRUE_MAILER_AUTOCONFIRM: 'false'` (no serviço do Coolify,
+`DISABLE_SIGNUP=false` e `ENABLE_EMAIL_AUTOCONFIRM=false`). As duas variáveis
+viram **juntas, no mesmo redeploy do SMTP**: desligar a confirmação automática
+antes de o e-mail sair tranca todo cadastro novo. A stack local já roda a
+configuração nova desde a T1.5.
 
 **P11 — o destino da branch `feature/GZ-20-lembrar-login`.** O commit `4a58087`,
 não mergeado, grava a senha do usuário **em claro** em `flutter_secure_storage`
@@ -171,7 +182,12 @@ o plugin vaza pelo barrel público para todo módulo que importe o auth. Há ain
 trabalho não commitado na worktree `.claude/worktrees/agent-a8b7156ed753c8382`
 (branch `trabalho-login`). **A recomendação deste plano é descartar as duas** —
 ver a prosa da Fase 1 —, mas apagar branch é irreversível e a ordem é do humano.
-A T1.2 registra o descarte da **abordagem**; nenhuma tarefa apaga branch.
+A T1.2 registra o descarte da **abordagem**; nenhuma tarefa apaga branch. **A
+premissa da branch está desmentida por medição desde 20/08/2026:** a T1.1 provou
+que a sessão sobrevive a `force-stop` e a `reboot`, e a **FD-023** tirou "lembrar
+login" do escopo. O que restava de incômodo virou a **T1.12**, que preenche de
+volta só o e-mail. A pendência segue aberta apenas quanto ao **destino das duas
+branches** — nada mais depende dela.
 
 **P12 — a chave-mestra do Vault em produção.** O `supabase_vault` cifra com a
 chave-mestra do `pgsodium`, que mora em `/etc/postgresql-custom/pgsodium_root.key`
@@ -392,6 +408,18 @@ qual passo a sessão cai, qualquer feature de "lembrar" é remédio para doença
 diagnosticada — e o remédio que existe hoje (branch `GZ-20`) guarda senha em
 claro para resolver um problema que talvez não exista.
 
+**A medição respondeu, e o remédio não era necessário.** A T1.1 provou que a
+sessão sobrevive a `adb shell am force-stop br.com.ganza.ganza.dev` e a
+`adb reboot`, e que o app sequer chama o servidor ao reabrir
+(`docs/002_conta_e_configuracoes/e2e/round_01/`). Só volta a pedir credencial
+depois de o usuário apertar "Sair" — que é o comportamento correto de um
+sign-out. **"Lembrar login" sai do escopo** (**FD-023**), e no lugar entra a
+**T1.12**: ao voltar para a tela de entrar, o campo de e-mail nasce preenchido com
+o último e-mail usado, e só a senha se digita. E-mail não é segredo, o valor vive
+**em memória** e o campo de senha continua nascendo vazio — é quase todo o
+conforto que a `GZ-20` tentou comprar guardando senha em claro, por nenhum dos
+riscos dela.
+
 **A recuperação de senha vai por OTP digitado, não por deep link** (decisão
 **D25**, §1). O caminho OTP é `verifyOTP(email:, token:, type:
 OtpType.recovery)` com o código de seis dígitos que o GoTrue põe no corpo do
@@ -407,7 +435,8 @@ sem um terceiro estado, o usuário digita o código certo, é logado e **nunca v
 campo de nova senha**. A solução deste plano é um escopo em memória
 (`app/lib/core/session/password_recovery_scope.dart`), sem nenhuma dependência do
 contrato de auth — é por isso que ele cabe numa frente paralela. Esta fase põe em
-`app/lib/core/session/` **só** esse escopo; a capacidade do usuário
+`app/lib/core/session/` esse escopo e o e-mail lembrado da T1.12, os dois em
+memória e sem conhecer rota nem Supabase; a capacidade do usuário
 (`UserCapabilities`, `CapabilitiesCubit`) é desenho da Fase 4 e não existe aqui.
 
 **Tarefas**
@@ -466,7 +495,8 @@ conhecer o contrato de auth exatamente para isso. Vale worktree isolado: são
 três escritas simultâneas, e duas delas na mesma árvore se atropelariam.
 T1.1 e T1.2 ficam **antes** do bloco e em fila: o resultado da medição é o que
 decide se existe feature de "lembrar", e a T1.2 escreve a decisão que a medição
-informa.
+informa. Foi o que aconteceu — a medição disse que a sessão não cai, e o que
+sobrou virou a **T1.12**.
 
 Consolidar as três frentes na branch da fase. Daqui até a T1.6 é sequencial —
 a camada data implementa o contrato que a frente A acabou de fechar.
@@ -498,15 +528,37 @@ a camada data implementa o contrato que a frente A acabou de fechar.
   - Todo `emit` posterior a um `await` é precedido de `if (isClosed) return;` nos dois cubits — conferir com `rtk proxy grep -n 'await\|isClosed\|emit'` em cada arquivo.
   - `cd app && dart format --set-exit-if-changed lib/modules/auth_module` e `flutter analyze lib/modules/auth_module/presentation/password_recovery` terminam com código de saída `0`; da raiz, `bash scripts/gates_guard.sh; echo $?` imprime `0`.
 
-As frentes D e E escrevem em pastas irmãs e disjuntas
-(`presentation/sign_up/` e `presentation/password_recovery/`), nenhuma importa a
-outra, e as duas consomem só o que a T1.6 já fechou. São dois agentes do mesmo
-tipo rodando ao mesmo tempo, então **cada um em worktree próprio** — sem isso as
-duas escritas caem na mesma working directory. Nenhuma das duas toca
-`auth_routes.dart` nem `auth_injection.dart`: os dois arquivos são compartilhados
-e por isso ficam inteiros na T1.9, que é sequencial.
+- [ ] **T1.12** `[paralela · frente F · worktree]` — Preencher de volta o e-mail na tela de entrar: um guardador em memória em `app/lib/core/session/`, gravado no fim de uma entrada bem-sucedida e lido para semear o campo de e-mail de `app/lib/modules/auth_module/presentation/login/`. · camada **presentation/core** · `especialista-apresentacao`
 
-Consolidar as duas frentes antes de seguir.
+  **DoD da tarefa**
+  - `app/lib/core/session/last_signed_in_email.dart` declara uma classe que guarda **apenas em memória** o último e-mail usado para entrar, com um método para gravar e outro para ler; `app/lib/core/session/session.dart` a exporta e `app/lib/injection.dart` a registra como singleton — `rtk proxy grep -n 'LastSignedInEmail' app/lib/core/session/session.dart app/lib/injection.dart` devolve ao menos uma linha de cada um dos dois arquivos.
+  - `app/lib/modules/auth_module/presentation/login/login_cubit.dart` grava o e-mail no fim de uma entrada **bem-sucedida**, e `app/lib/modules/auth_module/presentation/login/widgets/login_form.dart` o lê para semear o campo de e-mail; o campo de senha **nunca** nasce preenchido — conferir lendo os dois arquivos.
+  - Nada é escrito em disco por causa desta tarefa, nem senha, nem token, nem o próprio e-mail: `rtk proxy grep -rn 'shared_preferences\|SharedPreferences\|flutter_secure_storage' app/lib app/pubspec.yaml` não devolve nenhuma linha.
+  - Prova no emulador: entrar com um e-mail, sair pelo botão de sair e capturar `docs/002_conta_e_configuracoes/e2e/round_02/06_email_lembrado_apos_sair.png`, mostrando o campo de e-mail preenchido com o e-mail usado e o campo de senha vazio.
+  - Remover a leitura do e-mail lembrado do formulário faz o mesmo caminho terminar com o campo de e-mail **vazio**: provar rodando, capturar `docs/002_conta_e_configuracoes/e2e/round_02/07_sem_email_lembrado.png` e restaurar o código.
+  - `cd app && dart format --set-exit-if-changed lib` e `flutter analyze lib` terminam com código de saída `0`; da raiz do repositório, `bash scripts/gates_guard.sh; echo $?` imprime `0`.
+
+As frentes D, E e F escrevem em pastas irmãs e disjuntas
+(`presentation/sign_up/`, `presentation/password_recovery/` e
+`presentation/login/` mais `core/session/`), nenhuma importa a outra, e as três
+consomem só o que a T1.6 já fechou. São três agentes do mesmo tipo rodando ao
+mesmo tempo, então **cada um em worktree próprio** — sem isso as escritas caem na
+mesma working directory. Nenhuma das três toca `auth_routes.dart` nem
+`auth_injection.dart`: os dois arquivos são compartilhados e por isso ficam
+inteiros na T1.9, que é sequencial. A F escreve em `app/lib/injection.dart`, que
+nenhuma das outras duas abre. **A T1.9 volta à mesma tela que a F acabou de
+mexer** — ela acrescenta os dois links em
+`app/lib/modules/auth_module/presentation/login/` —, e por isso ela vem **depois**
+do bloco, nunca em paralelo com a F: seriam duas escritas no mesmo arquivo.
+
+**A numeração da T1.12 segue a ordem de criação, não a de leitura.** Ela nasceu
+depois que a T1.1 mediu a sessão (`CHG-002`), e renumerar a T1.10 e a T1.11 —
+já citadas na prosa e no DoD desta fase — custaria mais do que a quebra de ordem.
+O lugar dela no bloco é o que vale para o despacho, e ele é obrigatório: a T1.10
+escreve o roteiro de E2E que digita no campo de e-mail, e precisa saber que o
+campo já nasce preenchido.
+
+Consolidar as três frentes antes de seguir.
 
 - [ ] **T1.9** — Fechar a navegação: rotas `/cadastrar` e `/recuperar-senha` (com as duas etapas) em `app/lib/modules/auth_module/auth_routes.dart` com variantes `*Named`, registro dos use cases em `app/lib/modules/auth_module/auth_injection.dart`, o terceiro estado da guarda em `app/lib/app_router.dart` e os dois links na tela de entrar. · camada **presentation/infra** · `especialista-apresentacao`
 
@@ -523,6 +575,7 @@ Consolidar as duas frentes antes de seguir.
   - Existe um roteiro novo em `app/patrol_test/` que cobre, em cenas nomeadas: criar conta, pedir recuperação, ler o código do capturador local, digitar código **errado**, digitar o código certo e trocar a senha.
   - O roteiro recusa alvo que não seja local: rodar com a URL apontando para host remoto faz a execução falhar com mensagem explícita antes de tocar em qualquer conta — provar rodando e colando a mensagem.
   - O roteiro obtém o código de seis dígitos por requisição ao capturador, não por valor fixo no código: `rtk proxy grep -nE '[0-9]{6}' app/patrol_test/` não devolve nenhum literal de código de recuperação.
+  - Nenhuma cena digita no campo de e-mail sem antes **limpá-lo**: depois de um "sair", a tela de entrar nasce com o último e-mail já preenchido, e digitar por cima produziria um endereço concatenado. Conferir lendo o roteiro — toda digitação no campo de e-mail é precedida da limpeza do campo.
   - `cd app && dart format --set-exit-if-changed patrol_test` e `flutter analyze patrol_test` terminam com código de saída `0`.
   - Cada cena salva print e log **imediatamente após a asserção visual**, em `docs/002_conta_e_configuracoes/e2e/round_02/`, pelo mesmo callback de captura por `adb reverse` que `scripts/capture-e2e-evidence.py` já serve.
 
@@ -543,10 +596,10 @@ harness com a rodada em curso.
 
 **DoD da Fase 1**
 
-- [ ] Todas as tarefas de T1.1 a T1.11 com `DoD: CUMPRIDO` na própria linha: `rtk proxy grep -c 'DoD: CUMPRIDO' docs/002_conta_e_configuracoes/03_plan.md` cobre as onze, e `rtk proxy grep -c 'DoD: NÃO CUMPRIDO' docs/002_conta_e_configuracoes/03_plan.md` imprime `0`.
+- [ ] As doze tarefas da fase (T1.1 a T1.12) com `DoD: CUMPRIDO` na própria linha: `rtk proxy grep -c 'DoD: CUMPRIDO' docs/002_conta_e_configuracoes/03_plan.md` cobre as doze, e `rtk proxy grep -c 'DoD: NÃO CUMPRIDO' docs/002_conta_e_configuracoes/03_plan.md` imprime `0`.
 - [ ] `cd app && dart format --set-exit-if-changed lib patrol_test test`, `flutter analyze` e `flutter test -r compact` verdes; da raiz, `bash scripts/gates_guard.sh; echo $?` imprime `0`.
-- [ ] `docs/002_conta_e_configuracoes/e2e/round_01/report.md` responde se a sessão sobrevive a restart e a reboot, e o `03_plan.md` registra a consequência: se sobrevive, a feature de "lembrar login" sai do escopo por escrito; se não sobrevive, o passo em que cai vira tarefa nomeada.
-- [ ] `docs/002_conta_e_configuracoes/e2e/round_02/` — cadastro e recuperação ponta a ponta, **atestados pelo dev humano**, não pelo QA. O `report.md` nomeia cada passo, comando e evidência.
+- [ ] A consequência da medição está escrita: `docs/002_conta_e_configuracoes/e2e/round_01/report.md` responde que a sessão sobrevive a restart e a reboot, e `docs/002_conta_e_configuracoes/decisions.md` traz a **FD-023**, que tira "lembrar login" do escopo e põe no lugar o e-mail preenchido de volta ao sair. `rtk proxy grep -n 'FD-023' docs/002_conta_e_configuracoes/decisions.md` devolve a linha.
+- [ ] `docs/002_conta_e_configuracoes/e2e/round_02/` — cadastro e recuperação ponta a ponta, mais o campo de e-mail preenchido de volta depois de sair (com o de senha vazio), **atestados pelo dev humano**, não pelo QA. O `report.md` nomeia cada passo, comando e evidência.
 - [ ] `rtk proxy grep -rn 'flutter_secure_storage' app/lib app/pubspec.yaml` não devolve nenhuma linha, e nenhum arquivo sob `app/lib/modules/auth_module/domain/` importa pacote de plataforma — a violação de camada da branch `feature/GZ-20-lembrar-login` não entrou.
 - [ ] `docs/decisions.md` com **D11** e **P4** marcadas como revogadas, e `docs/deploy/coolify.md` sem a instrução de redefinir senha pelo Studio.
 - [ ] `CHANGELOG.md`, seção `Unreleased`, atualizado no mesmo PR.
@@ -723,14 +776,16 @@ coluna nasce nula e o usuário a preenche aqui. Se a Fase 1 quiser coletar o nom
 na tela de cadastro, é ela que precisa passar `data:` no `signUp` — e isso é
 mudança no contrato dela, registrada em `changes.md` antes.
 
-**Troca de e-mail fica fora desta fase, por escrito.** A stack está com
-`GOTRUE_MAILER_AUTOCONFIRM: 'true'` (`infra/local/docker-compose.yml`) e sem
-SMTP configurado (`docs/deploy/coolify.md` registra `SMTP_HOST`, `SMTP_USER` e
-`SMTP_PASS` vazios). Nesse estado, `updateUser(UserAttributes(email:))` **aplica
-o novo endereço sem prova nenhuma de posse**: um dígito errado move a conta para
-um endereço que o usuário não controla, e o único caminho de volta — recuperação
-de senha — vai para lá. A tela mostra o e-mail **somente leitura**, com o motivo
-visível. Reabrir isso depende das pendências **P9** e **P10** do §1.
+**Troca de e-mail fica fora desta fase, por escrito — e o motivo é escopo.** A
+razão original era técnica e **expirou**: com `GOTRUE_MAILER_AUTOCONFIRM: 'true'`
+e sem SMTP, `updateUser(UserAttributes(email:))` aplicava o novo endereço sem
+prova nenhuma de posse, e um dígito errado movia a conta para um endereço que o
+usuário não controla. Com a **FD-022** — confirmação de e-mail ligada e SMTP
+decidido — o GoTrue passa a exigir confirmação para aplicar o endereço novo, e
+esse perigo some. **A decisão não muda:** nenhuma fase desta feature entrega o
+fluxo de troca de e-mail, e reabri-lo amplia o escopo — chamada do humano, não
+de reconciliação de documento. A tela mostra o e-mail **somente leitura**, com o
+motivo visível (**FD-014**, e `CHG-001` em [`changes.md`](changes.md)).
 
 **A troca de senha logado pede a senha atual.** `updateUser(UserAttributes(
 password:))` do `gotrue` troca sem confirmar nada, e um aparelho destravado na
@@ -864,7 +919,7 @@ sempre: quem escreve o driver é quem o depura quando a rodada falha.
 - [ ] `cd app && dart format --set-exit-if-changed lib patrol_test test`, `flutter analyze` e `flutter test -r compact` verdes; da raiz, `bash scripts/gates_guard.sh; echo $?` imprime `0`.
 - [ ] Job "Banco — migrations aplicam limpo e RLS está ligada" verde no CI do PR da migration, e o PR da migration mergeado **antes** de o PR da fase abrir.
 - [ ] `docs/002_conta_e_configuracoes/e2e/round_04/` — nome salvo, e-mail não editável e troca de senha ponta a ponta, **atestados pelo dev humano**. O `report.md` nomeia cada passo, comando e evidência.
-- [ ] `docs/002_conta_e_configuracoes/decisions.md` registra, com a razão escrita, que a troca de e-mail fica fora desta feature enquanto `GOTRUE_MAILER_AUTOCONFIRM` valer `'true'` e não houver SMTP.
+- [ ] `docs/002_conta_e_configuracoes/decisions.md` registra, com a razão escrita, que a troca de e-mail fica fora desta feature **por escopo** — nenhuma fase a entrega, e reabri-la é chamada do humano —, e a tela de conta exibe esse motivo em texto visível, com o e-mail somente leitura.
 - [ ] `CHANGELOG.md`, seção `Unreleased`, atualizado no mesmo PR.
 - [ ] Jobs "App" e "Banco" verdes no CI.
 
@@ -1537,14 +1592,14 @@ legitimamente precisa da chave coexiste com as que não precisam (X7).
 
 | # | Risco | Onde dói | Tratamento neste plano |
 |---|---|---|---|
-| X1 | **Cadastro público sem prova de posse do e-mail.** Com `GOTRUE_MAILER_AUTOCONFIRM: 'true'` (verificado em `infra/local/docker-compose.yml`) e a tela de cadastro no ar, qualquer endereço inventado vira conta confirmada. | Fase 1 | Pendência **P10**, decisão do humano. Se ele aceitar a dívida, ela entra em `docs/decisions.md` pela T1.2 com o gatilho escrito para ser paga. |
+| X1 | **O cadastro tranca calado se a confirmação for desligada sem o e-mail sair.** O risco mudou de forma em 20/08/2026: a **FD-022** desligou a confirmação automática, e com isso morreu o risco original — "qualquer endereço inventado vira conta confirmada". O que ficou é o inverso e é de ordem: com `GOTRUE_MAILER_AUTOCONFIRM: 'false'` e SMTP mudo, todo cadastro novo nasce não confirmado e **ninguém consegue entrar** — e nada no app acusa, porque o `signup` responde `200`. | Fase 1, e a virada da HML | As duas variáveis do GoTrue viram **no mesmo redeploy** das cinco de SMTP, nunca antes: a ordem está escrita em `docs/deploy/coolify.md`, seção "Ainda por fazer", e na **FD-022**. Na stack local o modo de falha não existe desde a T1.5 — o capturador recebe todo e-mail. Prova de que o caminho funciona antes de a HML virar: o E2E da Fase 1, que cria conta e confirma lendo o capturador. |
 | X2 | **O `Scaffold` com `drawer:` reintroduz o glifo do Material** e `scripts/gates_guard.sh` não pega: o guard procura o literal `Icons.`, e o `DrawerButton` injetado não escreve isso. | Fase 2 | Linha de DoD da T2.5: `leading:` explícito com token de `AppIcons`, e `grep -rn 'Icons\.' app/lib` vazio no DoD da fase. |
 | X3 | **`flutter test` não cobre `app/patrol_test/`** e `flutter analyze` não pega string que deixou de casar, então a troca de navegação deixa o CI verde e o emulador vermelho. | Fase 2 | T2.6 e T2.7, separadas de propósito, mais a linha do DoD da fase que exige os três roteiros verdes na mesma rodada. |
 | X4 | **A recuperação por OTP não cobre o clique no link do e-mail.** O GoTrue manda o link junto do código; quem clicar cai no navegador e não volta para o app. | Fase 1 | Limitação **conhecida e aceita**: o texto do e-mail e a tela de recuperação instruem a digitar o código. O deep link PKCE fica registrado em `docs/002_conta_e_configuracoes/decisions.md` como o passo seguinte, com o custo já levantado (source set de flavor + `GOTRUE_URI_ALLOW_LIST`). |
 | X5 | **A chave-mestra do Vault não está em volume.** Ela mora em `/etc/postgresql-custom/pgsodium_root.key`, na camada gravável do contêiner; `infra/local/docker-compose.yml` monta só `db-data:/var/lib/postgresql/data`. Recriar o contêiner do Postgres transforma todo segredo do Vault em ciphertext permanentemente indecifrável. | Fase 4 | Pendência **P12** mais a tarefa **T4.3**, que mede em produção, reproduz o modo de falha na stack local e deixa o trecho de compose pronto. Linha do DoD da fase: nenhuma chave real em produção antes de P12 fechar. |
 | X6 | **Exclusão de conta deixaria segredo órfão no Vault.** `public.ai_user_credentials` some por `on delete cascade`, mas `vault.secrets` não — o Vault não aceita FK para `auth.users`, e um segredo órfão é cifrado e eterno. | Fase 4 | Gatilho `before delete` em `public.ai_user_credentials`, na **T4.2**, que apaga o segredo junto. Resolvido por construção, com o DoD provando o caso pelo `delete` da própria conta e pela remoção temporária do gatilho. |
 | X7 | **A `service_role` é injetada no ambiente de todo worker** (decisão **D19** de `docs/decisions.md`). A Fase 4 traz a primeira função que legitimamente precisa dela, e a chave que fura RLS fica acessível também às que não precisam. | Fase 4 | **T4.5** escopa `envVars` por função em `supabase/functions/main/index.ts`, com teste sobre um módulo puro, e marca a D19 como resolvida. |
-| X8 | **A troca de e-mail sem prova de posse tranca o usuário para fora.** Com `GOTRUE_MAILER_AUTOCONFIRM: 'true'` e sem SMTP, `updateUser(email:)` aplica o endereço novo na hora, e a recuperação — único caminho de volta — vai para o endereço errado. | Fase 3 | Limitação **conhecida e aceita**: o e-mail é somente leitura, com o motivo visível na tela, e a decisão fica em `docs/002_conta_e_configuracoes/decisions.md`. Reabrir depende de **P9** e **P10**. |
+| ~~X8~~ | ~~**A troca de e-mail sem prova de posse tranca o usuário para fora.** Com `GOTRUE_MAILER_AUTOCONFIRM: 'true'` e sem SMTP, `updateUser(email:)` aplica o endereço novo na hora, e a recuperação — único caminho de volta — vai para o endereço errado.~~ **Risco extinto em 20/08/2026** (`CHG-001`): a **FD-022** desligou a confirmação automática e o SMTP passou a existir, então o GoTrue só aplica o endereço novo depois de confirmado — o modo de falha não tem mais como ocorrer. A linha fica riscada, e não removida, porque a **FD-014** a cita. | Fase 3 | Nada a tratar. A troca de e-mail continua fora da feature, agora **por escopo**: nenhuma fase a entrega, e reabri-la é chamada do humano (**FD-014**). |
 | X9 | **O gate de IA protege hoje um destino sem tela.** O chat é a próxima feature do roadmap; se o gate não for exercitado, ele nasce inerte e quebra calado quando o chat chegar. | Fase 4 | O item de chat do drawer existe desde a Fase 2 (desabilitado por construção) e passa a refletir o estado real aqui, o caminho `/chat` entra no conjunto do `redirect`, e o DoD da **T4.11** exige um teste de widget que navega e assere o desvio — teste que falha se a linha do redirect sair. |
 | X10 | **`scripts/local-supabase.sh up` não reaplica migrations num volume já inicializado** — ele só as aplica quando `public.transactions` não existe. Uma migration nova pode ficar de fora sem ninguém perceber, e a prova de RLS passaria contra o schema antigo. | Fases 3, 4, 5 e 6 | Cada tarefa de migration manda usar `scripts/local-supabase.sh reset`, e as provas de RLS conferem `select auth.uid()` antes de contar linhas, para uma contagem zero nunca passar pelo motivo errado. |
 | X11 | **`ai_provider_kinds` e a camada de IA abstraída (`ai_providers`/`ai_routes`) podem colidir.** O `CLAUDE.md` prevê essas duas tabelas para o roteamento de `task_type`; o catálogo da Fase 4 é outro assunto — que provedores o usuário pode trazer chave para —, e o nome parecido convida à fusão errada. | Fases 4 e 6 | `docs/002_conta_e_configuracoes/decisions.md` registra a distinção por escrito antes da migration: `ai_provider_kinds` (T4.1) é catálogo de **origem de chave do usuário**; `ai_providers`/`ai_routes` (T6.2) é roteamento de tarefa. As duas coexistem e nenhuma referencia a outra nesta feature. |
@@ -1563,7 +1618,7 @@ Legenda das fases: `[ ]` não iniciada · `[-]` em andamento · `[x]` mergeada e
 `CUMPRIDO` do `supervisor-dod`, registrado no campo `DoD:` da própria linha —
 tarefa sem esse veredito **não** é marcada, mesmo que o código pareça pronto.
 
-- [ ] **Fase 1** — Auth completo: medir a sessão, cadastrar e recuperar senha · PR 1 (11 tarefas)
+- [-] **Fase 1** — Auth completo: medir a sessão, cadastrar e recuperar senha · PR 1 (12 tarefas)
 - [ ] **Fase 2** — Drawer e a casca das Configurações · PR 2 (7 tarefas)
 - [ ] **Fase 3** — Perfil do usuário · PR 3a + PR 3b (10 tarefas)
 - [ ] **Fase 4** — Configuração de IA e o gating · PR 4a + PR 4b (13 tarefas)

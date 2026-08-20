@@ -18,7 +18,9 @@ Estado da infraestrutura do ganza no servidor compartilhado. O passo a passo de 
 
 ## Serviço `ganza-supabase` · `lqsjrqqs6r8rnggbvwpi4nuf`
 
-Oito contêineres, todos `healthy` — bem abaixo dos ~2,5 GB que a stack completa custaria. O `edge-functions` voltou na decisão **D10**, quando a lógica migrou do NestJS para ele.
+Oito contêineres, todos `healthy` — bem abaixo dos ~2,5 GB que a stack completa custaria. O `edge-functions` voltou na decisão **D10**, quando a lógica migrou do NestJS para ele; antes dela eram sete, e é esse o número que a **F0.3** de [`../decisions.md`](../decisions.md) registra como retrato da Fase 0.
+
+**Oito é a conta da HML. A stack local tem nove:** [`../../infra/local/docker-compose.yml`](../../infra/local/docker-compose.yml) sobe os mesmos oito mais o capturador de e-mail que a Fase 1 da feature 002 instalou, para o E2E ler o código de recuperação sem depender de SMTP. Contar nove aqui, ou oito lá, é comparar ambiente errado.
 
 | Contêiner | Imagem | RAM |
 |---|---|---|
@@ -33,11 +35,11 @@ Oito contêineres, todos `healthy` — bem abaixo dos ~2,5 GB que a stack comple
 
 > ### O painel mostra "Degraded" — e isso é esperado
 >
-> O Coolify guardou no banco dele os cards dos 15 serviços do template original. Os 8 que removemos do compose aparecem como **Exited**, e o cabeçalho do serviço fica **Degraded** por causa deles. **Não é falha:** "Exited" ali significa "não faz parte da stack".
+> O Coolify guardou no banco dele os cards dos 15 serviços do template original. Os 7 que removemos do compose aparecem como **Exited**, e o cabeçalho do serviço fica **Degraded** por causa deles. **Não é falha:** "Exited" ali significa "não faz parte da stack".
 >
 > O `Supabase Rest` aparece como *Running (unknown, excluded)* — a imagem do PostgREST não traz healthcheck. Ele responde 200 normalmente.
 >
-> Limpar os órfãos exigiria editar o banco do próprio Coolify (que serve driva e love-secret) ou recriar o serviço. Nenhum dos dois vale o risco por um rótulo. **Confira a saúde pelos 7 contêineres da tabela acima, não pelo cabeçalho.**
+> Limpar os órfãos exigiria editar o banco do próprio Coolify (que serve driva e love-secret) ou recriar o serviço. Nenhum dos dois vale o risco por um rótulo. **Confira a saúde pelos 8 contêineres da tabela acima, não pelo cabeçalho.**
 
 ### O que foi deliberadamente deixado de fora
 
@@ -98,7 +100,7 @@ As duas variáveis mudam **juntas**, e a ordem importa nos dois sentidos: com a 
 
 No serviço do Coolify as chaves se chamam `DISABLE_SIGNUP` e `ENABLE_EMAIL_AUTOCONFIRM`; o template do Supabase as repassa ao GoTrue como `GOTRUE_DISABLE_SIGNUP` e `GOTRUE_MAILER_AUTOCONFIRM`, que são os nomes escritos em [`../../infra/local/docker-compose.yml`](../../infra/local/docker-compose.yml). Procurar só um dos dois pares dá falso negativo.
 
-> **Ao mexer em env do GoTrue, espere o redeploy terminar antes de testar.** O contêiner antigo continua servindo durante a troca: um teste feito no meio da janela mostrou signup funcionando com a config nova já salva. A stack tem **oito** contêineres — conte-os antes de concluir qualquer coisa.
+> **Ao mexer em env do GoTrue, espere o redeploy terminar antes de testar.** O contêiner antigo continua servindo durante a troca: um teste feito no meio da janela mostrou signup funcionando com a config nova já salva. A stack da HML tem **oito** contêineres (a local, nove — ver o topo deste arquivo) — conte-os antes de concluir qualquer coisa.
 
 Redefinir senha é pelo fluxo de recuperação do próprio app: pede-se o e-mail, o GoTrue envia um código de seis dígitos e a pessoa o digita (`FD-003` em [`../002_conta_e_configuracoes/decisions.md`](../002_conta_e_configuracoes/decisions.md)). Depende do SMTP — ver "Ainda por fazer". Na stack local o e-mail não sai para a internet: a Fase 1 da feature 002 instala um capturador em `infra/local/`, e é dele que o código é lido.
 
