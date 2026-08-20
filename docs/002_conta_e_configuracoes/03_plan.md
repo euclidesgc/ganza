@@ -990,7 +990,7 @@ que estas duas acabaram de fechar.
   - Nenhuma senha vai para log ou mensagem: `rtk proxy grep -n 'print(\|debugPrint\|log(' app/lib/modules/auth_module/data/repositories/auth_repository_impl.dart` não devolve nenhuma linha, e nenhum retorno do arquivo carrega senha, token ou objeto de sessão — todo retorno é `Either<Failure, …>` sobre entidade de `app/lib/modules/auth_module/domain/entities/` ou sobre `Unit`.
   - `cd app && dart format --set-exit-if-changed lib/modules/auth_module` e `flutter analyze lib/modules/auth_module` terminam com código de saída `0`.
 
-- [ ] **T3.6** `[paralela · frente C · worktree]` — Criar `app/lib/modules/settings_module/presentation/account/`: cubit com estado `sealed` via `part of`, página `StatelessWidget` com `static Widget pageBuilder` e os campos em `widgets/`. · camada **presentation** · `especialista-apresentacao`
+- [x] **T3.6** `[paralela · frente C · worktree]` — Criar `app/lib/modules/settings_module/presentation/account/`: cubit com estado `sealed` via `part of`, página `StatelessWidget` com `static Widget pageBuilder` e os campos em `widgets/`. · camada **presentation** · `especialista-apresentacao` · **DoD: CUMPRIDO**
 
   **DoD da tarefa**
   - `app/lib/modules/settings_module/presentation/account/account_cubit.dart` declara o estado `sealed` no mesmo arquivo via `part of`, com um `final class` por desfecho, e nenhum arquivo sob `app/lib/modules/settings_module/presentation/account/` tem `import` contendo `/data/`.
