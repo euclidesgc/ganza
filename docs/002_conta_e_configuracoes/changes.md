@@ -7,6 +7,51 @@ estado final, sem preservar neles uma versão obsoleta do planejamento.
 
 ## Mudanças registradas
 
+### CHG-004 - O E2E da Fase 1 passa a cobrir a confirmação de e-mail e a primeira entrada
+
+- **Data:** 2026-08-20
+- **Fase/PR:** Fase 1 (PR 1), tarefas T1.10 e T1.11, mais o DoD da fase.
+- **Planejado originalmente:** o DoD da Fase 1 pedia "cadastro e recuperação
+  ponta a ponta", e as cenas da T1.10 iam de criar conta direto para o fluxo de
+  recuperação. Nenhuma linha exigia **confirmar o e-mail** nem **entrar com a
+  conta recém-criada** — porque, quando essas frases foram escritas, a
+  confirmação era automática e o cadastro já devolvia sessão.
+- **Por que não foi possível prosseguir:** a **FD-022** desligou a confirmação
+  automática, e a conta passou a nascer **sem sessão**. Um roteiro que cadastra,
+  vê "confirme seu e-mail" e para ali prova que o formulário funciona, e **não**
+  prova que alguém consegue criar uma conta e usar o app — que é o que o critério
+  **A1** do `01_prd.md` promete, com todas as letras, "sem ninguém abrir painel
+  de banco de dados". Já é fato observado, não hipótese: em 20/08/2026 um agente
+  não conseguiu entrar com a conta local recém-criada e precisou marcar
+  `email_confirmed_at` à mão por SQL. **Enquanto a confirmação ficar fora do
+  E2E, o A1 não é entregável** — a única forma de entrar é justamente o painel de
+  banco que ele proíbe.
+- **Alternativas consideradas:** (a) manter o E2E como está e **reescrever** o
+  DoD da fase e o A1 para prometerem só o formulário — honesto, mas entrega uma
+  fase de autenticação que nunca viu ninguém entrar; (b) cobrir o ciclo inteiro
+  no E2E — custo marginal de uma cena, porque o capturador da T1.5 já existe, já
+  foi provado e o roteiro já precisaria dele para a recuperação; (c) criar uma
+  tela de confirmação por código dentro do app, espelhando a de recuperação —
+  escopo novo, tarefa nova, e nada exige que a confirmação aconteça no app.
+- **Decisão tomada:** (b), pelo `tech-lead`. A confirmação acontece **fora do
+  app**, pelo que chega na mensagem capturada, e o app só precisa dizer que ela
+  falta (**FD-024**) e aceitar a entrada depois — por isso (c) não se justifica.
+  O **A1 não é ampliado**: ele já cobrava isto, e o que muda é a prova passar a
+  exercê-lo.
+- **Resumo da resolução:** a T1.10 ganha as cenas de confirmar e entrar, mais a
+  proibição de o roteiro avançar por SQL ou chamada administrativa; a T1.11 ganha
+  a linha de evidência da primeira entrada; e o DoD da fase passa a cobrar o
+  ciclo completo, com a régua de que **nenhum passo pode depender de banco,
+  Studio ou painel** para avançar. `02_specs.md` §7.1 ganha o parágrafo que diz
+  quem confirma e por onde.
+- **Reconciliação documental:** `03_plan.md` — DoD da **T1.10**, DoD da
+  **T1.11** e DoD da **Fase 1**; `02_specs.md` §7.1. **Sugerido ao
+  `product-manager`, e fatia dele:** tornar o **A1** explícito no `01_prd.md`,
+  de "criar conta pelo app, sem ninguém abrir painel de banco de dados" para
+  "criar conta pelo app, confirmar o e-mail e entrar com ela, sem ninguém abrir
+  painel de banco de dados". É esclarecimento do que já estava lá, não critério
+  novo — e nada nesta entrada depende dessa edição.
+
 ### CHG-003 - A confirmação de e-mail criou um estado que nenhum documento descrevia
 
 - **Data:** 2026-08-20
