@@ -1,5 +1,6 @@
 import 'package:go_router/go_router.dart';
 
+import '../../core/routing/routing.dart';
 import 'presentation/account/settings_account_page.dart';
 import 'presentation/ai/settings_ai_page.dart';
 import 'presentation/bank/settings_bank_page.dart';
@@ -26,12 +27,19 @@ abstract final class SettingsRoutes {
       GoRoute(
         path: accountPath,
         name: accountName,
+        parentNavigatorKey: rootNavigatorKey,
         builder: SettingsAccountPage.pageBuilder,
       ),
-      GoRoute(path: aiPath, name: aiName, builder: SettingsAiPage.pageBuilder),
+      GoRoute(
+        path: aiPath,
+        name: aiName,
+        parentNavigatorKey: rootNavigatorKey,
+        builder: SettingsAiPage.pageBuilder,
+      ),
       GoRoute(
         path: bankPath,
         name: bankName,
+        parentNavigatorKey: rootNavigatorKey,
         builder: SettingsBankPage.pageBuilder,
       ),
     ],

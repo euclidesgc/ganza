@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/routing/routing.dart';
 import 'presentation/new_transaction/new_transaction_page.dart';
 import 'presentation/transactions_list/transactions_list_page.dart';
 
@@ -18,6 +19,7 @@ abstract final class TransactionsRoutes {
       GoRoute(
         path: newTransactionPath,
         name: newTransactionName,
+        parentNavigatorKey: rootNavigatorKey,
         builder: NewTransactionPage.pageBuilder,
       ),
     ],

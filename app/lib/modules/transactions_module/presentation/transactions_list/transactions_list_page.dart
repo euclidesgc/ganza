@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/theme/theme.dart';
 import '../../../../injection.dart';
 import 'transactions_list_cubit.dart';
 import 'widgets/new_transaction_fab.dart';
@@ -18,10 +19,17 @@ class TransactionsListPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Transações')),
-      body: const SafeArea(child: TransactionsListBody()),
-      floatingActionButton: const NewTransactionFab(),
+    return const Stack(
+      children: [
+        TransactionsListBody(),
+        Align(
+          alignment: Alignment.bottomRight,
+          child: Padding(
+            padding: EdgeInsets.all(AppSpacing.md),
+            child: NewTransactionFab(),
+          ),
+        ),
+      ],
     );
   }
 }
