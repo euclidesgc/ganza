@@ -65,6 +65,10 @@ class AuthRepositoryImpl implements AuthRepository {
       await _client.auth.signUp(email: email, password: password);
       return const Right(unit);
     } on AuthException catch (error) {
+      // `user_already_exists` não pode virar mensagem própria: revelar que
+      // o endereço está cadastrado transforma o cadastro num oráculo de
+      // enumeração (FD-025, docs/002_conta_e_configuracoes/decisions.md).
+      if (error.code == 'user_already_exists') return const Right(unit);
       return Left(_traduzir(error));
     } catch (error) {
       return Left(failureFromException(error));
@@ -131,9 +135,6 @@ class AuthRepositoryImpl implements AuthRepository {
       'invalid_credentials' => const AuthFailure('E-mail ou senha incorretos.'),
       'email_not_confirmed' => const AuthFailure(
         'Confirme seu e-mail antes de entrar.',
-      ),
-      'user_already_exists' => const ValidationFailure(
-        'Já existe uma conta com este e-mail.',
       ),
       'weak_password' => const ValidationFailure(
         'A senha precisa ter pelo menos 6 caracteres.',
