@@ -29,6 +29,7 @@ dist/
 .code-review-graph/
 .docs-index/
 .claude/worktrees/
+.claude/worktrees-preservados.txt
 .claude/RESUME.md
 .claude/settings.local.json
 .claude/RESUME.md
