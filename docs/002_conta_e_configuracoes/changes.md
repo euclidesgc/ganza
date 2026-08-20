@@ -7,6 +7,48 @@ estado final, sem preservar neles uma versão obsoleta do planejamento.
 
 ## Mudanças registradas
 
+### CHG-007 - O segundo modo de falha do E2E era um que o roteiro evita, e a alternativa não era falha nenhuma
+
+- **Data:** 2026-08-20
+- **Fase/PR:** Fase 1 (PR 1), tarefa T1.11.
+- **Planejado originalmente:** o DoD da **T1.11** exigia "um print com código
+  errado … e um print com o e-mail inexistente **ou** fora da janela de reenvio",
+  e o DoD da **T1.10** proíbe repetir cadastro ou pedido de recuperação do mesmo
+  endereço dentro de 60 segundos.
+- **Por que não foi possível prosseguir:** as duas linhas não podem ser
+  satisfeitas pelo mesmo roteiro. O roteiro foi escrito corretamente, seguindo a
+  T1.10, e por isso **nunca** produz o estado que a T1.11 mandava fotografar. As
+  **duas metades** da linha estavam erradas, e não só uma: o limite de reenvio é
+  um modo de falha que o roteiro é desenhado para evitar; e o endereço inexistente
+  **não é falha** — por anti-enumeração (**FD-024**, **FD-025**) o pedido de
+  recuperação responde igual ao de endereço existente, de modo que exigir dele um
+  estado "visualmente distinto" pede exatamente o oposto do que a segurança
+  garante.
+- **Alternativas consideradas:** (a) endereço que nunca teve conta como segundo
+  modo de falha — **não funciona**, pelo motivo acima: o estado é idêntico ao de
+  sucesso, por desenho; (b) manter o limite de reenvio, numa cena com outro
+  endereço, dentro da janela dele — satisfaz as duas linhas, ao custo de uma cena
+  e de cerca de 70 s de parede, e reintroduz no roteiro justamente o estado que a
+  T1.10 manda evitar, encostando de novo no limite que já derrubou execução;
+  (c) aceitar o print herdado da T1.7 — mistura evidência de duas execuções;
+  (d) **senha nova fraca** no passo de nova senha do próprio fluxo.
+- **Decisão tomada:** (d), pelo `tech-lead`. É falha de verdade, com mensagem
+  própria e ação corretiva óbvia, **dentro do fluxo que o roteiro já percorre**:
+  não manda e-mail, não espera janela nenhuma e não encosta no limite de reenvio.
+  É também o segundo erro mais provável do fluxo, depois de errar o código.
+- **Resumo da resolução:** a linha da T1.11 passa a cobrar o print do **código
+  recusado** e o print da **senha nova fraca**. O caso do endereço inexistente
+  continua valendo como prova de anti-enumeração — que é uma asserção de
+  **igualdade**, não de distinção —, e por isso não cabe nesta linha nem vira
+  exigência agora: mandar o roteiro emitir mais um pedido de recuperação é o tipo
+  de acréscimo que recria a armadilha que esta entrada fecha.
+- **Reconciliação documental:** `03_plan.md`, linha do DoD da **T1.11**;
+  `02_specs.md` §7.2, que passa a nomear os dois modos de falha do fluxo. **A
+  T1.10 não reabre:** nenhuma linha dela se torna falsa — ela lista as cenas que
+  o roteiro deve cobrir, sem fechar a lista —, e a cena nova entra na execução da
+  T1.11, que é do **mesmo agente** por desenho, porque quem escreve o driver é
+  quem o depura quando a rodada falha.
+
 ### CHG-006 - O erro mais provável do fluxo de recuperação não tinha mensagem, e o link local não resolve
 
 - **Data:** 2026-08-20

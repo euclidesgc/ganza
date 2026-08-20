@@ -613,7 +613,7 @@ clicar no link que a H conserta.
   - `docs/002_conta_e_configuracoes/e2e/round_02/report.md` existe e liga **cada** passo do roteiro a um print, log ou saída de comando do mesmo diretório, nomeando o arquivo.
   - As cenas de cadastro e de recuperação passaram: a saída do `patrol test` colada no `report.md` mostra a contagem de cenas e nenhuma falha.
   - A conta criada durante a rodada **foi confirmada pelo que chegou na mensagem capturada e entrou no app**, e o `report.md` traz o print da tela de dentro do app com essa conta. Nenhum passo da rodada usou SQL, Studio ou painel de banco para chegar lá — o `report.md` afirma isso e nomeia, em ordem, os comandos que substituíram esse atalho.
-  - Os dois modos de falha aparecem em estados **visualmente distintos**: um print com código errado (mensagem curta, campo preservado) e um print com o e-mail inexistente ou fora da janela de reenvio. Duas imagens diferentes, nomeadas no `report.md`.
+  - Os dois modos de falha do fluxo de recuperação aparecem em estados **visualmente distintos**, cada um com a sua ação corretiva legível: um print do **código recusado**, com a mensagem que manda conferir e digitar de novo e a etapa do código preservada, e um print da **senha nova fraca**, com a mensagem que diz o tamanho mínimo e os campos preservados. Duas imagens diferentes, nomeadas em `docs/002_conta_e_configuracoes/e2e/round_02/report.md`, e nenhuma das duas exibindo a mensagem genérica de erro inesperado nem a de sessão expirada.
   - Nenhum arquivo da rodada contém token, senha ou refresh token: `rtk proxy grep -rniE 'eyJ|refresh_token|"password"' docs/002_conta_e_configuracoes/e2e/round_02/` não devolve nenhuma linha.
   - A stack local voltou ao estado limpo depois da rodada: `scripts/local-supabase.sh down` seguido de `scripts/local-supabase.sh status` mostra a stack fora do ar, e nenhuma conta de teste ficou em ambiente que não seja o descartável.
 
@@ -625,7 +625,7 @@ harness com a rodada em curso.
 
 **DoD da Fase 1**
 
-- [ ] As catorze tarefas da fase (T1.1 a T1.14) com `DoD: CUMPRIDO` na própria linha: `rtk proxy grep -c 'DoD: CUMPRIDO' docs/002_conta_e_configuracoes/03_plan.md` cobre as catorze, e `rtk proxy grep -c 'DoD: NÃO CUMPRIDO' docs/002_conta_e_configuracoes/03_plan.md` imprime `0`.
+- [ ] As catorze tarefas da fase (T1.1 a T1.14) com o campo `DoD:` marcado CUMPRIDO, em negrito, na própria linha: `rtk proxy grep -c '\*\*DoD: CUMPRIDO\*\*' docs/002_conta_e_configuracoes/03_plan.md` imprime `14`, e `rtk proxy grep -c '\*\*DoD: NÃO CUMPRIDO\*\*' docs/002_conta_e_configuracoes/03_plan.md` imprime `0`. O padrão traz os asteriscos porque o campo da linha de tarefa é escrito em negrito, e sem eles a contagem inclui as próprias linhas de critério que citam o campo — o número nunca fecharia.
 - [ ] `cd app && dart format --set-exit-if-changed lib patrol_test test`, `flutter analyze` e `flutter test -r compact` verdes; da raiz, `bash scripts/gates_guard.sh; echo $?` imprime `0`.
 - [ ] A consequência da medição está escrita: `docs/002_conta_e_configuracoes/e2e/round_01/report.md` responde que a sessão sobrevive a restart e a reboot, e `docs/002_conta_e_configuracoes/decisions.md` traz a **FD-023**, que tira "lembrar login" do escopo e põe no lugar o e-mail preenchido de volta ao sair. `rtk proxy grep -n 'FD-023' docs/002_conta_e_configuracoes/decisions.md` devolve a linha.
 - [ ] `docs/002_conta_e_configuracoes/e2e/round_02/` — o ciclo completo de conta: criar conta, **confirmar o e-mail e entrar com ela**, recuperar a senha, e o campo de e-mail preenchido de volta depois de sair (com o de senha vazio). **Nenhum passo avança por SQL, Studio ou painel de banco** — se algum for necessário para entrar, a fase não passa, porque é exatamente o que o critério A1 proíbe. **Atestado pelo dev humano**, não pelo QA; o `report.md` nomeia cada passo, comando e evidência.
@@ -769,7 +769,7 @@ esbarrou em outra coisa".
 
 **DoD da Fase 2**
 
-- [ ] Todas as tarefas de T2.1 a T2.7 com `DoD: CUMPRIDO` na própria linha, e `rtk proxy grep -c 'DoD: NÃO CUMPRIDO' docs/002_conta_e_configuracoes/03_plan.md` imprimindo `0`.
+- [ ] Todas as tarefas de T2.1 a T2.7 com o campo `DoD:` marcado CUMPRIDO, em negrito, na própria linha: `rtk proxy grep -c '\*\*DoD: CUMPRIDO\*\*' docs/002_conta_e_configuracoes/03_plan.md` imprime `7`, e `rtk proxy grep -c '\*\*DoD: NÃO CUMPRIDO\*\*' docs/002_conta_e_configuracoes/03_plan.md` imprime `0`. O padrão traz os asteriscos porque o campo da linha de tarefa é escrito em negrito, e sem eles a contagem inclui as próprias linhas de critério que citam o campo — o número nunca fecharia.
 - [ ] `cd app && dart format --set-exit-if-changed lib patrol_test test`, `flutter analyze` e `flutter test -r compact` verdes; da raiz, `bash scripts/gates_guard.sh; echo $?` imprime `0`.
 - [ ] `rtk proxy grep -rn 'Icons\.' app/lib` não devolve nenhuma linha — o glifo do Material não voltou pelo `DrawerButton` que o `Scaffold` injeta.
 - [ ] `docs/002_conta_e_configuracoes/e2e/round_03/` — os **três** roteiros verdes na mesma rodada, provando que a mudança de navegação não quebrou o E2E herdado da feature 001.
@@ -944,7 +944,7 @@ sempre: quem escreve o driver é quem o depura quando a rodada falha.
 
 **DoD da Fase 3**
 
-- [ ] Todas as tarefas de T3.1 a T3.10 com `DoD: CUMPRIDO` na própria linha, e `rtk proxy grep -c 'DoD: NÃO CUMPRIDO' docs/002_conta_e_configuracoes/03_plan.md` imprimindo `0`.
+- [ ] Todas as tarefas de T3.1 a T3.10 com o campo `DoD:` marcado CUMPRIDO, em negrito, na própria linha: `rtk proxy grep -c '\*\*DoD: CUMPRIDO\*\*' docs/002_conta_e_configuracoes/03_plan.md` imprime `10`, e `rtk proxy grep -c '\*\*DoD: NÃO CUMPRIDO\*\*' docs/002_conta_e_configuracoes/03_plan.md` imprime `0`. O padrão traz os asteriscos porque o campo da linha de tarefa é escrito em negrito, e sem eles a contagem inclui as próprias linhas de critério que citam o campo — o número nunca fecharia.
 - [ ] `cd app && dart format --set-exit-if-changed lib patrol_test test`, `flutter analyze` e `flutter test -r compact` verdes; da raiz, `bash scripts/gates_guard.sh; echo $?` imprime `0`.
 - [ ] Job "Banco — migrations aplicam limpo e RLS está ligada" verde no CI do PR da migration, e o PR da migration mergeado **antes** de o PR da fase abrir.
 - [ ] `docs/002_conta_e_configuracoes/e2e/round_04/` — nome salvo, e-mail não editável e troca de senha ponta a ponta, **atestados pelo dev humano**. O `report.md` nomeia cada passo, comando e evidência.
@@ -1172,7 +1172,7 @@ para escrever.
 
 **DoD da Fase 4**
 
-- [ ] Todas as tarefas de T4.1 a T4.13 com `DoD: CUMPRIDO` na própria linha, e `rtk proxy grep -c 'DoD: NÃO CUMPRIDO' docs/002_conta_e_configuracoes/03_plan.md` imprimindo `0`.
+- [ ] Todas as tarefas de T4.1 a T4.13 com o campo `DoD:` marcado CUMPRIDO, em negrito, na própria linha: `rtk proxy grep -c '\*\*DoD: CUMPRIDO\*\*' docs/002_conta_e_configuracoes/03_plan.md` imprime `13`, e `rtk proxy grep -c '\*\*DoD: NÃO CUMPRIDO\*\*' docs/002_conta_e_configuracoes/03_plan.md` imprime `0`. O padrão traz os asteriscos porque o campo da linha de tarefa é escrito em negrito, e sem eles a contagem inclui as próprias linhas de critério que citam o campo — o número nunca fecharia.
 - [ ] `cd app && dart format --set-exit-if-changed lib patrol_test test`, `flutter analyze` e `flutter test -r compact` verdes; `cd supabase/functions && deno fmt --check && deno lint && deno task check && deno task test` verde; da raiz, `bash scripts/gates_guard.sh; echo $?` imprime `0`.
 - [ ] `rtk proxy grep -rniE 'AIza|sk-|apiKey' app/lib` não devolve nenhuma linha — nenhuma chave de terceiro, nem placeholder, entrou no binário.
 - [ ] `rtk proxy grep -rln 'aiConfigured' app/lib` devolve só arquivos sob `app/lib/core/session/`, `app/lib/core/widgets/navigation/` e `app/lib/app_router.dart` — o gate mora no router, não no corpo de página.
@@ -1339,7 +1339,7 @@ fora" só é barato para quem escreveu o roteiro.
 
 **DoD da Fase 5**
 
-- [ ] Todas as tarefas de T5.1 a T5.8 com `DoD: CUMPRIDO` na própria linha, e `rtk proxy grep -c 'DoD: NÃO CUMPRIDO' docs/002_conta_e_configuracoes/03_plan.md` imprimindo `0`.
+- [ ] Todas as tarefas de T5.1 a T5.8 com o campo `DoD:` marcado CUMPRIDO, em negrito, na própria linha: `rtk proxy grep -c '\*\*DoD: CUMPRIDO\*\*' docs/002_conta_e_configuracoes/03_plan.md` imprime `8`, e `rtk proxy grep -c '\*\*DoD: NÃO CUMPRIDO\*\*' docs/002_conta_e_configuracoes/03_plan.md` imprime `0`. O padrão traz os asteriscos porque o campo da linha de tarefa é escrito em negrito, e sem eles a contagem inclui as próprias linhas de critério que citam o campo — o número nunca fecharia.
 - [ ] `cd app && dart format --set-exit-if-changed lib patrol_test test`, `flutter analyze` e `flutter test -r compact` verdes; `cd supabase/functions && deno fmt --check && deno lint && deno task check && deno task test` verde; da raiz, `bash scripts/gates_guard.sh; echo $?` imprime `0`.
 - [ ] `rtk proxy grep -rni 'pluggy' app/lib` não devolve nenhuma linha — quem fala com a Pluggy é a Edge Function, e isso é invariante de arquitetura, não estilo.
 - [ ] `rtk proxy grep -rniE 'PLUGGY_CLIENT_SECRET=[^$]' .` não devolve nenhuma linha em nenhum arquivo versionado.
@@ -1571,7 +1571,7 @@ documentar o que ainda não existe.
 
 **DoD da Fase 6**
 
-- [ ] Todas as tarefas de T6.1 a T6.9 com `DoD: CUMPRIDO` na própria linha, e `rtk proxy grep -c 'DoD: NÃO CUMPRIDO' docs/002_conta_e_configuracoes/03_plan.md` imprimindo `0`.
+- [ ] Todas as tarefas de T6.1 a T6.9 com o campo `DoD:` marcado CUMPRIDO, em negrito, na própria linha: `rtk proxy grep -c '\*\*DoD: CUMPRIDO\*\*' docs/002_conta_e_configuracoes/03_plan.md` imprime `9`, e `rtk proxy grep -c '\*\*DoD: NÃO CUMPRIDO\*\*' docs/002_conta_e_configuracoes/03_plan.md` imprime `0`. O padrão traz os asteriscos porque o campo da linha de tarefa é escrito em negrito, e sem eles a contagem inclui as próprias linhas de critério que citam o campo — o número nunca fecharia.
 - [ ] Da pasta `supabase/functions/`, `deno fmt --check`, `deno lint`, `deno task check` e `deno task test` saem `0`, com os seis arquivos novos de `_shared/` na task `check` e **nenhuma entrada nova** em `imports` do `deno.json`.
 - [ ] Prova negativa consolidada, colada no corpo do PR: o corpus completo de `supabase/functions/_shared/ai/testdata/injection_corpus.json` passa pelo pipeline `buildEnvelope` → `parseProposals` → `writeProposals` contra o Postgres local, e `psql -tAc "select count(*) from public.transactions"` devolve `0`. Nenhum registro nasce de instrução injetada, sem exceção e sem confirmação.
 - [ ] Num Postgres vazio, `supabase/ci-bootstrap.sql` + `0001`…`0011` aplicam com `ON_ERROR_STOP=1` e `echo $?` igual a `0` em cada arquivo; `select tablename from pg_tables where schemaname='public' and rowsecurity = false` devolve **0 linhas**; e a consulta de tabela-com-RLS-sem-política do `.github/workflows/ci.yml` devolve **0 linhas**.

@@ -48,12 +48,20 @@ const _endereco = String.fromEnvironment('E2E_ENDERECO');
 /// Credencial descartável de uma conta que só existe na stack local desta
 /// rodada. Não vem por `--dart-define` de propósito: assim não passa pela
 /// linha de comando que os logs da rodada registram.
-const _senhaInicial = 'ganza-local-primeira';
-const _senhaNova = 'ganza-local-trocada';
+const _senhaInicial = 'exemplo-local-primeira';
+const _senhaNova = 'exemplo-local-trocada';
 
 const _emailNaoConfirmado = 'Confirme seu e-mail antes de entrar.';
 const _credencialIncorreta = 'E-mail ou senha incorretos.';
 const _sessaoExpirada = 'Sua sessão expirou. Entre de novo.';
+
+/// Texto fixo da **FD-026** (`docs/002_conta_e_configuracoes/decisions.md`):
+/// código errado e código vencido chegam com o mesmo `otp_expired` e a tela
+/// não os separa. Asserido por extenso porque o print sozinho registra a
+/// mensagem sem cobrá-la — mudar o texto tem de quebrar a cena.
+const _codigoRecusado =
+    'Código inválido ou vencido. Confira e digite de novo, ou volte '
+    'para pedir um novo código.';
 
 const _hostsDaStackLocal = {'127.0.0.1', 'localhost', '0.0.0.0', '10.0.2.2'};
 
@@ -231,6 +239,7 @@ Future<void> _cenaRecuperarSenha(WidgetTester tester) async {
   expect(find.byType(CodeStepForm), findsOneWidget);
   expect(find.byType(NewPasswordStepForm), findsNothing);
   expect(_textoDoCampo(tester, _campoDoCodigo), errado);
+  expect(_textoDoErroDaEtapaDoCodigo(tester), _codigoRecusado);
   expect(_textoDoErroDaEtapaDoCodigo(tester), isNot(_sessaoExpirada));
   await _capturar(tester, '14_codigo_errado_recusado');
 

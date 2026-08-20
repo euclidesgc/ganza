@@ -95,6 +95,9 @@ evidencia_da_linha() {
   done
 }
 
+# Log de rodada é citado como code span, nunca como link markdown: `*.log` está
+# no .gitignore, e `scripts/verify-gauntlet.sh` — que o CI roda — resolve todo
+# link do report contra o disco e reprova o que não existe num clone limpo.
 PRIMEIRO_LOG="logs/${NOMES_DE_LOG[0]}.log"
 
 REPORT="$ROUND/report.md"
@@ -107,12 +110,12 @@ REPORT="$ROUND/report.md"
   else
     printf 'Resultado: **FALHA** — a rodada não pode ser usada como evidência de DoD.\n'
     printf 'Cenas que não constam da tabela abaixo não chegaram a rodar; o motivo\n'
-    printf 'está no fim dos arquivos de [`logs/`](logs/).\n\n'
+    printf 'está no fim dos arquivos de `logs/` (não versionado).\n\n'
   fi
   printf '## Passos executados\n\n'
   printf '| Cena | Resultado | Evidência |\n| --- | --- | --- |\n'
   if [ -z "$(linhas_de_cena)" ]; then
-    printf '| — | nenhuma cena chegou a rodar | [log](%s) |\n' "$PRIMEIRO_LOG"
+    printf '| — | nenhuma cena chegou a rodar | `%s` (não versionado) |\n' "$PRIMEIRO_LOG"
   else
     linhas_de_cena | while IFS= read -r linha; do
       printf '| %s | %s | %s|\n' \
@@ -138,7 +141,7 @@ REPORT="$ROUND/report.md"
   for roteiro in "${ROTEIROS[@]}"; do
     printf -- '- `%s`\n' "$roteiro"
   done
-  printf '\nLogs e ressalvas ficam em [`logs/`](logs/). Não são gravados vídeos.\n'
+  printf '\nLogs e ressalvas ficam em `logs/` (não versionado). Não são gravados vídeos.\n'
 } > "$REPORT"
 
 exit "$STATUS"
