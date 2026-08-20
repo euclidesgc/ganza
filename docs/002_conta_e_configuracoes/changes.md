@@ -7,6 +7,49 @@ estado final, sem preservar neles uma versão obsoleta do planejamento.
 
 ## Mudanças registradas
 
+### CHG-018 - O DoD da T3.12 não pedia formato, e formatar cegava o gate que a tarefa criou
+
+- **Data:** 2026-08-20
+- **Fase/PR:** Fase 3 (PR 3b), no fechamento, com a T3.12 já marcada CUMPRIDO.
+- **Planejado originalmente:** o bloco DoD da **T3.12** cobrava que o guard
+  passasse a acusar rota nomeada nunca navegada, que o repositório atual saísse
+  `0`, que houvesse escape documentado, que a checagem **mordesse** e que
+  `bash -n scripts/gates_guard.sh` saísse `0`. Cinco linhas, todas sobre o
+  **script**.
+- **Por que não foi possível prosseguir:** a tarefa também mexe em **arquivo
+  Dart** — o escape mora na declaração da rota — e nenhuma linha exigia
+  `dart format`. O executor pôs o escape como comentário de fim de linha e os
+  dois gates viraram **mutuamente exclusivos**: sem formatar, o CI reprova;
+  formatando, o `dart format` quebra a declaração em duas linhas e o regex do
+  guard deixa de enxergá-la — cego exatamente na rota para a qual o escape foi
+  escrito.
+- **Alternativas consideradas:** (a) só mandar consertar o detector, tratando
+  como descuido do executor — deixa o critério errado de pé para a próxima tarefa
+  de gate; (b) acrescentar a linha de formato ao bloco **e** registrar a regra
+  geral, porque a tarefa tem **duas superfícies** (o script e o código que ele
+  varre) e o DoD só cobria uma.
+- **Decisão tomada:** (b), pelo `tech-lead`. O bloco da T3.12 ganha uma sexta
+  linha que exige `cd app && dart format --set-exit-if-changed lib` em `0`
+  **antes** das provas de mordida e de escape, com as saídas coladas nessa ordem
+  — provar no estado em que o executor deixou o arquivo não prova nada sobre o
+  CI. A regra geral virou a **D33** de `docs/decisions.md`, com a parte que
+  importa: **o escape se prende à declaração, não à linha física**, e detector
+  que casa só numa das formas é defeituoso.
+- **Resumo da resolução:** nenhuma tarefa nasceu; a feature segue com **69**. A
+  varredura dos outros blocos de gate achou **a mesma lacuna na T2.9** — o gate
+  do `Icons.` cru, já fechado —, cujo bloco também não pede `dart format` e cuja
+  prova de mordida edita um arquivo Dart sem formatá-lo. Ali o risco é menor
+  porque `Icons.add` não se quebra em duas linhas, **mas o escape `// gate4-ok` é
+  por linha física e tem a mesma fragilidade**: fica como dívida escrita na D33,
+  barata de conferir enquanto alguém tiver o script aberto. **Pergunta do
+  orquestrador respondida e registrada na D33:** fazer o guard falhar sobre
+  código fora de formato **não** teria pego este caso, porque no CI o repositório
+  está sempre formatado e era ali que o gate estava cego — ideia recusada com a
+  razão escrita, para não voltar.
+- **Reconciliação documental:** `docs/decisions.md` (**D33**) e
+  `docs/002_conta_e_configuracoes/03_plan.md` (sexta linha do bloco da T3.12).
+  `01_prd.md`, `02_specs.md` e `decisions.md` desta pasta não mudam.
+
 ### CHG-017 - A troca de senha estava pronta e inalcançável, e é a terceira vez que a soma não entrega o fluxo
 
 - **Data:** 2026-08-20
