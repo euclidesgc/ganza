@@ -264,8 +264,9 @@ quando se descobre no meio da fase.
   implementação do repositório recebe o `SupabaseClient` no construtor.
 - Auth: `app/lib/modules/auth_module/` tem contrato com quatro membros
   (`observeCurrentUser`, `currentUser`, `signIn`, `signOut`), uma tela de entrar,
-  e o barrel exporta rota, DI e os três símbolos de sessão documentados como
-  exceção (`AuthenticatedUser`, `ObserveCurrentUser`, `SignOut`).
+  e o barrel exporta rota, DI e os **quatro** símbolos de sessão documentados
+  como exceção (`AuthenticatedUser`, `ObserveCurrentUser`, `GetCurrentUser`,
+  `SignOut`) — conferidos no arquivo, que traz um `export` por símbolo.
   `AuthenticatedUser` tem só `id` e `email`.
 - Sessão: `app/lib/bootstrap.dart` chama `Supabase.initialize` **sem**
   `authOptions`, então valem os defaults (`persistSession = true`,
@@ -929,7 +930,7 @@ e serve o fluxo de recuperação, onde não há senha atual para pedir.
 
 **A tela de troca de senha é do `auth_module`, não do `settings_module`.** Ela
 precisa do use case de senha, que é interno do auth, e o barrel público do auth
-expõe **só** rota, DI e os três símbolos de sessão. Ampliar essa exceção
+expõe **só** rota, DI e os quatro símbolos de sessão. Ampliar essa exceção
 documentada para caber mais um use case seria pagar caro por uma tela; declarar
 a rota `/configuracoes/conta/senha` dentro de
 `app/lib/modules/auth_module/auth_routes.dart` custa zero e mantém o barrel como
@@ -1023,7 +1024,7 @@ Consolidar as duas frentes antes de seguir.
   - As duas rotas ficam **fora** do `ShellRoute` de `app/lib/app_router.dart`, para a `AppBar` de cada uma manter o botão de voltar: teste de widget em `app/test/app_router_test.dart` que constrói o router, navega para `/configuracoes/conta/senha`, volta duas vezes e assere a chegada à lista de áreas. Rodar com `cd app && flutter test -r compact test/app_router_test.dart`.
   - Mover qualquer uma das duas rotas para dentro do `ShellRoute` faz esse teste falhar — provar movendo uma delas, colar a saída vermelha e restaurar.
   - `rtk proxy grep -c 'GetUserProfile\|UpdateDisplayName' app/lib/modules/settings_module/settings_injection.dart` imprime pelo menos `2`, e `rtk proxy grep -c 'ChangePassword' app/lib/modules/auth_module/auth_injection.dart` imprime pelo menos `1`.
-  - Nenhum barrel ganhou export novo: `app/lib/modules/auth_module/auth_module.dart` e `app/lib/modules/settings_module/settings_module.dart` continuam exportando só rota e DI, mais os três símbolos de sessão já documentados no do auth — conferir lendo os dois arquivos inteiros.
+  - Nenhum barrel ganhou export novo: `app/lib/modules/auth_module/auth_module.dart` e `app/lib/modules/settings_module/settings_module.dart` continuam exportando só rota e DI, mais os **quatro** símbolos de sessão já documentados como exceção no do auth — `AuthenticatedUser`, `ObserveCurrentUser`, `GetCurrentUser` e `SignOut`, um `export` para cada — conferir lendo os dois arquivos inteiros.
   - `cd app && dart format --set-exit-if-changed lib test`, `flutter analyze` e `flutter test -r compact` terminam com código de saída `0`; da raiz, `bash scripts/gates_guard.sh; echo $?` imprime `0`.
 
 - [ ] **T3.9** `[adiada · lote de fechamento]` — Instrumentar o E2E da fase: roteiro `patrol` que edita o nome, confere que o e-mail não é editável e troca a senha com a senha atual certa e com a errada. · camada **testes** · `qa` · **fora do DoD da Fase 3** (§9; `changes.md`, CHG-012)
