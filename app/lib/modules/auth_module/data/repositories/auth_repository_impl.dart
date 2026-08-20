@@ -56,16 +56,89 @@ class AuthRepositoryImpl implements AuthRepository {
     }
   }
 
-  /// O GoTrue devolve a mesma mensagem genérica para senha errada e usuário
-  /// inexistente — por desenho, para não revelar quais e-mails existem.
+  @override
+  Future<Either<Failure, Unit>> signUp({
+    required String email,
+    required String password,
+  }) async {
+    try {
+      await _client.auth.signUp(email: email, password: password);
+      return const Right(unit);
+    } on AuthException catch (error) {
+      return Left(_traduzir(error));
+    } catch (error) {
+      return Left(failureFromException(error));
+    }
+  }
+
+  @override
+  Future<Either<Failure, Unit>> resetPasswordForEmail({
+    required String email,
+  }) async {
+    try {
+      await _client.auth.resetPasswordForEmail(email);
+      return const Right(unit);
+    } on AuthException catch (error) {
+      return Left(_traduzir(error));
+    } catch (error) {
+      return Left(failureFromException(error));
+    }
+  }
+
+  @override
+  Future<Either<Failure, Unit>> verifyRecoveryCode({
+    required String email,
+    required String token,
+  }) async {
+    try {
+      await _client.auth.verifyOTP(
+        email: email,
+        token: token,
+        type: OtpType.recovery,
+      );
+      return const Right(unit);
+    } on AuthException catch (error) {
+      return Left(_traduzir(error));
+    } catch (error) {
+      return Left(failureFromException(error));
+    }
+  }
+
+  @override
+  Future<Either<Failure, Unit>> updatePassword({
+    required String newPassword,
+  }) async {
+    try {
+      await _client.auth.updateUser(UserAttributes(password: newPassword));
+      return const Right(unit);
+    } on AuthException catch (error) {
+      return Left(_traduzir(error));
+    } catch (error) {
+      return Left(failureFromException(error));
+    }
+  }
+
+  /// Mapeia pelo `code` do GoTrue (https://supabase.com/docs/guides/auth/debugging/error-codes),
+  /// nunca pela mensagem em inglês — só o código é estável entre versões.
   Failure _traduzir(AuthException error) {
-    final message = error.message.toLowerCase();
-    if (message.contains('invalid login credentials')) {
-      return const AuthFailure('E-mail ou senha incorretos.');
-    }
-    if (message.contains('email not confirmed')) {
-      return const AuthFailure('Confirme seu e-mail antes de entrar.');
-    }
-    return const AuthFailure();
+    return switch (error.code) {
+      'invalid_credentials' => const AuthFailure('E-mail ou senha incorretos.'),
+      'email_not_confirmed' => const AuthFailure(
+        'Confirme seu e-mail antes de entrar.',
+      ),
+      'user_already_exists' => const ValidationFailure(
+        'Já existe uma conta com este e-mail.',
+      ),
+      'weak_password' => const ValidationFailure(
+        'A senha precisa ter pelo menos 6 caracteres.',
+      ),
+      'over_email_send_rate_limit' => const UnexpectedFailure(
+        'Muitos pedidos em pouco tempo. Aguarde um instante e tente de novo.',
+      ),
+      'signup_disabled' => const PermissionFailure(
+        'Cadastro por e-mail está desativado no momento.',
+      ),
+      _ => const UnexpectedFailure(),
+    };
   }
 }
