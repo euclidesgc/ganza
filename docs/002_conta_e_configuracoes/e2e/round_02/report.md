@@ -14,6 +14,12 @@ substituem esse atalho está em "Ambiente e comandos", junto da única escrita
 direta em `auth.users` que a rodada faz, que é na **conta-semente** da stack
 local e não na conta desta execução.
 
+**Os prints anteriores a `10_` não são desta execução:** vêm de tarefas de
+implementação da Fase 1, que usaram este mesmo diretório como evidência antes de
+o roteiro existir. O que esta rodada criou são os `10_` a `19_`, e são eles que a
+tabela abaixo referencia. A numeração pula de `02_` para `06_` pela mesma razão —
+é lacuna herdada daquelas tarefas, não print faltando.
+
 A tentativa anterior desta mesma rodada parou na cena `recuperar_senha` com
 `setState() or markNeedsBuild() called during build` vindo do `Router`,
 consertado em `c278c9f`. O log desta rodada não traz mais a frase:
