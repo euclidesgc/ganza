@@ -62,6 +62,8 @@ Os dois últimos coexistem de propósito: são fluxos diferentes com exigências
 
 A tradução de erro é feita pelo **código** do erro do GoTrue, nunca por busca de substring na mensagem em inglês — mensagem de provedor muda sem aviso e a busca por texto falha em silêncio. Cobertura mínima, com texto próprio em pt-BR e distinto entre si: `invalid_credentials`, `email_not_confirmed`, `user_already_exists`, `weak_password`, `over_email_send_rate_limit`, `signup_disabled`. Nenhum deles pode cair na mensagem de sessão expirada.
 
+**`user_already_exists` é caso morto na configuração atual, e fica no código assim mesmo.** Medido em 20/08/2026: com a confirmação de e-mail exigida, repetir o cadastro do mesmo endereço devolve `200` sem `error_code` (ver §7.1) — o código nunca chega ao app. Ele permanece traduzido porque a configuração que o dispara existe, e apagá-lo é regressão silenciosa esperando a próxima virada de ambiente. **O que ele não pode ser é promessa de tela:** nenhuma interface desta feature exibe mensagem específica de "e-mail já cadastrado" (**FD-024**).
+
 ### 3.2 Perfil, credencial de IA e conexão bancária
 
 Três contratos novos em `app/lib/modules/settings_module/domain/repositories/`, todos `abstract interface class` devolvendo `Future<Either<Failure, …>>`:
@@ -202,7 +204,20 @@ O destino protegido hoje é o item de chat do menu, que existe apagado desde a c
 
 A guarda atual é binária e manda todo mundo com sessão para a raiz. Tanto o `AuthChangeEvent.passwordRecovery` do GoTrue quanto a verificação do código de recuperação **entregam uma sessão válida** — sem um terceiro estado, a pessoa digita o código certo, é logada e **nunca vê o campo de nova senha**. O escopo em memória de `app/lib/core/session/` resolve isso sem nenhuma dependência do contrato de auth, que é o que permite construí-lo em paralelo.
 
-## 7. Recuperação de senha
+## 7. Cadastro, confirmação de e-mail e recuperação de senha
+
+### 7.1 Cadastro e confirmação de e-mail
+
+**O cadastro não termina dentro do app — termina na caixa de entrada.** Com a confirmação de e-mail exigida (**FD-022**), `signUp` devolve a conta criada **sem sessão** e com `email_confirmed_at` nulo. O app não tem para onde navegar: não há sessão, e a guarda de rota manda para a tela de entrar. **Duas réguas governam essa tela**, e as duas são de produto, não de implementação:
+
+1. **Nunca afirmar que a conta está pronta para usar.** O desfecho de sucesso do cadastro é uma mensagem que diz o que falta — confirmar o endereço — e onde procurar. Sem ela, a pessoa toca "criar conta", vê a tela não mudar e conclui que falhou.
+2. **Nunca revelar se o endereço já tinha conta.** O texto de sucesso é **o mesmo** para endereço novo e para endereço repetido.
+
+A segunda régua nasceu de medição, não de gosto. **Medido contra o GoTrue da stack local em 20/08/2026:** repetir o cadastro do mesmo endereço, fora da janela de reenvio, devolve `HTTP 200` com `identities` preenchido e **sem** `error_code` — resposta **idêntica** à do cadastro novo. O app não consegue distinguir os dois casos pelo caminho do erro, e a única forma de conseguir seria consultar a existência do e-mail antes de cadastrar, o que é erguer de propósito um **oráculo de enumeração de contas** num app que guarda extrato bancário. A mensagem única é escolha (**FD-024**).
+
+**A janela de reenvio é curta e visível.** Duas tentativas seguidas do mesmo endereço batem em `over_email_send_rate_limit`, com janela de cerca de 60 segundos. Isso não é erro de duplicidade e não pode ser exibido como falha do cadastro: o texto diz que o pedido foi recente e que basta esperar. Vale para quem toca o botão duas vezes e vale para o roteiro de E2E, que **não repete cadastro em sequência**.
+
+### 7.2 Recuperação de senha
 
 **Por código de seis dígitos digitado, não por deep link.** O caminho OTP (`verifyOTP` com `OtpType.recovery`) custa **uma tela a mais** e **zero** configuração de plataforma. O deep link PKCE custa `intent-filter` `VIEW`/`BROWSABLE` no `AndroidManifest.xml` **por flavor** — e hoje só existem os source sets `main/`, `debug/` e `profile/`, com `applicationIdSuffix = ".dev"` fazendo o esquema diferir entre dev e prod —, mais `GOTRUE_URI_ALLOW_LIST` e `GOTRUE_SITE_URL` no servidor, que valem `http://127.0.0.1:3000` nos dois ambientes. Nenhuma dessas peças é testável no CI, e todas quebram calado.
 
@@ -233,10 +248,10 @@ A prova negativa da fase é um corpus adversarial versionado passando pelo pipel
 
 | # | Decisão | Fonte |
 |---|---|---|
-| 1 | A Fase 1 **mede** a persistência de sessão antes de implementar "lembrar" | `bootstrap.dart` sem `authOptions` + ausência de timeout nos dois ambientes |
+| 1 | ~~A Fase 1 **mede** a persistência de sessão antes de implementar "lembrar"~~ **Medido em 20/08/2026 (T1.1):** a sessão **não cai** — sobrevive a `force-stop` e a `reboot`, e o app sequer chama o servidor ao reabrir. **"Lembrar login" saiu do escopo** (**FD-023**); no lugar entrou a **T1.12**, que preenche de volta só o e-mail, em memória | `bootstrap.dart` sem `authOptions` + ausência de timeout nos dois ambientes; evidência em `e2e/round_01/` |
 | 2 | Recuperação por código de seis dígitos, não por deep link | custo de configuração de plataforma não testável no CI |
 | 3 | O nome vai em `display_name`, não em `settings jsonb` | escalar lido a cada abertura; `jsonb` trocaria tipo e restrição por nada |
-| 4 | O e-mail é somente leitura | confirmação automática ligada e sem SMTP: trocar sem prova de posse tranca a pessoa para fora |
+| 4 | O e-mail é somente leitura | ~~confirmação automática ligada e sem SMTP: trocar sem prova de posse tranca a pessoa para fora~~ **A razão técnica caiu com a FD-022** (o servidor passou a exigir prova de posse de endereço novo). A decisão não muda, e o motivo agora é **escopo**: nenhuma fase desta feature entrega o fluxo de troca de e-mail, e reabri-lo é chamada do dono do produto (**FD-014**) |
 | 5 | Troca de senha logado exige a senha atual | o app guarda extrato bancário; aparelho destravado não pode bastar para tomar a conta |
 | 6 | A tela de senha mora no `auth_module`, com rota `/configuracoes/conta/senha` | manter o barrel do auth como está custa menos que ampliar a exceção documentada |
 | 7 | Isolamento da chave é o desenho de dois passos, não o cofre | o cofre é global ao projeto e não tem noção de dono |
