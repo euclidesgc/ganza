@@ -520,7 +520,7 @@ a camada data implementa o contrato que a frente A acabou de fechar.
   - `cd app && dart format --set-exit-if-changed lib/modules/auth_module` e `flutter analyze lib/modules/auth_module/presentation/sign_up` terminam com código de saída `0`; da raiz, `bash scripts/gates_guard.sh; echo $?` imprime `0`.
   - Remover um `final class` do `sealed` faz `flutter analyze lib/modules/auth_module/presentation/sign_up` acusar `non_exhaustive_switch`, o que prova que o `switch` sobre o estado não tem `default`; provar rodando e restaurando.
 
-- [ ] **T1.8** `[paralela · frente E · worktree]` — Criar `app/lib/modules/auth_module/presentation/password_recovery/`: a tela que pede o e-mail e a tela que recebe o código de seis dígitos e a nova senha, cada uma com o seu cubit e estado `sealed`. · camada **presentation** · `especialista-apresentacao`
+- [x] **T1.8** `[paralela · frente E · worktree]` — Criar `app/lib/modules/auth_module/presentation/password_recovery/`: a tela que pede o e-mail e a tela que recebe o código de seis dígitos e a nova senha, cada uma com o seu cubit e estado `sealed`. · camada **presentation** · `especialista-apresentacao` · **DoD: CUMPRIDO**
 
   **DoD da tarefa**
   - Sob `app/lib/modules/auth_module/presentation/password_recovery/` existem dois cubits, cada um com o seu estado `sealed` no mesmo arquivo via `part of`, e duas páginas `StatelessWidget` com `static Widget pageBuilder`. Nenhum arquivo da pasta tem `import` contendo `/data/`.
@@ -529,7 +529,7 @@ a camada data implementa o contrato que a frente A acabou de fechar.
   - Todo `emit` posterior a um `await` é precedido de `if (isClosed) return;` nos dois cubits — conferir com `rtk proxy grep -n 'await\|isClosed\|emit'` em cada arquivo.
   - `cd app && dart format --set-exit-if-changed lib/modules/auth_module` e `flutter analyze lib/modules/auth_module/presentation/password_recovery` terminam com código de saída `0`; da raiz, `bash scripts/gates_guard.sh; echo $?` imprime `0`.
 
-- [ ] **T1.12** `[paralela · frente F · worktree]` — Preencher de volta o e-mail na tela de entrar: um guardador em memória em `app/lib/core/session/`, gravado no fim de uma entrada bem-sucedida e lido para semear o campo de e-mail de `app/lib/modules/auth_module/presentation/login/`. · camada **presentation/core** · `especialista-apresentacao`
+- [x] **T1.12** `[paralela · frente F · worktree]` — Preencher de volta o e-mail na tela de entrar: um guardador em memória em `app/lib/core/session/`, gravado no fim de uma entrada bem-sucedida e lido para semear o campo de e-mail de `app/lib/modules/auth_module/presentation/login/`. · camada **presentation/core** · `especialista-apresentacao` · **DoD: CUMPRIDO**
 
   **DoD da tarefa**
   - `app/lib/core/session/last_signed_in_email.dart` declara uma classe que guarda **apenas em memória** o último e-mail usado para entrar, com um método para gravar e outro para ler; `app/lib/core/session/session.dart` a exporta e `app/lib/injection.dart` a registra como singleton — `rtk proxy grep -n 'last_signed_in_email' app/lib/core/session/session.dart` devolve a linha de `export`, e `rtk proxy grep -n 'LastSignedInEmail' app/lib/injection.dart` devolve a linha de registro.
