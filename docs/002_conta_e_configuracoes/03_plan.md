@@ -7,12 +7,13 @@ canônico está no [`docs/roadmap.md`](../roadmap.md). **Este plano não inventa
 escopo: ele distribui o DoD entre as fases e acrescenta o que falta para cada
 fase se sustentar sozinha.**
 
-Estado: **Fase 1 em andamento** · branch `feature/GZ-24-conta-e-configuracoes`
-(de `develop`) · seis fases fatiadas em 67 tarefas · **T1.1 a T1.14 com
-`CUMPRIDO`**; **próximo passo: despachar a T1.15 — a etapa de nova senha da
-recuperação não tem saída, e abandoná-la deixa a pessoa dentro do app com a
-senha antiga valendo (`changes.md`, CHG-009). Depois dela, a T1.17 fecha a fase;
-a T1.16 está adiada para o lote de fechamento** (§9; `changes.md`, CHG-011).
+Estado: **Fases 1 e 2 mergeadas em `develop`** (PRs **#26** e **#27**, mais o
+**#28** com o ajuste de harness que limpa worktrees de agente); `develop` em
+`bc684da` · seis fases fatiadas em 67 tarefas · **Fase 3 em andamento**, com a
+**T3.1** — a migration `0006_adicionar_nome_no_perfil.sql` — em execução na
+branch `feature/GZ-26-nome-no-perfil`, que é o **PR 3a**. Depois dela mergeada,
+abre o **PR 3b** com a T3.2 a T3.8. A T1.16, a T2.6 e a T2.7 ficaram para o lote
+de fechamento (§9).
 
 ---
 
@@ -936,7 +937,7 @@ está — o `settings_module` navega pelo nome da rota, que já é público.
 
 **Tarefas**
 
-- [ ] **T3.1** — Criar `supabase/migrations/0006_adicionar_nome_no_perfil.sql`: coluna `display_name` em `public.profiles` e substituição de `public.handle_new_user()` para copiar o nome do metadado do cadastro quando houver. · camada **migration** · `especialista-backend`
+- [x] **T3.1** — Criar `supabase/migrations/0006_adicionar_nome_no_perfil.sql`: coluna `display_name` em `public.profiles` e substituição de `public.handle_new_user()` para copiar o nome do metadado do cadastro quando houver. · camada **migration** · `especialista-backend` · **DoD: CUMPRIDO**
 
   **DoD da tarefa**
   - Num Postgres vazio em que `supabase/migrations/0001_habilitar_extensoes.sql` a `0005_otimizar_politicas_rls.sql` já aplicaram na ordem, `psql -v ON_ERROR_STOP=1 -f supabase/migrations/0006_adicionar_nome_no_perfil.sql; echo $?` imprime `0`. O `psql -q` não imprime nada — quem prova é o código de saída.
@@ -1049,7 +1050,7 @@ rodam no lote de fechamento** (§9) e continuam juntas lá.
 
 **DoD da Fase 3**
 
-- [ ] As oito tarefas que a fase leva ao PR 3b — T3.1 a T3.8, já que a **T3.9** e a **T3.10** estão adiadas para o lote de fechamento (§9) — com o campo `DoD:` marcado CUMPRIDO, em negrito, na própria linha: `rtk proxy grep -cE '^- \[x\] \*\*T3\.[0-9]+\*\*.*\*\*DoD: CUMPRIDO\*\*' docs/002_conta_e_configuracoes/03_plan.md` imprime `8`, e `rtk proxy grep -cE '^- \[.\] \*\*T3\.[0-9]+\*\*.*\*\*DoD: NÃO CUMPRIDO\*\*' docs/002_conta_e_configuracoes/03_plan.md` imprime `0`. O padrão ancora na fase e traz os asteriscos: sem os asteriscos a contagem inclui as próprias linhas de critério que citam o campo, e sem a âncora ela cresce a cada fase seguinte que marcar uma tarefa — nos dois casos o número nunca fecha.
+- [ ] As oito tarefas da fase com o campo `DoD:` marcado CUMPRIDO, em negrito, na própria linha — a **T3.1**, que é a migration, vai **sozinha no PR 3a**, e as sete restantes, **T3.2 a T3.8**, no **PR 3b**; a **T3.9** e a **T3.10** estão adiadas para o lote de fechamento (§9). `rtk proxy grep -cE '^- \[x\] \*\*T3\.[0-9]+\*\*.*\*\*DoD: CUMPRIDO\*\*' docs/002_conta_e_configuracoes/03_plan.md` imprime `8`, e `rtk proxy grep -cE '^- \[.\] \*\*T3\.[0-9]+\*\*.*\*\*DoD: NÃO CUMPRIDO\*\*' docs/002_conta_e_configuracoes/03_plan.md` imprime `0`. **São oito e não sete de propósito:** esta linha é verificada no fechamento do **PR 3b**, quando o PR 3a já mergeou e a T3.1 já está marcada — o grep conta a **fase**, não o PR, e trocar o número por sete faria o gate falhar por um motivo que nada tem a ver com o trabalho. O padrão ancora na fase e traz os asteriscos: sem os asteriscos a contagem inclui as próprias linhas de critério que citam o campo, e sem a âncora ela cresce a cada fase seguinte que marcar uma tarefa — nos dois casos o número nunca fecha.
 - [ ] `cd app && dart format --set-exit-if-changed lib patrol_test test`, `flutter analyze` e `flutter test -r compact` verdes; da raiz, `bash scripts/gates_guard.sh; echo $?` imprime `0`.
 - [ ] Job "Banco — migrations aplicam limpo e RLS está ligada" verde no CI do PR da migration, e o PR da migration mergeado **antes** de o PR da fase abrir.
 - [ ] **A senha antiga deixa de valer depois da troca**, provado por saída de comando contra a stack local — invariante de segurança e, por isso, no gate do PR (**D30**). Numa conta de teste da stack local, trocar a senha pelo mesmo endpoint que o app chama em `updateUser(password:)` — `curl -sS -o /dev/null -w '%{http_code}\n' -X PUT "$SUPABASE_URL/auth/v1/user" -H "apikey: $ANON_KEY" -H "Authorization: Bearer <access_token>" -H 'Content-Type: application/json' -d '{"password":"<senha nova>"}'` imprimindo `200` — e então `curl -sS -o /dev/null -w '%{http_code}\n' -X POST "$SUPABASE_URL/auth/v1/token?grant_type=password" -H "apikey: $ANON_KEY" -H 'Content-Type: application/json' -d '{"email":"<conta>","password":"<senha antiga>"}'` imprime **`400`**, e o mesmo comando com a **senha nova** imprime `200` com `access_token` no corpo. As três saídas vão no corpo do PR. O que se cobra é o `400`: a chave do erro varia com a versão do GoTrue (`invalid_grant` nas antigas, `invalid_credentials` nas novas). **O que esta linha não prova** é que a tela de troca de senha chama esse endpoint — isso é a cena da T3.9, no lote de fechamento.
@@ -1295,7 +1296,7 @@ isolamento seria tirar segurança do gate.
 
 **DoD da Fase 4**
 
-- [ ] As doze tarefas que a fase leva aos PRs 4a e 4b — T4.1 a T4.11 e a **T4.14**, já que a **T4.12** e a **T4.13** estão adiadas para o lote de fechamento (§9) — com o campo `DoD:` marcado CUMPRIDO, em negrito, na própria linha: `rtk proxy grep -cE '^- \[x\] \*\*T4\.[0-9]+\*\*.*\*\*DoD: CUMPRIDO\*\*' docs/002_conta_e_configuracoes/03_plan.md` imprime `12`, e `rtk proxy grep -cE '^- \[.\] \*\*T4\.[0-9]+\*\*.*\*\*DoD: NÃO CUMPRIDO\*\*' docs/002_conta_e_configuracoes/03_plan.md` imprime `0`. O padrão ancora na fase e traz os asteriscos: sem os asteriscos a contagem inclui as próprias linhas de critério que citam o campo, e sem a âncora ela cresce a cada fase seguinte que marcar uma tarefa — nos dois casos o número nunca fecha.
+- [ ] As doze tarefas da fase com o campo `DoD:` marcado CUMPRIDO, em negrito, na própria linha — as duas migrations, **T4.1 e T4.2**, vão no **PR 4a**, e **T4.3 a T4.11 mais a T4.14** no **PR 4b**; a **T4.12** e a **T4.13** estão adiadas para o lote de fechamento (§9). `rtk proxy grep -cE '^- \[x\] \*\*T4\.[0-9]+\*\*.*\*\*DoD: CUMPRIDO\*\*' docs/002_conta_e_configuracoes/03_plan.md` imprime `12`, e `rtk proxy grep -cE '^- \[.\] \*\*T4\.[0-9]+\*\*.*\*\*DoD: NÃO CUMPRIDO\*\*' docs/002_conta_e_configuracoes/03_plan.md` imprime `0`. O número cobre a fase inteira, com o PR 4a já mergeado no momento da verificação — mesma regra da Fase 3. O padrão ancora na fase e traz os asteriscos: sem os asteriscos a contagem inclui as próprias linhas de critério que citam o campo, e sem a âncora ela cresce a cada fase seguinte que marcar uma tarefa — nos dois casos o número nunca fecha.
 - [ ] `cd app && dart format --set-exit-if-changed lib patrol_test test`, `flutter analyze` e `flutter test -r compact` verdes; `cd supabase/functions && deno fmt --check && deno lint && deno task check && deno task test` verde; da raiz, `bash scripts/gates_guard.sh; echo $?` imprime `0`.
 - [ ] `rtk proxy grep -rnE '(^|[^A-Za-z])(AIza[A-Za-z0-9_-]{20,}|sk-[A-Za-z0-9]{16,})' app/lib` não devolve nenhuma linha — nenhuma chave de terceiro, nem placeholder com forma de chave, entrou no binário. **O padrão casa o literal, não o identificador:** `apiKey` sozinho reprovaria o token `AppIcons.apiKey` de `app/lib/core/theme/app_icons.dart` (o ícone de chave, nomeado pela função, como o Gate 4 manda) e o comentário sobre o cabeçalho `apikey` em `app/lib/modules/transactions_module/data/repositories/transactions_repository_impl.dart` — duas linhas legítimas que hoje existem.
 - [ ] `rtk proxy grep -rln 'aiConfigured' app/lib` devolve **os três** caminhos `app/lib/core/session/`, `app/lib/core/widgets/navigation/` e `app/lib/app_router.dart` — e nenhum outro. O "nenhum outro" sozinho passaria com saída vazia; é a presença dos três que prova que o gate existe, e a ausência do resto que prova que ele mora no router e não no corpo de página.
@@ -1469,7 +1470,7 @@ segurarem o PR de uma fase.
 
 **DoD da Fase 5**
 
-- [ ] As seis tarefas que a fase leva aos PRs 5a e 5b — T5.1 a T5.6, já que a **T5.7** e a **T5.8** estão adiadas para o lote de fechamento (§9) — com o campo `DoD:` marcado CUMPRIDO, em negrito, na própria linha: `rtk proxy grep -cE '^- \[x\] \*\*T5\.[0-9]+\*\*.*\*\*DoD: CUMPRIDO\*\*' docs/002_conta_e_configuracoes/03_plan.md` imprime `6`, e `rtk proxy grep -cE '^- \[.\] \*\*T5\.[0-9]+\*\*.*\*\*DoD: NÃO CUMPRIDO\*\*' docs/002_conta_e_configuracoes/03_plan.md` imprime `0`. O padrão ancora na fase e traz os asteriscos: sem os asteriscos a contagem inclui as próprias linhas de critério que citam o campo, e sem a âncora ela cresce a cada fase seguinte que marcar uma tarefa — nos dois casos o número nunca fecha.
+- [ ] As seis tarefas da fase com o campo `DoD:` marcado CUMPRIDO, em negrito, na própria linha — a **T5.1**, que é a migration, vai **sozinha no PR 5a**, e **T5.2 a T5.6** no **PR 5b**; a **T5.7** e a **T5.8** estão adiadas para o lote de fechamento (§9). `rtk proxy grep -cE '^- \[x\] \*\*T5\.[0-9]+\*\*.*\*\*DoD: CUMPRIDO\*\*' docs/002_conta_e_configuracoes/03_plan.md` imprime `6`, e `rtk proxy grep -cE '^- \[.\] \*\*T5\.[0-9]+\*\*.*\*\*DoD: NÃO CUMPRIDO\*\*' docs/002_conta_e_configuracoes/03_plan.md` imprime `0`. O número cobre a fase inteira, com o PR 5a já mergeado no momento da verificação — mesma regra da Fase 3. O padrão ancora na fase e traz os asteriscos: sem os asteriscos a contagem inclui as próprias linhas de critério que citam o campo, e sem a âncora ela cresce a cada fase seguinte que marcar uma tarefa — nos dois casos o número nunca fecha.
 - [ ] `cd app && dart format --set-exit-if-changed lib patrol_test test`, `flutter analyze` e `flutter test -r compact` verdes; `cd supabase/functions && deno fmt --check && deno lint && deno task check && deno task test` verde; da raiz, `bash scripts/gates_guard.sh; echo $?` imprime `0`.
 - [ ] `rtk proxy grep -rni 'pluggy' app/lib` não devolve nenhuma linha — quem fala com a Pluggy é a Edge Function, e isso é invariante de arquitetura, não estilo.
 - [ ] `rtk proxy grep -rniE 'PLUGGY_CLIENT_SECRET=[^$]' .` não devolve nenhuma linha em nenhum arquivo versionado.
@@ -1792,11 +1793,11 @@ Legenda das fases: `[ ]` não iniciada · `[-]` em andamento · `[x]` mergeada e
 `CUMPRIDO` do `supervisor-dod`, registrado no campo `DoD:` da própria linha —
 tarefa sem esse veredito **não** é marcada, mesmo que o código pareça pronto.
 
-- [-] **Fase 1** — Auth completo: medir a sessão, cadastrar e recuperar senha · PR 1 (17 tarefas — 16 no PR 1; a T1.16 está adiada para o lote de fechamento, §9)
-- [ ] **Fase 2** — Drawer e a casca das Configurações · PR 2 (9 tarefas — 7 no PR 2, com a T2.8 do CHG-014 e a T2.9 do CHG-015; T2.6 e T2.7 no lote de fechamento, §9)
-- [ ] **Fase 3** — Perfil do usuário · PR 3a + PR 3b (10 tarefas — 8 no PR 3b; T3.9 e T3.10 no lote de fechamento, §9)
-- [ ] **Fase 4** — Configuração de IA e o gating · PR 4a + PR 4b (14 tarefas — 12 nos PRs; T4.12 e T4.13 no lote de fechamento, §9; a T4.14 nasceu ao partir a prova de isolamento da execução do E2E)
-- [ ] **Fase 5** — Integração bancária · PR 5a + PR 5b (8 tarefas — 6 nos PRs; T5.7 e T5.8 no lote de fechamento, §9)
+- [x] **Fase 1** — Auth completo: medir a sessão, cadastrar e recuperar senha · PR 1 (17 tarefas — 16 no PR 1; a T1.16 está adiada para o lote de fechamento, §9) · PR **#26** mergeado
+- [x] **Fase 2** — Drawer e a casca das Configurações · PR 2 (9 tarefas — 7 no PR 2, com a T2.8 do CHG-014 e a T2.9 do CHG-015; T2.6 e T2.7 no lote de fechamento, §9) · PR **#27** mergeado
+- [-] **Fase 3** — Perfil do usuário · PR 3a + PR 3b (10 tarefas — 1 no PR 3a e 7 no PR 3b; T3.9 e T3.10 no lote de fechamento, §9)
+- [ ] **Fase 4** — Configuração de IA e o gating · PR 4a + PR 4b (14 tarefas — 2 no PR 4a e 10 no PR 4b; T4.12 e T4.13 no lote de fechamento, §9; a T4.14 nasceu ao partir a prova de isolamento da execução do E2E)
+- [ ] **Fase 5** — Integração bancária · PR 5a + PR 5b (8 tarefas — 1 no PR 5a e 5 no PR 5b; T5.7 e T5.8 no lote de fechamento, §9)
 - [ ] **Fase 6** — Defesa do pipeline de IA · PR 6 (9 tarefas)
 
 ---
