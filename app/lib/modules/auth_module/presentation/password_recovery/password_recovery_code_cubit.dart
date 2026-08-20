@@ -25,6 +25,14 @@ class PasswordRecoveryCodeCubit extends Cubit<PasswordRecoveryCodeState> {
   final UpdatePassword _updatePassword;
   final PasswordRecoveryScope _recoveryScope;
 
+  // Só existe botão de cancelar na etapa do código: antes do verifyOTP
+  // confirmar, a sessão de recuperação ainda não é a que protege a troca de
+  // senha, então desligar aqui devolve o usuário ao login sem abrir brecha
+  // na guarda de rota nem tocar no estado que a etapa seguinte protege.
+  void cancel() {
+    _recoveryScope.end();
+  }
+
   Future<void> verifyCode({required String email, required String code}) async {
     emit(const PasswordRecoveryCodeVerifying());
 

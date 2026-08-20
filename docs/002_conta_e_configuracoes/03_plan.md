@@ -562,14 +562,15 @@ campo já nasce preenchido.
 
 Consolidar as três frentes antes de seguir.
 
-- [ ] **T1.9** — Fechar a navegação: rotas `/cadastrar` e `/recuperar-senha` (com as duas etapas) em `app/lib/modules/auth_module/auth_routes.dart` com variantes `*Named`, registro dos use cases em `app/lib/modules/auth_module/auth_injection.dart`, o terceiro estado da guarda em `app/lib/app_router.dart` e os dois links na tela de entrar. · camada **presentation/infra** · `especialista-apresentacao`
+- [x] **T1.9** — Fechar a navegação: rotas `/cadastrar` e `/recuperar-senha` (com as duas etapas) em `app/lib/modules/auth_module/auth_routes.dart` com variantes `*Named`, registro dos use cases em `app/lib/modules/auth_module/auth_injection.dart`, o terceiro estado da guarda em `app/lib/app_router.dart` e os dois links na tela de entrar. · camada **presentation/infra** · `especialista-apresentacao` · **DoD: CUMPRIDO**
 
   **DoD da tarefa**
   - `app/lib/modules/auth_module/auth_routes.dart` declara, além de `/entrar`, os caminhos `/cadastrar` e `/recuperar-senha` (com a etapa do código como rota filha ou irmã), **cada um com constante de `name` e de `path`** — nenhuma rota do arquivo fica sem a variante nomeada, e nenhuma usa `extra:`: `rtk proxy grep -n 'extra:' app/lib/modules/auth_module/auth_routes.dart` não devolve nada.
   - A guarda de `app/lib/app_router.dart` deixa de ser binária: com sessão válida **e** o escopo de `app/lib/core/session/password_recovery_scope.dart` ligado, o destino é a tela de nova senha, não a raiz. Provar no emulador: pedir recuperação, digitar o código correto e capturar o print da tela de nova senha em `docs/002_conta_e_configuracoes/e2e/round_02/` — sem esta linha o app cairia na lista de áreas.
   - `app/lib/modules/auth_module/auth_injection.dart` registra os quatro use cases novos: `rtk proxy grep -c 'SignUp\|ResetPasswordForEmail\|VerifyRecoveryCode\|UpdatePassword' app/lib/modules/auth_module/auth_injection.dart` imprime pelo menos `4`.
-  - `app/lib/modules/auth_module/auth_module.dart` continua exportando **só** `auth_injection.dart`, `auth_routes.dart` e os três símbolos de sessão já documentados como exceção; nenhum cubit, página, model ou repositório entra no barrel — conferir lendo o arquivo inteiro.
-  - `cd app && dart format --set-exit-if-changed lib`, `flutter analyze` e `flutter test -r compact` terminam com código de saída `0`, e da raiz `scripts/gates_guard.sh; echo $?` imprime `0`.
+  - `app/lib/modules/auth_module/auth_module.dart` continua exportando **só** `auth_injection.dart`, `auth_routes.dart` e os quatro símbolos de sessão já documentados como exceção (`AuthenticatedUser`, `ObserveCurrentUser`, `GetCurrentUser`, `SignOut`); nenhum cubit, página, model ou repositório entra no barrel — conferir lendo o arquivo inteiro.
+  - `cd app && dart format --set-exit-if-changed lib`, `flutter analyze` e `flutter test -r compact` terminam com código de saída `0`, e da raiz `bash scripts/gates_guard.sh; echo $?` imprime `0`.
+  - As três dívidas que o fatiamento adiou por não poder tocar arquivos compartilhados estão pagas: `app/lib/modules/auth_module/presentation/password_recovery/password_recovery_request_page.dart` navega por go_router e não contém `Navigator.of(context).push` nem `MaterialPageRoute`; `app/lib/modules/auth_module/presentation/login/login_cubit.dart` recebe as dependências pelo construtor e não importa nem chama `getIt`; e nenhum `getIt` sobra fora de `pageBuilder` nas páginas do módulo. Provar com `rtk proxy grep -rn 'Navigator.of\|MaterialPageRoute\|getIt' app/lib/modules/auth_module/presentation/`, cujas únicas linhas restantes estão dentro de um `static Widget pageBuilder`.
 
 - [ ] **T1.10** — Instrumentar o E2E da fase: escrever o roteiro `patrol` que cobre cadastro e recuperação ponta a ponta contra a stack local, lendo o código de seis dígitos do capturador da T1.5. · camada **testes** · `qa`
 
@@ -831,7 +832,7 @@ está — o `settings_module` navega pelo nome da rota, que já é público.
   - `app/lib/modules/auth_module/domain/repositories/auth_repository.dart` declara `changePassword`, que recebe **a senha atual e a nova** e devolve `Future<Either<Failure, Unit>>`, e o membro de troca de senha sem senha atual continua no arquivo — os dois coexistem, porque o fluxo de recuperação não tem senha atual para pedir.
   - `app/lib/modules/auth_module/domain/usecases/change_password.dart` existe, com uma única classe cujo único método público é `call()`.
   - `rtk proxy grep -rn "^import" app/lib/modules/auth_module/domain/` devolve só `package:equatable`, `package:fpdart` e caminhos relativos dentro de `domain/` ou de `app/lib/core/error/`.
-  - `app/lib/modules/auth_module/auth_module.dart` **não** ganhou nenhum export novo: continua exportando `auth_injection.dart`, `auth_routes.dart` e os três símbolos de sessão já documentados como exceção — conferir lendo o arquivo inteiro.
+  - `app/lib/modules/auth_module/auth_module.dart` **não** ganhou nenhum export novo: continua exportando `auth_injection.dart`, `auth_routes.dart` e os quatro símbolos de sessão já documentados como exceção (`AuthenticatedUser`, `ObserveCurrentUser`, `GetCurrentUser`, `SignOut`) — conferir lendo o arquivo inteiro.
   - Apagar temporariamente `changePassword` do contrato faz `flutter analyze lib/modules/auth_module/domain` acusar erro em `change_password.dart`; provar rodando, colar a saída e restaurar.
 
 As frentes A e B escrevem em módulos diferentes
@@ -1118,7 +1119,7 @@ Consolidar as três frentes antes de seguir.
   - Com a IA não configurada, ir direto a `/chat` termina em `/configuracoes/ia`: teste de widget em `app/test/` que constrói o router, navega e assere a rota final. Remover a linha do `redirect` faz o teste falhar — provar removendo, colando a falha e restaurando.
   - O `refreshListenable` do `createRouter()` é um `Listenable.merge` entre o notificador de sessão que já existia e um novo sobre o cubit de capacidades: configurar a IA e tocar no item de chat **sem nenhuma navegação manual no meio** leva ao destino, com print da sequência em `docs/002_conta_e_configuracoes/e2e/round_05/`. Sem o merge o app fica preso na tela recém-preenchida.
   - O item de chat do drawer aparece **desabilitado com o motivo em texto visível**, não escondido, e anuncia esse motivo por `Semantics` — print em `docs/002_conta_e_configuracoes/e2e/round_05/02_drawer_chat_desabilitado.png` mais a saída do teste que assere o rótulo semântico.
-  - `app/lib/modules/settings_module/settings_routes.dart` declara `/configuracoes/ia` com constante de `path` e de `name`, sem `extra:`, fora do `ShellRoute`; `cd app && dart format --set-exit-if-changed lib test`, `flutter analyze` e `flutter test -r compact` terminam com código de saída `0`, e da raiz `scripts/gates_guard.sh; echo $?` imprime `0`.
+  - `app/lib/modules/settings_module/settings_routes.dart` declara `/configuracoes/ia` com constante de `path` e de `name`, sem `extra:`, fora do `ShellRoute`; `cd app && dart format --set-exit-if-changed lib test`, `flutter analyze` e `flutter test -r compact` terminam com código de saída `0`, e da raiz `bash scripts/gates_guard.sh; echo $?` imprime `0`.
 
 - [ ] **T4.12** — Instrumentar o E2E da fase: roteiro `patrol` que configura a IA, prova o gate antes e depois, e apaga a credencial. · camada **testes** · `qa`
 
@@ -1287,7 +1288,7 @@ migration cria. Vale worktree onde houver escrita simultânea.
   - Os quatro estados de conexão aparecem com **rótulo textual**, nunca só por cor: quatro prints em `docs/002_conta_e_configuracoes/e2e/round_06/`, um por estado, cada um nomeado pelo estado que mostra.
   - Desconectar pede confirmação explícita antes de agir, e cancelar não muda nada — dois prints em `docs/002_conta_e_configuracoes/e2e/round_06/`, o do diálogo e o da tela intacta depois de cancelar.
   - Nada de conciliação vazou para esta fase: `rtk proxy grep -rniE 'reconcil|concilia' app/lib/modules/settings_module/` não devolve nenhuma linha.
-  - `app/lib/modules/settings_module/settings_routes.dart` declara `/configuracoes/banco` com constante de `path` e de `name`, sem `extra:`, fora do `ShellRoute`; `cd app && dart format --set-exit-if-changed lib`, `flutter analyze` e `flutter test -r compact` terminam com código de saída `0`, e da raiz `scripts/gates_guard.sh; echo $?` imprime `0`.
+  - `app/lib/modules/settings_module/settings_routes.dart` declara `/configuracoes/banco` com constante de `path` e de `name`, sem `extra:`, fora do `ShellRoute`; `cd app && dart format --set-exit-if-changed lib`, `flutter analyze` e `flutter test -r compact` terminam com código de saída `0`, e da raiz `bash scripts/gates_guard.sh; echo $?` imprime `0`.
 
 - [ ] **T5.7** — Instrumentar o E2E da fase: roteiro `patrol` que conecta contra a sandbox da Pluggy, vê o status e desconecta. · camada **testes** · `qa`
 

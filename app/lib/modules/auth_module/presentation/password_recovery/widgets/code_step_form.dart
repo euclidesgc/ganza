@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../../core/theme/theme.dart';
 import '../password_recovery_code_cubit.dart';
+import 'cancel_recovery_link.dart';
 import 'failure_banner.dart';
 
 class CodeStepForm extends StatefulWidget {
@@ -88,6 +89,8 @@ class _CodeStepFormState extends State<CodeStepForm> {
                 },
               ),
         ),
+        const SizedBox(height: AppSpacing.md),
+        const CancelRecoveryLink(),
       ],
     );
   }
