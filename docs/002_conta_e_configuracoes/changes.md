@@ -7,6 +7,46 @@ estado final, sem preservar neles uma versão obsoleta do planejamento.
 
 ## Mudanças registradas
 
+### CHG-006 - O erro mais provável do fluxo de recuperação não tinha mensagem, e o link local não resolve
+
+- **Data:** 2026-08-20
+- **Fase/PR:** Fase 1 (PR 1), tarefas novas T1.13 e T1.14.
+- **Planejado originalmente:** o `02_specs.md` §7.2 descrevia o caminho da
+  recuperação por código de seis dígitos sem fixar **nenhuma** mensagem de erro
+  da tela, e nenhum DoD cobria o desfecho de código recusado. A Fase 1 tinha doze
+  tarefas.
+- **Por que não foi possível prosseguir:** o QA, escrevendo o roteiro de E2E,
+  mostrou que quem digita o código errado lê **"Algo deu errado. Tente de novo."**
+  — o GoTrue devolve `otp_expired`, que não está entre os cinco códigos
+  traduzidos em `app/lib/modules/auth_module/data/repositories/auth_repository_impl.dart`,
+  e cai no `_ => UnexpectedFailure()`. É o erro **mais provável** de todo o fluxo
+  (seis dígitos copiados de um e-mail) e o único com ação corretiva óbvia, que a
+  mensagem genérica esconde. Não é falha de executor: é critério que nunca
+  existiu. Na mesma passada, o QA mediu que o link de confirmação emitido para a
+  caixa local aponta para `/verify` enquanto o Kong só roteia `/auth/v1/verify` —
+  e quem clicar leva `404`.
+- **Alternativas consideradas:** (a) deixar a mensagem genérica e apenas fixar
+  no `02_specs.md` que é ela mesma — barato, e entrega a fase com o erro mais
+  comum do fluxo sem ação corretiva; (b) reabrir a **T1.6** pela terceira vez
+  hoje; (c) tarefa nova pequena para o braço que falta; (d) tentar distinguir
+  "código errado" de "código vencido" na tela.
+- **Decisão tomada:** (c), pelo `tech-lead`. (b) foi descartada porque a linha de
+  DoD da T1.6 diz "cobre **pelo menos**" os cinco códigos — acrescentar um sexto
+  **não a torna falsa**, e reabrir uma tarefa já verificada duas vezes no mesmo
+  dia gasta o significado do veredito sem comprar nada. (d) foi descartada por
+  segurança, não por custo: ver **FD-026**. O link local vira a **T1.14**,
+  separada por ser infraestrutura e por tocar arquivo que nenhuma outra tarefa
+  aberta abre.
+- **Resumo da resolução:** nascem a **T1.13** (camada data, um braço de tradução
+  e o teste que o prova) e a **T1.14** (stack local, o link da caixa passa a
+  resolver). A Fase 1 vai de doze para **catorze** tarefas, e a feature de 59
+  para **61**. As duas são paralelas entre si e não bloqueiam a T1.10 nem a
+  T1.11 — o roteiro de E2E já usa a rota pública correta.
+- **Reconciliação documental:** `02_specs.md` §7.2, que passa a fixar as
+  mensagens da tela do código; `03_plan.md` — tarefas **T1.13** e **T1.14**,
+  contagem no cabeçalho, DoD da Fase 1 e §8 Progresso; `decisions.md`
+  (**FD-026**).
+
 ### CHG-005 - A garantia anti-enumeração desce da tela para o contrato, e a T1.6 reabre
 
 - **Data:** 2026-08-20

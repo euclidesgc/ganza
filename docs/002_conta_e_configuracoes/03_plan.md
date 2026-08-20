@@ -8,9 +8,9 @@ escopo: ele distribui o DoD entre as fases e acrescenta o que falta para cada
 fase se sustentar sozinha.**
 
 Estado: **Fase 1 em andamento** · branch `feature/GZ-24-conta-e-configuracoes`
-(de `develop`) · seis fases fatiadas em 59 tarefas · **T1.1 a T1.5 com
-`CUMPRIDO`**; **próximo passo: despachar a T1.6 — implementar na camada data os
-quatro métodos que a T1.3 declarou**.
+(de `develop`) · seis fases fatiadas em 61 tarefas · **T1.1 a T1.9 e T1.12 com
+`CUMPRIDO`**; **próximo passo: despachar T1.13 e T1.14 em paralelo — as duas
+precedem o roteiro de E2E da T1.10**.
 
 ---
 
@@ -572,6 +572,31 @@ Consolidar as três frentes antes de seguir.
   - `cd app && dart format --set-exit-if-changed lib`, `flutter analyze` e `flutter test -r compact` terminam com código de saída `0`, e da raiz `bash scripts/gates_guard.sh; echo $?` imprime `0`.
   - As três dívidas que o fatiamento adiou por não poder tocar arquivos compartilhados estão pagas: `app/lib/modules/auth_module/presentation/password_recovery/password_recovery_request_page.dart` navega por go_router e não contém `Navigator.of(context).push` nem `MaterialPageRoute`; `app/lib/modules/auth_module/presentation/login/login_cubit.dart` recebe as dependências pelo construtor e não importa nem chama `getIt`; e nenhum `getIt` sobra fora de `pageBuilder` nas páginas do módulo. Provar com `rtk proxy grep -rn 'Navigator.of\|MaterialPageRoute\|getIt' app/lib/modules/auth_module/presentation/`, cujas únicas linhas restantes estão dentro de um `static Widget pageBuilder`.
 
+- [ ] **T1.13** `[paralela · frente G · worktree]` — Dar mensagem própria ao código de recuperação recusado: mapear `otp_expired` em `app/lib/modules/auth_module/data/repositories/auth_repository_impl.dart`, hoje caindo no erro genérico. · camada **data** · `especialista-dados`
+
+  **DoD da tarefa**
+  - A tradução de erro de `app/lib/modules/auth_module/data/repositories/auth_repository_impl.dart` mapeia `otp_expired` para exatamente **"Código inválido ou vencido. Confira e digite de novo, ou volte para pedir um novo código."** — diz "volte para pedir" porque a tela do código tem só o botão de confirmar, e mandar "peça" apontaria para um controle que não existe —, com o texto no ramo desse código — `rtk proxy grep -n 'otp_expired' app/lib/modules/auth_module/data/repositories/auth_repository_impl.dart` devolve a linha.
+  - Código de recuperação errado **não** produz mais a mensagem genérica de erro inesperado, e nenhum desfecho de `verifyRecoveryCode` cai na mensagem de sessão expirada — conferir lendo o método e o `switch` inteiro.
+  - A mensagem nova é distinta de todas as outras do arquivo: nenhum outro código traduzido usa o mesmo texto — conferir lendo as mensagens.
+  - Teste em `app/test/modules/auth_module/data/repositories/auth_repository_impl_test.dart` faz o cliente lançar `otp_expired` na verificação do código e assere a mensagem acima; remover o ramo faz o teste falhar — provar revertendo, colar as duas saídas e restaurar.
+  - `cd app && dart format --set-exit-if-changed lib test`, `flutter analyze` e `flutter test -r compact` terminam com código de saída `0`.
+
+- [ ] **T1.14** `[paralela · frente H · worktree]` — Fazer o link de confirmação que chega à caixa de e-mail da stack local resolver: hoje ele responde `404`, e quem atesta o E2E clicando nele conclui que o cadastro quebrou. · camada **infra** · `especialista-infra`
+
+  **DoD da tarefa**
+  - Um cadastro novo na stack local gera mensagem cuja URL de confirmação, **copiada da caixa local sem nenhuma edição** e requisitada com `curl -s -o /dev/null -w '%{http_code}'`, **não** devolve `404`; colar o código recebido e a URL com o token ofuscado.
+  - A conta correspondente fica confirmada por esse caminho e só por ele: conferir por **consulta de leitura** que `email_confirmed_at` deixou de ser nulo, sem nenhum `update` manual — colar a saída.
+  - `infra/local/README.md` explica **o que de fato faltava** para a URL emitida bater com a rota servida. `API_EXTERNAL_URL` já existe em `infra/local/docker-compose.yml`, então repetir essa hipótese não satisfaz esta linha: a explicação nomeia a diferença medida entre a URL que chegou e a que o roteador atende.
+  - Reproduzível do zero: `scripts/local-supabase.sh down` seguido de `scripts/local-supabase.sh up`, um cadastro novo, e a URL do primeiro item volta a resolver — sem edição manual de contêiner.
+  - Nenhuma frase vizinha de `infra/local/README.md` ficou falsa: as instruções de ler o e-mail e a lista de serviços e portas continuam verdadeiras depois da mudança, ou foram corrigidas junto.
+
+As frentes G e H são disjuntas — a G só escreve sob `app/lib/modules/auth_module/data/`
+e `app/test/`, a H só sob `infra/local/` — e nenhuma lê o resultado da outra.
+**Vêm depois em número e antes em execução**, pela mesma razão da T1.12: a
+numeração segue a ordem de criação. As duas precisam preceder a T1.10, porque o
+roteiro assere o texto que a G fixa, e a T1.11 é atestada por um humano que pode
+clicar no link que a H conserta.
+
 - [ ] **T1.10** — Instrumentar o E2E da fase: escrever o roteiro `patrol` que cobre cadastro e recuperação ponta a ponta contra a stack local, lendo o código de seis dígitos do capturador da T1.5. · camada **testes** · `qa`
 
   **DoD da tarefa**
@@ -600,7 +625,7 @@ harness com a rodada em curso.
 
 **DoD da Fase 1**
 
-- [ ] As doze tarefas da fase (T1.1 a T1.12) com `DoD: CUMPRIDO` na própria linha: `rtk proxy grep -c 'DoD: CUMPRIDO' docs/002_conta_e_configuracoes/03_plan.md` cobre as doze, e `rtk proxy grep -c 'DoD: NÃO CUMPRIDO' docs/002_conta_e_configuracoes/03_plan.md` imprime `0`.
+- [ ] As catorze tarefas da fase (T1.1 a T1.14) com `DoD: CUMPRIDO` na própria linha: `rtk proxy grep -c 'DoD: CUMPRIDO' docs/002_conta_e_configuracoes/03_plan.md` cobre as catorze, e `rtk proxy grep -c 'DoD: NÃO CUMPRIDO' docs/002_conta_e_configuracoes/03_plan.md` imprime `0`.
 - [ ] `cd app && dart format --set-exit-if-changed lib patrol_test test`, `flutter analyze` e `flutter test -r compact` verdes; da raiz, `bash scripts/gates_guard.sh; echo $?` imprime `0`.
 - [ ] A consequência da medição está escrita: `docs/002_conta_e_configuracoes/e2e/round_01/report.md` responde que a sessão sobrevive a restart e a reboot, e `docs/002_conta_e_configuracoes/decisions.md` traz a **FD-023**, que tira "lembrar login" do escopo e põe no lugar o e-mail preenchido de volta ao sair. `rtk proxy grep -n 'FD-023' docs/002_conta_e_configuracoes/decisions.md` devolve a linha.
 - [ ] `docs/002_conta_e_configuracoes/e2e/round_02/` — o ciclo completo de conta: criar conta, **confirmar o e-mail e entrar com ela**, recuperar a senha, e o campo de e-mail preenchido de volta depois de sair (com o de senha vazio). **Nenhum passo avança por SQL, Studio ou painel de banco** — se algum for necessário para entrar, a fase não passa, porque é exatamente o que o critério A1 proíbe. **Atestado pelo dev humano**, não pelo QA; o `report.md` nomeia cada passo, comando e evidência.
@@ -1623,7 +1648,7 @@ Legenda das fases: `[ ]` não iniciada · `[-]` em andamento · `[x]` mergeada e
 `CUMPRIDO` do `supervisor-dod`, registrado no campo `DoD:` da própria linha —
 tarefa sem esse veredito **não** é marcada, mesmo que o código pareça pronto.
 
-- [-] **Fase 1** — Auth completo: medir a sessão, cadastrar e recuperar senha · PR 1 (12 tarefas)
+- [-] **Fase 1** — Auth completo: medir a sessão, cadastrar e recuperar senha · PR 1 (14 tarefas)
 - [ ] **Fase 2** — Drawer e a casca das Configurações · PR 2 (7 tarefas)
 - [ ] **Fase 3** — Perfil do usuário · PR 3a + PR 3b (10 tarefas)
 - [ ] **Fase 4** — Configuração de IA e o gating · PR 4a + PR 4b (13 tarefas)
