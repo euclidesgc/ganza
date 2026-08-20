@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../../core/theme/theme.dart';
 import '../password_recovery_code_cubit.dart';
 import 'failure_banner.dart';
+import 'sign_out_without_changing_password_link.dart';
 
 class NewPasswordStepForm extends StatefulWidget {
   const NewPasswordStepForm({super.key});
@@ -91,6 +92,8 @@ class _NewPasswordStepFormState extends State<NewPasswordStepForm> {
             },
           ),
         ),
+        const SizedBox(height: AppSpacing.md),
+        const SignOutWithoutChangingPasswordLink(),
       ],
     );
   }

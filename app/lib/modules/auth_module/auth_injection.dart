@@ -41,6 +41,7 @@ void registerAuthModule(GetIt getIt) {
       () => PasswordRecoveryCodeCubit(
         getIt<VerifyRecoveryCode>(),
         getIt<UpdatePassword>(),
+        getIt<SignOut>(),
         getIt<PasswordRecoveryScope>(),
       ),
     );

@@ -3,6 +3,7 @@ import 'package:equatable/equatable.dart';
 
 import '../../../../core/error/failure.dart';
 import '../../../../core/session/session.dart';
+import '../../domain/usecases/sign_out.dart';
 import '../../domain/usecases/update_password.dart';
 import '../../domain/usecases/verify_recovery_code.dart';
 
@@ -12,6 +13,7 @@ class PasswordRecoveryCodeCubit extends Cubit<PasswordRecoveryCodeState> {
   PasswordRecoveryCodeCubit(
     this._verifyRecoveryCode,
     this._updatePassword,
+    this._signOut,
     this._recoveryScope,
   ) : super(const PasswordRecoveryCodeAwaitingCode()) {
     // PasswordRecoveryScope liga assim que esta tela nasce: o verifyOTP a
@@ -23,6 +25,7 @@ class PasswordRecoveryCodeCubit extends Cubit<PasswordRecoveryCodeState> {
 
   final VerifyRecoveryCode _verifyRecoveryCode;
   final UpdatePassword _updatePassword;
+  final SignOut _signOut;
   final PasswordRecoveryScope _recoveryScope;
 
   // Só existe botão de cancelar na etapa do código: antes do verifyOTP
@@ -62,5 +65,14 @@ class PasswordRecoveryCodeCubit extends Cubit<PasswordRecoveryCodeState> {
       _recoveryScope.end();
       emit(const PasswordRecoveryCodeCompleted());
     });
+  }
+
+  // Sair encerra a sessão do GoTrue antes de desligar o escopo: se o escopo
+  // caísse primeiro com a sessão ainda válida, a guarda de rota leria
+  // "login normal" e devolveria o usuário para dentro do app, abrindo um
+  // caminho discreto de sessão persistente a partir do inbox alheio.
+  Future<void> signOutWithoutChangingPassword() async {
+    await _signOut();
+    _recoveryScope.end();
   }
 }

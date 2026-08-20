@@ -104,9 +104,7 @@ void main() {
       'GoTrue devolvendo over_email_send_rate_limit produz o mesmo Right(unit) '
       'do pedido sem erro — segunda tentativa não pode virar Failure distinguível',
       () async {
-        when(
-          () => auth.resetPasswordForEmail(any()),
-        ).thenThrow(
+        when(() => auth.resetPasswordForEmail(any())).thenThrow(
           const AuthException(
             'For security purposes, you can only request this after 46 seconds.',
             code: 'over_email_send_rate_limit',
@@ -132,9 +130,7 @@ void main() {
     });
 
     test('outro código de erro continua virando Failure', () async {
-      when(
-        () => auth.resetPasswordForEmail(any()),
-      ).thenThrow(
+      when(() => auth.resetPasswordForEmail(any())).thenThrow(
         const AuthException(
           'Email rate limit exceeded',
           code: 'over_request_rate_limit',
