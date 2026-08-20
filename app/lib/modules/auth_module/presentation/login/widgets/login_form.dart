@@ -18,6 +18,12 @@ class _LoginFormState extends State<LoginForm> {
   final _passwordController = TextEditingController();
 
   @override
+  void initState() {
+    super.initState();
+    _emailController.text = context.read<LoginCubit>().lastSignedInEmail ?? '';
+  }
+
+  @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();

@@ -144,9 +144,13 @@ O que restava era um incômodo menor, e ele entrou no lugar: **ao voltar à tela
 
 ## 8. Exceções e casos de borda
 
+**Uma regra atravessa duas linhas desta tabela: o app não confirma nem nega que um endereço já tem conta** — nem no cadastro, nem na recuperação de senha. Resposta que separe "endereço conhecido" de "endereço desconhecido" transforma a tela num consultor de quem tem conta no ganzá, e num app que guarda extrato bancário essa lista é o alvo. As duas linhas são a mesma regra aplicada em dois lugares, não coincidência (**FD-024** de [`decisions.md`](decisions.md), §7.1 de [`02_specs.md`](02_specs.md)). Nas recusas de cadastro que existem de verdade — senha fraca, cadastro fechado, pedido recente — o formulário preserva o que foi digitado.
+
 | Situação | Comportamento esperado |
 |---|---|
-| Cadastro com e-mail já existente | Mensagem própria, distinta de qualquer outra; o formulário preserva o que foi digitado |
+| Cadastro aceito, e-mail ainda não confirmado | É o desfecho normal, não uma falha: a tela diz que falta confirmar o endereço e onde procurar, e **nunca** afirma que a conta está pronta para usar. A conta nasce sem sessão e não há para onde navegar — sem esse texto, a pessoa toca "criar conta", vê a tela não mudar e conclui que falhou |
+| Cadastro com e-mail já existente | ~~Mensagem própria, distinta de qualquer outra; o formulário preserva o que foi digitado~~ **Revogado em 20/08/2026 pela FD-024 de [`decisions.md`](decisions.md)** (desvio em [`changes.md`](changes.md), `CHG-003`): **a mesma mensagem do endereço novo**, palavra por palavra. Medido contra o servidor real em 20/08/2026 — repetir o cadastro do mesmo endereço devolve resposta de sucesso **idêntica** à do endereço novo, sem erro nenhum para traduzir. Distinguir só seria possível perguntando antes se o e-mail existe, que é o oráculo de enumeração proibido acima: não distinguir é o comportamento **desejado**, não uma conformação |
+| Cadastro do mesmo endereço duas vezes seguidas | Recusa por **pedido recente**, com janela de cerca de um minuto: texto próprio dizendo que basta esperar, nunca erro de duplicidade e nunca "o cadastro falhou". Quem toca o botão duas vezes cai aqui — e é por isso que o roteiro de E2E não repete cadastro em sequência |
 | Senha nova fraca | Mensagem própria dizendo o que falta |
 | Cadastro desligado no servidor | Mensagem própria ("cadastro fechado"), nunca erro genérico nem tela em branco |
 | Recuperação pedida para e-mail inexistente | **Mesma** resposta do e-mail existente. Responder "essa conta não existe" entrega a lista de quem tem conta |

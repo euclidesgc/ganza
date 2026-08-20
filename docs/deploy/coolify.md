@@ -94,18 +94,22 @@ Verificado: `GET /functions/v1/health` com `apikey` devolve `{"status":"ok","dat
 
 ## Autenticação
 
-**A configuração que vale passa a ser cadastro aberto pelo app, com confirmação de e-mail obrigatória:** `DISABLE_SIGNUP=false` e `ENABLE_EMAIL_AUTOCONFIRM=false` — a HML ainda roda a anterior, e a virada está listada em "Ainda por fazer". O ganzá deixou de ser monousuário — passa a ser multiusuário por isolamento, cada conta enxergando só os próprios dados pela RLS (**D28** em [`../decisions.md`](../decisions.md), que revoga a D11 e, com ela, o `422 signup_disabled` que esta seção verificava). A conta criada sob a D11 (`euclides.catunda@gmail.com`) continua válida — deixa de ser a única, não some.
+**A HML roda desde 20/08/2026 a configuração que vale:** cadastro aberto pelo app, com confirmação de e-mail obrigatória — `DISABLE_SIGNUP=false` e `ENABLE_EMAIL_AUTOCONFIRM=false`. O ganzá deixou de ser monousuário — passa a ser multiusuário por isolamento, cada conta enxergando só os próprios dados pela RLS (**D28** em [`../decisions.md`](../decisions.md), que revoga a D11 e, com ela, o `422 signup_disabled` que esta seção verificava). A conta criada sob a D11 (`euclides.catunda@gmail.com`) continua válida — deixa de ser a única, não some.
 
-As duas variáveis mudam **juntas**, e a ordem importa nos dois sentidos: com a confirmação automática ligada, qualquer endereço inventado vira conta confirmada sem prova de posse do e-mail; com ela desligada e sem e-mail saindo, ninguém confirma conta nenhuma e o cadastro tranca. Por isso a virada entra no mesmo redeploy do SMTP (**D26**).
+As duas variáveis mudam **juntas**, e a ordem importa nos dois sentidos: com a confirmação automática ligada, qualquer endereço inventado vira conta confirmada sem prova de posse do e-mail; com ela desligada e sem e-mail saindo, ninguém confirma conta nenhuma e o cadastro tranca. Por isso a virada entrou no mesmo redeploy do SMTP (**D26**), em 20/08/2026.
 
 No serviço do Coolify as chaves se chamam `DISABLE_SIGNUP` e `ENABLE_EMAIL_AUTOCONFIRM`; o template do Supabase as repassa ao GoTrue como `GOTRUE_DISABLE_SIGNUP` e `GOTRUE_MAILER_AUTOCONFIRM`, que são os nomes escritos em [`../../infra/local/docker-compose.yml`](../../infra/local/docker-compose.yml). Procurar só um dos dois pares dá falso negativo.
 
 > **Ao mexer em env do GoTrue, espere o redeploy terminar antes de testar.** O contêiner antigo continua servindo durante a troca: um teste feito no meio da janela mostrou signup funcionando com a config nova já salva. A stack da HML tem **oito** contêineres (a local, nove — ver o topo deste arquivo) — conte-os antes de concluir qualquer coisa.
 
-Redefinir senha é pelo fluxo de recuperação do próprio app: pede-se o e-mail, o GoTrue envia um código de seis dígitos e a pessoa o digita (`FD-003` em [`../002_conta_e_configuracoes/decisions.md`](../002_conta_e_configuracoes/decisions.md)). Depende do SMTP — ver "Ainda por fazer". Na stack local o e-mail não sai para a internet: a Fase 1 da feature 002 instala um capturador em `infra/local/`, e é dele que o código é lido.
+Redefinir senha é pelo fluxo de recuperação do próprio app: pede-se o e-mail, o GoTrue envia um código de seis dígitos e a pessoa o digita (`FD-003` em [`../002_conta_e_configuracoes/decisions.md`](../002_conta_e_configuracoes/decisions.md)). Depende do SMTP, configurado desde 20/08/2026 — ver "SMTP" logo abaixo. Na stack local o e-mail não sai para a internet: a Fase 1 da feature 002 instala um capturador em `infra/local/`, e é dele que o código é lido.
+
+### SMTP
+
+Provedor Gmail com App Password (**D26**), porque o domínio é DuckDNS e ali SPF/DKIM/DMARC são impossíveis — porta `587` com STARTTLS. Cinco variáveis cadastradas no serviço `ganza-supabase` do Coolify: `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` (a App Password, de conta com 2FA — não a senha da conta) e `SMTP_ADMIN_EMAIL`. Valores só no painel do Coolify — nunca no repositório, nem parcial, nem mascarado.
+
+**Como se prova que o SMTP entrega, não só que aceita o pedido:** `POST /auth/v1/recover` com a `apikey` anônima e um e-mail existente devolve `200` mesmo com o SMTP quebrado — o GoTrue enfileira o envio e responde antes de a entrega acontecer. O `200` prova só que a rota aceitou o pedido; não prova que o e-mail chegou. A prova é o recebimento na caixa do destinatário: verificado em 20/08/2026, e-mail de recuperação recebido na caixa de entrada principal do Gmail (fora da pasta de spam).
 
 ## Ainda por fazer
 
-- **SMTP** para os e-mails de autenticação. Hoje `SMTP_HOST`, `SMTP_USER` e `SMTP_PASS` estão vazios e nenhum e-mail sai. O provedor está decidido (**D26**): Gmail com App Password, porque o domínio é DuckDNS e ali SPF/DKIM/DMARC são impossíveis. Cinco variáveis: `SMTP_HOST=smtp.gmail.com`, `SMTP_PORT=587` (STARTTLS), `SMTP_USER`, `SMTP_PASS` (a App Password, de conta com 2FA — não a senha da conta) e `SMTP_ADMIN_EMAIL`.
-- **Virar o GoTrue para cadastro aberto com confirmação**, `DISABLE_SIGNUP=false` e `ENABLE_EMAIL_AUTOCONFIRM=false`, **no mesmo redeploy do SMTP** — o serviço ainda roda a configuração da conta única (`DISABLE_SIGNUP=true`, `ENABLE_EMAIL_AUTOCONFIRM=true`), e desligar a confirmação automática antes de o e-mail sair trancaria todo cadastro novo.
 - Front web em `ganza.bmjtech.duckdns.org` (Fase 8).

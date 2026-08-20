@@ -96,26 +96,33 @@ warm_deno_cache() {
 create_test_user() {
   local user_id
   user_id=$("${DB[@]}" -tAc "select id from auth.users where email = '$LOCAL_EMAIL'")
-  if [ -n "$user_id" ]; then
-    LOCAL_USER_ID="$user_id"
-    return 0
+
+  if [ -z "$user_id" ]; then
+    local attempt
+    for attempt in $(seq 1 30); do
+      if curl --fail --silent --show-error \
+        -X POST "$LOCAL_URL/auth/v1/signup" \
+        -H "apikey: $ANON_KEY" \
+        -H 'Content-Type: application/json' \
+        --data "{\"email\":\"$LOCAL_EMAIL\",\"password\":\"ganza-local-e2e-password\"}" >/dev/null; then
+        user_id=$("${DB[@]}" -tAc "select id from auth.users where email = '$LOCAL_EMAIL'")
+        break
+      fi
+      sleep 1
+    done
   fi
 
-  local attempt
-  for attempt in $(seq 1 30); do
-    if curl --fail --silent --show-error \
-      -X POST "$LOCAL_URL/auth/v1/signup" \
-      -H "apikey: $ANON_KEY" \
-      -H 'Content-Type: application/json' \
-      --data "{\"email\":\"$LOCAL_EMAIL\",\"password\":\"ganza-local-e2e-password\"}" >/dev/null; then
-      LOCAL_USER_ID=$("${DB[@]}" -tAc "select id from auth.users where email = '$LOCAL_EMAIL'")
-      return 0
-    fi
-    sleep 1
-  done
+  if [ -z "$user_id" ]; then
+    echo 'Não foi possível criar o usuário local de E2E pelo GoTrue.' >&2
+    exit 1
+  fi
 
-  echo 'Não foi possível criar o usuário local de E2E pelo GoTrue.' >&2
-  exit 1
+  LOCAL_USER_ID="$user_id"
+  # Confirma só esta conta semente por id, direto no auth.users: com o mailer
+  # sem autoconfirm global, é o jeito estável entre versões do GoTrue de dar
+  # login a quem o próprio script cria — endereço novo continua exigindo o
+  # código real, GOTRUE_MAILER_AUTOCONFIRM permanece 'false'.
+  "${DB[@]}" -c "update auth.users set email_confirmed_at = now() where id = '$user_id' and email_confirmed_at is null" >/dev/null
 }
 
 initialize() {

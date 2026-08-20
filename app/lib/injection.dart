@@ -22,7 +22,8 @@ void registerDependencies(AppConfig config) {
             getIt<SupabaseClient>().auth.currentSession?.accessToken ?? '',
       ),
     )
-    ..registerLazySingleton<PasswordRecoveryScope>(PasswordRecoveryScope.new);
+    ..registerLazySingleton<PasswordRecoveryScope>(PasswordRecoveryScope.new)
+    ..registerLazySingleton<LastSignedInEmail>(LastSignedInEmail.new);
 
   registerAuthModule(getIt);
   registerAreasModule(getIt);
