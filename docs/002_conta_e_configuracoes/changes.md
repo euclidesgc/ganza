@@ -7,6 +7,47 @@ estado final, sem preservar neles uma versão obsoleta do planejamento.
 
 ## Mudanças registradas
 
+### CHG-016 - O DoD da Fase 3 mandava a migration para o PR errado, e o número de tarefas quase foi corrigido para o lado errado
+
+- **Data:** 2026-08-20
+- **Fase/PR:** Fase 3 (PR 3a em execução), antes de o PR 3b existir.
+- **Planejado originalmente:** o cabeçalho da Fase 3 estabelece **dois PRs** para
+  que a migration vá antes e sozinha — PR 3a com `feature/GZ-26-nome-no-perfil`,
+  PR 3b com a fase —, mas a primeira linha do DoD da fase dizia "as oito tarefas
+  que a fase leva ao **PR 3b** — T3.1 a T3.8". A **T3.1 é a migration**. Do jeito
+  escrito, ou o PR 3a não tinha conteúdo, ou a T3.1 entrava nos dois.
+- **Por que não foi possível prosseguir:** a Fase 3 começou. Com a redação
+  antiga, quem abrisse o PR 3b levaria a migration junto e desfaria a regra do
+  `docs/GITFLOW.md` que a fase cita duas linhas acima.
+- **Alternativas consideradas:** (a) corrigir a lista **e** baixar o número de
+  oito para sete, já que o PR 3b leva sete tarefas — **é a correção errada**, e
+  quase foi feita: o grep conta `- [x] **T3.N** … DoD: CUMPRIDO` na **fase
+  inteira**, e no momento em que a linha é verificada — fechamento do PR 3b — a
+  T3.1 já mergeou e já está marcada, então o grep devolve oito. Sete faria o gate
+  falhar por aritmética, não por trabalho faltando; (b) corrigir só a lista e a
+  divisão de PR, mantendo o número, e **escrever na própria linha por que ele não
+  encolhe**.
+- **Decisão tomada:** (b), pelo `tech-lead`. A linha da Fase 3 passa a dizer que a
+  **T3.1 vai sozinha no PR 3a** e **T3.2 a T3.8 no PR 3b**, mantém `8` e explica
+  que a contagem é da fase e não do PR. **O mesmo tratamento preventivo foi
+  aplicado às Fases 4 e 5**, que têm a mesma estrutura: lá a redação não estava
+  errada — dizia "aos PRs 4a e 4b", no plural —, mas era **ambígua**, porque não
+  nomeava quais tarefas iam em cada PR. Agora nomeia: **T4.1 e T4.2** (as duas
+  migrations) no PR 4a e **T4.3 a T4.11 mais a T4.14** no PR 4b; **T5.1** no PR 5a
+  e **T5.2 a T5.6** no PR 5b. Os números `12` e `6` também ficam, pela mesma
+  razão, agora escrita.
+- **Resumo da resolução:** nenhuma tarefa nasceu, morreu ou mudou de fase — a
+  feature segue com **67**. O que mudou foi a redação que mandava trabalho para o
+  PR errado e o risco de "consertar" a contagem para um número que reprovaria o
+  gate. Aproveitado o mesmo commit, o estado do plano foi posto em dia: **Fases 1
+  e 2 mergeadas** (PRs **#26** e **#27**, mais o **#28** de harness), `develop` em
+  `bc684da`, Fase 3 em andamento, e o §8 Progresso passa a dizer quantas tarefas
+  cada PR leva em vez de só o total.
+- **Reconciliação documental:** `docs/002_conta_e_configuracoes/03_plan.md` —
+  primeira linha do DoD das Fases 3, 4 e 5, cabeçalho de estado e §8 Progresso.
+  `01_prd.md`, `02_specs.md`, `decisions.md` e `docs/decisions.md` não mudam:
+  nenhuma decisão foi tomada aqui, só redação corrigida.
+
 ### CHG-015 - O risco X2 estava mitigado por um mecanismo que não existe
 
 - **Data:** 2026-08-20
