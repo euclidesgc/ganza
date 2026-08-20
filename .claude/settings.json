@@ -51,6 +51,28 @@
           }
         ]
       }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "ROOT=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0; [ -f \"$ROOT/.claude/worktrees-preservados.txt\" ] && cat \"$ROOT/.claude/worktrees-preservados.txt\"; exit 0",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "ROOT=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0; [ -f \"$ROOT/scripts/limpar-worktrees.sh\" ] || exit 0; OUT=$(bash \"$ROOT/scripts/limpar-worktrees.sh\" 2>&1); CODE=$?; if [ \"$CODE\" -ne 0 ]; then printf '%s\\n' \"$OUT\" > \"$ROOT/.claude/worktrees-preservados.txt\"; else rm -f \"$ROOT/.claude/worktrees-preservados.txt\"; fi; exit 0",
+            "timeout": 60
+          }
+        ]
+      }
     ]
   }
 }

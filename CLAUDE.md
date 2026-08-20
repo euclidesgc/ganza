@@ -187,6 +187,8 @@ Exceção honesta: correção de uma linha óbvia, apontada por erro de CI, não
 
 **Duas escritas na mesma working directory se atropelam.** Com um agente rodando sem isolamento na pasta principal, não edite nada ali enquanto ele estiver ativo — nem mudança "sem relação" com o que ele faz. Ou espere, ou isole a sua também.
 
+**Worktree de agente tem ciclo de vida fechado:** ou o trabalho é consolidado e o worktree some, ou vira PR e some depois do merge — nunca fica em suspenso entre sessões. `scripts/limpar-worktrees.sh` roda sozinho ao fim de cada sessão (hook `SessionEnd`) e remove o que está limpo e integrado; o que sobra sujo ou com commit não integrado ele **preserva e relata**, nunca apaga sem prova de que o conteúdo já chegou à branch principal — preservado é pendência, não arquivo, e o relatório reaparece no início da sessão seguinte (hook `SessionStart`) até alguém decidir. Foi assim que o trabalho de "lembrar login" ficou parado em dois worktrees por sessões seguidas, e só não virou problema porque a **FD-023** o rejeitou explicitamente e o DoD da Fase 1 cobra que ele não volte; fosse trabalho bom, teria sumido sem ninguém notar.
+
 ## Economia de tokens (obrigatório)
 
 Custo de token é regra, não preferência. Três ferramentas estão ativas neste repositório — **use-as**:
