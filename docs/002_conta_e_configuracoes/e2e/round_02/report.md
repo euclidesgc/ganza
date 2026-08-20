@@ -8,9 +8,11 @@ Resultado: **VERDE** — 4 cenas, nenhuma falha.
 
 O ciclo completo de conta, ponta a ponta pela tela: criar conta, tentar entrar
 sem confirmar, confirmar pelo link que chegou na caixa local, entrar, recuperar
-a senha e sair. **Nenhum passo avançou por SQL, Studio, chave `service_role` ou
-endpoint `/admin`** — a lista ordenada dos comandos que substituem esse atalho
-está em "Ambiente e comandos".
+a senha e sair. **Nenhum passo da conta sob teste avançou por SQL, Studio, chave
+`service_role` ou endpoint `/admin`** — a lista ordenada dos comandos que
+substituem esse atalho está em "Ambiente e comandos", junto da única escrita
+direta em `auth.users` que a rodada faz, que é na **conta-semente** da stack
+local e não na conta desta execução.
 
 A tentativa anterior desta mesma rodada parou na cena `recuperar_senha` com
 `setState() or markNeedsBuild() called during build` vindo do `Router`,
@@ -104,11 +106,53 @@ Em ordem, o que ele executou no lugar de qualquer atalho por banco:
    fim: a senha do cadastro devolve `400` e a definida na recuperação devolve
    `200`.
 
-**Nenhum `psql`, nenhum Studio, nenhuma chave `service_role`, nenhum endpoint
-`/admin`.** O roteiro não tem como usá-los:
-`grep -rniE 'service_role|/admin|psql|update auth\.users' app/patrol_test/conta_e_recuperacao_test.dart`
-não devolve nenhuma linha, e ele recusa alvo que não seja a stack local antes de
-tocar em qualquer conta.
+**A conta sob teste nunca foi confirmada por atalho privilegiado.** O endereço
+desta execução — `e2e-<12 letras>@ganza.local`, sorteado na rodada — só deixou de
+ter `email_confirmed_at` nulo pelo token que chegou na mensagem capturada, e a
+única credencial que o roteiro carrega é a `apikey` anônima. **Essa é a frase que
+esta rodada mede.** A frase larga — "nenhum `psql` em passo nenhum" — seria falsa,
+e o parágrafo abaixo diz exatamente onde.
+
+A prova cobre **todos** os scripts que a rodada executa, não só o roteiro. Um
+comando restrito ao roteiro voltaria vazio sem provar nada: a linha que
+importaria nunca moraria ali.
+
+```
+grep -rniE 'psql|service_role|email_confirmed_at|/admin' \
+  scripts/e2e-local.sh scripts/e2e-002-auth.sh scripts/local-supabase.sh \
+  scripts/e2e-emulator.sh scripts/capture-e2e-evidence.py \
+  app/patrol_test/conta_e_recuperacao_test.dart
+```
+
+Devolve duas linhas, e as duas são da **conta-semente**, não da conta sob teste:
+
+```
+scripts/local-supabase.sh:7:DB=("${COMPOSE[@]}" exec -T db psql -U supabase_admin -d postgres -v ON_ERROR_STOP=1)
+scripts/local-supabase.sh:125:  "${DB[@]}" -c "update auth.users set email_confirmed_at = now() where id = '$user_id' and email_confirmed_at is null" >/dev/null
+```
+
+`scripts/local-supabase.sh` **faz parte da rodada** — o passo 1 acima é
+`local-supabase.sh reset`, que `scripts/e2e-local.sh` chama antes de qualquer
+cena. Por isso negar `psql` sobre a rodada inteira seria mentira. O que as duas
+linhas são:
+
+- **Linha 7** declara o cliente `psql` que o script usa em todas as suas
+  consultas. É a declaração, não um uso.
+- **Linha 125** confirma **uma** conta, por id: `where id = '$user_id'`, e
+  `$user_id` vem exclusivamente de
+  `select id from auth.users where email = 'e2e@ganza.local'` (`LOCAL_EMAIL`,
+  linha 10). É a conta-semente que a stack local cria para a feature 001, e ela
+  passou a precisar disso quando a Fase 1 desligou o `GOTRUE_MAILER_AUTOCONFIRM`.
+  O endereço desta rodada traz hífen (`e2e-<12 letras>@ganza.local`) e nunca casa
+  com o da semente, de modo que o `update` não tem como alcançá-lo. A semente não
+  participa de nenhuma cena: `grep -n 'LOCAL_EMAIL' scripts/e2e-002-auth.sh` não
+  devolve nenhuma linha.
+
+`scripts/e2e-002-auth.sh` e `app/patrol_test/conta_e_recuperacao_test.dart` — os
+dois que conduzem as cenas — **não aparecem na saída**: nenhum deles tem `psql`,
+`service_role`, `/admin` ou `email_confirmed_at`. Nenhum Studio e nenhum painel
+de banco foram abertos, e o roteiro recusa alvo que não seja a stack local antes
+de tocar em qualquer conta.
 
 Logs e ressalvas ficam em `logs/` (não versionado). Não são gravados vídeos.
 

@@ -7,6 +7,127 @@ estado final, sem preservar neles uma versão obsoleta do planejamento.
 
 ## Mudanças registradas
 
+### CHG-010 - A conta-semente da stack local passou a ser confirmada por SQL, e nenhuma tarefa previu isso
+
+- **Data:** 2026-08-20
+- **Fase/PR:** Fase 1 (PR 1), consequência não prevista da T1.5.
+- **Planejado originalmente:** a **T1.5** virava `GOTRUE_MAILER_AUTOCONFIRM` para
+  `'false'` na stack local e instalava o capturador de e-mail, para que o
+  cadastro nascesse **não confirmado** e a confirmação acontecesse pela mensagem,
+  como no ambiente real. Nenhuma tarefa da fase previa mexer em
+  `scripts/local-supabase.sh`, que é o script de ambiente herdado da feature 001.
+- **Por que não foi possível prosseguir:** com o autoconfirm global desligado, a
+  conta-semente fixa `e2e@ganza.local` — criada pelo próprio script, por
+  `POST /auth/v1/signup`, para os roteiros de E2E da feature 001 — passou a
+  nascer com `email_confirmed_at` nulo e **deixou de conseguir entrar**. Todo
+  `scripts/local-supabase.sh reset` produzia um ambiente em que os roteiros
+  herdados falhavam no login, por um motivo que não tem nada a ver com o que eles
+  testam. O desvio nasceu dentro da execução da fase e ninguém o escreveu.
+- **Alternativas consideradas:** (a) devolver `GOTRUE_MAILER_AUTOCONFIRM` para
+  `'true'` na stack local — apaga exatamente o comportamento que esta fase
+  precisa exercitar, que é o cadastro nascer pendente e a confirmação vir da
+  mensagem; (b) o script confirmar a semente pelo link do capturador, como o
+  roteiro da 002 faz — é o caminho honesto, mas põe o script de ambiente
+  dependente do capturador e do parsing da mensagem para uma conta **fixa**,
+  cuja confirmação não prova nada de produto, e acrescenta ao `reset` um modo de
+  falha novo; (c) endpoint de admin do GoTrue com `service_role` — continua
+  sendo escrita administrativa, só que por HTTP, e com formato que varia entre
+  versões; (d) `update` direto em `auth.users`, escopado ao id que o próprio
+  script acabou de criar.
+- **Decisão tomada:** (d), **manter e registrar**, pelo `tech-lead`. O comando
+  vive em `scripts/local-supabase.sh` como
+  `update auth.users set email_confirmed_at = now() where id = '$user_id' and email_confirmed_at is null`,
+  e é executado pelo `psql` do contêiner: o `DB` do script é
+  `docker compose -f infra/local/docker-compose.yml exec -T db psql`, que não
+  alcança servidor nenhum além do contêiner local. Refazer a rodada 02 para
+  eliminar o `psql` custaria a evidência inteira sem comprar garantia: o caminho
+  que o critério A1 protege — criar conta pelo app e entrar sem Studio — nunca
+  passou por ele.
+- **Resumo da resolução:** o `update` toca **uma** conta, por id, e só quando ela
+  está pendente. A conta que o roteiro da 002 exercita é sorteada na execução, no
+  formato `e2e-<12 letras>@ganza.local`; a semente é `e2e@ganza.local`. O hífen
+  já separa os dois endereços, e a consulta sequer usa endereço — usa o id. O
+  `report.md` da rodada 02 passa a explicar as duas ocorrências de `psql` e a
+  colar a prova de que a conta sob teste não foi alcançada por elas. O porquê já
+  está escrito em comentário no próprio script, e por isso **não** vira tarefa
+  nova.
+- **Reconciliação documental:** `03_plan.md`, linha do DoD da Fase 1 sobre a
+  `round_02`, que passa a distinguir **fluxo** de **preparação de ambiente** sem
+  afrouxar a proibição: a conta sorteada continua obrigada a nascer, confirmar e
+  entrar só pelo app e pela mensagem capturada;
+  `docs/002_conta_e_configuracoes/e2e/round_02/report.md`, escrito pelo `qa`.
+
+### CHG-009 - Abandonar a recuperação depois do código aceito não tinha saída, e a saída de fato deixava a senha antiga valendo em silêncio
+
+- **Data:** 2026-08-20
+- **Fase/PR:** Fase 1 (PR 1), tarefas novas T1.15, T1.16 e T1.17.
+- **Planejado originalmente:** o `02_specs.md` §6.3 justifica o terceiro estado da
+  guarda — "sem um terceiro estado, a pessoa digita o código certo, é logada e
+  **nunca vê o campo de nova senha**" —, e o plano o entregou como escopo **em
+  memória, por desenho**, em `app/lib/core/session/password_recovery_scope.dart`.
+  Nenhuma tarefa da fase previu o que acontece quando a pessoa **chega** à etapa
+  de nova senha e não a conclui: o único cancelar montado é o da etapa do código,
+  em `code_step_form.dart:93`, e ele apenas desliga o escopo.
+- **Por que não foi possível prosseguir:** o `qa` reprovou a fase com um achado
+  que é **lacuna de critério, não erro de execução** — o código faz exatamente o
+  que o plano mandou. A cadeia, toda verificável: o `verifyRecoveryCode` bem-
+  sucedido autentica a sessão do GoTrue, que o `supabase_flutter` persiste em
+  disco (a **T1.1** provou que ela sobrevive a `force-stop` e a `reboot`); a
+  etapa de nova senha não tem saída nenhuma, porque `new_password_step_form.dart`
+  não monta `CancelRecoveryLink`, `password_recovery_code_page.dart` monta um
+  `Scaffold` **sem `appBar`** e a guarda de `app/lib/app_router.dart` devolve
+  qualquer outra rota para a própria tela; logo **a única saída é matar o app**,
+  o que zera o escopo em memória e, na abertura seguinte, leva direto para a
+  lista de áreas — **com a senha antiga valendo e nada dizendo que a recuperação
+  não terminou**. É o desfecho que o §6.3 diz existir para evitar, chegando por
+  outro caminho. O comentário de `password_recovery_code_cubit.dart:28-31`
+  argumenta que desligar o escopo no cancelar não abre brecha, mas o raciocínio
+  cobre só o caso **antes** do `verifyOTP`; o caso depois não foi considerado em
+  lugar nenhum, e o E2E da fase não o exercita.
+- **Alternativas consideradas:** (a) aceitar por inteiro e documentar — a pessoa
+  já provou posse do e-mail, que é o mesmo fator com que o GoTrue autentica; mas
+  deixa a tela **sem saída**, defeito de interface que independe da discussão de
+  sessão; (b) `signOut()` no `close()` do cubit em `AwaitingPassword`/
+  `UpdateFailed`, como o `qa` sugeriu — **não resolve o caso relatado**:
+  `close()` não roda em `force-stop`, e sair navegando já é impedido pela guarda,
+  de modo que ele cobriria um caminho que não existe; (c) persistir o escopo de
+  recuperação em disco, para o app reabrir sabendo que a troca ficou pendente —
+  é o único desenho que fecha o caso do `force-stop`, e troca um estado raro por
+  **risco de trancar a pessoa** numa tela sem saída, além de exigir mecanismo
+  novo em `core/session/`, gancho de abertura do app e mais uma rodada de E2E no
+  fim de uma fase de catorze tarefas; (d) saída explícita na etapa de nova senha
+  que **encerra a sessão antes** de desligar o escopo, com o resíduo do
+  `force-stop` aceito por escrito.
+- **Decisão tomada:** (d), pelo `tech-lead`. A saída passa a existir com o rótulo
+  **"Sair sem trocar a senha"**, que nomeia a consequência antes do toque, e quem
+  a aciona volta para a tela de entrar sem sessão. Encerrar em vez de entregar o
+  app não é preciosismo: sem isso, quem chega ao inbox alheio tem um caminho
+  **discreto** para uma sessão persistente, porque trocar a senha é justamente o
+  passo que o dono perceberia — e a **Fase 5** desta mesma feature põe conta
+  bancária atrás dessa sessão. O resíduo do `force-stop` fica **aceito e
+  escrito**, com a condição que o reabre: risco **X18** do plano, linha do DoD da
+  Fase 1 e entrada nova em `decisions.md`.
+- **Resumo da resolução:** nascem a **T1.15** (a saída, com teste de cubit que
+  assere o encerramento da sessão **antes** do desligamento do escopo e falha sem
+  a mudança, mais o print da tela de entrar no emulador), a **T1.16** (cena de
+  abandono no roteiro `patrol`, usando a conta-semente, que termina **entrando
+  com a senha antiga** — prova visível de que abandonar não troca senha) e a
+  **T1.17** (a doc canônica: a aceitação em `decisions.md`, a saída na spec da
+  recuperação, e a correção da frase que manda pedir outro código "pela barra de
+  título" numa tela que não tem barra de título). A Fase 1 vai de catorze para
+  **dezessete** tarefas, e a feature de 61 para **64**. A T1.16 e a T1.17 são
+  paralelas entre si, com arquivos disjuntos, e as duas dependem da T1.15. **A
+  evidência fica na `round_02`**, não em rodada nova: o Gauntlet fixa `round_03`
+  como a Fase 2, e a `round_02` já é o diretório de evidência desta fase.
+- **Reconciliação documental:** `03_plan.md` — tarefas **T1.15**, **T1.16** e
+  **T1.17**, prosa da Fase 1, linha de estado no cabeçalho, DoD da Fase 1
+  (contagem `17` e linha nova que escreve a aceitação por extenso, para o dev
+  humano atestar sabendo dela), §7 (risco **X18**) e §8 Progresso;
+  `02_specs.md` §7.2 e `docs/002_conta_e_configuracoes/decisions.md`, pela
+  **T1.17**. O §6.3 do `02_specs.md` **não** se torna falso — ele explica por que
+  o terceiro estado existe, e continua verdadeiro; o que faltava era o desfecho
+  de saída, que é comportamento novo.
+
 ### CHG-008 - A rodada 02 reprovou por defeito do app, e a prova do conserto não tinha onde morar
 
 - **Data:** 2026-08-20

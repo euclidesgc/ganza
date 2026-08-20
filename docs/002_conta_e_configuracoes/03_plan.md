@@ -8,9 +8,11 @@ escopo: ele distribui o DoD entre as fases e acrescenta o que falta para cada
 fase se sustentar sozinha.**
 
 Estado: **Fase 1 em andamento** · branch `feature/GZ-24-conta-e-configuracoes`
-(de `develop`) · seis fases fatiadas em 61 tarefas · **T1.1 a T1.9 e T1.12 com
-`CUMPRIDO`**; **próximo passo: despachar T1.13 e T1.14 em paralelo — as duas
-precedem o roteiro de E2E da T1.10**.
+(de `develop`) · seis fases fatiadas em 64 tarefas · **T1.1 a T1.14 com
+`CUMPRIDO`**; **próximo passo: despachar a T1.15 — a etapa de nova senha da
+recuperação não tem saída, e abandoná-la deixa a pessoa dentro do app com a
+senha antiga valendo (`changes.md`, CHG-009). Depois dela, T1.16 e T1.17 em
+paralelo**.
 
 ---
 
@@ -623,12 +625,73 @@ o mesmo agente**: quem escreve o driver é quem o depura quando a rodada falha, 
 a rodada 02 da feature 001 perdeu três tentativas justamente por mexer no
 harness com a rodada em curso.
 
+**A etapa de nova senha não tinha saída, e a saída que faltava não era só um
+botão.** Medido em 20/08/2026, com as catorze tarefas cumpridas: o
+`verifyRecoveryCode` bem-sucedido autentica a sessão do GoTrue, que o
+`supabase_flutter` persiste em disco — a T1.1 provou que ela sobrevive a
+`force-stop` e a `reboot`. O `CancelRecoveryLink` só é montado no passo do
+código, `password_recovery_code_page.dart` monta um `Scaffold` **sem `appBar`**,
+e a guarda devolve qualquer outra rota para a própria tela: **a única saída da
+etapa de nova senha é matar o app**. Como o escopo de recuperação é memória, a
+abertura seguinte encontra sessão válida com o escopo desligado e leva direto
+para a lista de áreas — com a senha antiga valendo e nada dizendo que a
+recuperação não terminou. É o mesmo desfecho que o `02_specs.md` §6.3 diz que o
+terceiro estado existe para evitar, chegando por outro caminho. A **T1.15** dá a
+saída explícita, que **encerra a sessão antes de desligar o escopo** — navegar
+antes disso faz a guarda devolver a pessoa para a tela do código. Encerrar em
+vez de entrar no app não é preciosismo: sem isso, quem chega ao inbox alheio tem
+um caminho **discreto** para uma sessão persistente, porque trocar a senha é o
+passo que o dono perceberia, e a Fase 5 desta mesma feature põe conta bancária
+atrás dessa sessão. O resíduo que sobra — matar o app na etapa de nova senha —
+fica **aceito e escrito**: `changes.md` (CHG-009), o DoD desta fase e o risco
+**X18**.
+
+- [ ] **T1.15** — Dar saída à etapa de nova senha da recuperação: um controle "Sair sem trocar a senha" que encerra a sessão **antes** de desligar o escopo de recuperação e devolve a pessoa à tela de entrar. · camada **presentation** · `especialista-apresentacao`
+
+  **DoD da tarefa**
+  - A etapa de nova senha da recuperação, montada por `app/lib/modules/auth_module/presentation/password_recovery/widgets/new_password_step_form.dart`, exibe um controle com o texto exato **"Sair sem trocar a senha"** — nele mesmo ou num widget dedicado que ele importe: `rtk proxy grep -rn 'Sair sem trocar a senha' app/lib/modules/auth_module/presentation/password_recovery/` devolve a linha, e o arquivo acima monta esse controle.
+  - Acionar esse controle chama o caso de uso de `app/lib/modules/auth_module/domain/usecases/sign_out.dart` **antes** de desligar o escopo de `app/lib/core/session/password_recovery_scope.dart`, e **nunca** chama o de `app/lib/modules/auth_module/domain/usecases/update_password.dart`: teste em `app/test/modules/auth_module/presentation/password_recovery/password_recovery_code_cubit_test.dart` assere a ordem das duas chamadas e a ausência da terceira.
+  - Remover do código a chamada de encerramento de sessão faz esse teste falhar — provar revertendo, colar as duas saídas e restaurar.
+  - Depois de acionado, o app mostra a **tela de entrar** e não a lista de áreas: provar no emulador e capturar `docs/002_conta_e_configuracoes/e2e/round_02/20_saida_sem_trocar_senha.png`, com os campos de e-mail e senha visíveis. O prefixo `20_` é o primeiro livre no diretório, que já vai até `19_`.
+  - A navegação dessa saída usa rota nomeada do go_router: `rtk proxy grep -rn 'Navigator.of\|MaterialPageRoute\|extra:' app/lib/modules/auth_module/presentation/password_recovery/` não devolve nenhuma linha.
+  - `cd app && dart format --set-exit-if-changed lib test`, `flutter analyze` e `flutter test -r compact` terminam com código de saída `0`, e da raiz `bash scripts/gates_guard.sh; echo $?` imprime `0`.
+
+- [ ] **T1.16** `[paralela · frente I]` — Cobrir o abandono da recuperação no roteiro `patrol` e fechar a evidência: cena que pede recuperação da conta-semente, digita o código certo, aciona a saída na etapa de nova senha e entra de novo com a senha antiga. · camada **testes** · `qa`
+
+  **DoD da tarefa**
+  - Existe cena nova em `app/patrol_test/` que, **sem cadastrar conta nenhuma**, pede recuperação de senha para a conta-semente `e2e@ganza.local` que `scripts/local-supabase.sh` cria, lê o código de seis dígitos do capturador local, digita o código correto e, na etapa de nova senha, aciona o controle "Sair sem trocar a senha" **sem preencher senha alguma**.
+  - A mesma cena termina entrando na conta com a **senha antiga** — a de antes do pedido de recuperação — e assere a lista de áreas, o que prova que abandonar não trocou a senha.
+  - `docs/002_conta_e_configuracoes/e2e/round_02/report.md` nomeia os arquivos de print e de log dessa cena, traz a saída do `patrol test` mostrando a cena passando, e diz o comando e a data da execução que os gerou, separando-a das execuções anteriores registradas no mesmo arquivo.
+  - Todo arquivo `.png` de `docs/002_conta_e_configuracoes/e2e/round_02/` aparece citado pelo nome nesse `report.md` — listar o diretório e conferir um a um.
+  - Nenhum arquivo da rodada contém token, senha ou refresh token: `rtk proxy grep -rniE 'eyJ|refresh_token|"password"' docs/002_conta_e_configuracoes/e2e/round_02/` não devolve nenhuma linha.
+  - `cd app && dart format --set-exit-if-changed patrol_test` e `flutter analyze patrol_test` terminam com código de saída `0`; se o format acusar `app/patrol_test/test_bundle.dart`, desconsidere esse arquivo, que o `patrol test` gera e o `.gitignore` cobre.
+
+- [ ] **T1.17** `[paralela · frente J]` — Reconciliar a documentação canônica: registrar a aceitação do resíduo do abandono, descrever a saída nova na spec da recuperação e corrigir a afirmação de que se pede outro código "pela barra de título" numa tela que não tem barra de título. · camada **docs** · `qa`
+
+  **DoD da tarefa**
+  - `docs/002_conta_e_configuracoes/decisions.md` ganha uma entrada nova, com data, decidindo que a etapa de nova senha da recuperação tem saída explícita que **encerra a sessão**, e que **fica aceito** que matar o app nessa etapa deixa a sessão válida no aparelho e a senha antiga valendo, sem aviso. A entrada escreve as duas razões — o código de seis dígitos já provou posse do e-mail, que é o mesmo fator com que o servidor autentica; e fechar o resíduo exigiria persistir o escopo de recuperação em disco, trocando um estado raro por risco de trancar a pessoa numa tela sem saída — e nomeia a condição que a reabre: conta bancária atrás dessa sessão.
+  - `docs/002_conta_e_configuracoes/02_specs.md`, na seção "Recuperação de senha", descreve a saída com o rótulo exato **"Sair sem trocar a senha"** e o que ela deixa (sessão encerrada, pessoa na tela de entrar, senha antiga ainda valendo): `rtk proxy grep -c 'Sair sem trocar a senha' docs/002_conta_e_configuracoes/02_specs.md` imprime pelo menos `1`.
+  - O rótulo citado na documentação é idêntico ao que o app exibe: `rtk proxy grep -rn 'Sair sem trocar a senha' app/lib/modules/auth_module/presentation/password_recovery/` devolve a linha, com o mesmo texto entre aspas.
+  - Nenhuma doc da pasta afirma que a tela do código de recuperação tem barra de título ou seta de voltar: `rtk proxy grep -rn 'barra de título' docs/002_conta_e_configuracoes/` não devolve nenhuma linha, e o texto que entra no lugar nomeia o controle que existe — o botão "Cancelar e voltar para o login" de `app/lib/modules/auth_module/presentation/password_recovery/widgets/cancel_recovery_link.dart`.
+  - Nenhuma frase vizinha ficou falsa: na mesma seção, as afirmações sobre os dois modos de falha do fluxo (código recusado e senha nova fraca) e a mensagem literal **"Código inválido ou vencido. Confira e digite de novo, ou volte para pedir um novo código."** continuam batendo com `app/lib/modules/auth_module/data/repositories/auth_repository_impl.dart` — reler as duas e conferir uma a uma.
+
+A T1.16 e a T1.17 são paralelas entre si e **as duas dependem da T1.15**: a cena
+aciona o controle que ela cria, e a doc cita o rótulo dela — descrever antes de
+existir escreveria doc falsa. As frentes são disjuntas: a I só escreve em
+`app/patrol_test/` e em `docs/002_conta_e_configuracoes/e2e/round_02/`, a J só em
+`docs/002_conta_e_configuracoes/02_specs.md` e `decisions.md`. **A evidência do
+abandono fica na `round_02`, não numa rodada nova:** a numeração das rodadas está
+fixada no Gauntlet, `round_03` é a Fase 2, e a `round_02` já é o diretório de
+evidência desta fase — recebeu prints de tarefas de implementação antes de
+receber os do roteiro.
+
 **DoD da Fase 1**
 
-- [ ] As catorze tarefas da fase (T1.1 a T1.14) com o campo `DoD:` marcado CUMPRIDO, em negrito, na própria linha: `rtk proxy grep -c '\*\*DoD: CUMPRIDO\*\*' docs/002_conta_e_configuracoes/03_plan.md` imprime `14`, e `rtk proxy grep -c '\*\*DoD: NÃO CUMPRIDO\*\*' docs/002_conta_e_configuracoes/03_plan.md` imprime `0`. O padrão traz os asteriscos porque o campo da linha de tarefa é escrito em negrito, e sem eles a contagem inclui as próprias linhas de critério que citam o campo — o número nunca fecharia.
+- [ ] As dezessete tarefas da fase (T1.1 a T1.17) com o campo `DoD:` marcado CUMPRIDO, em negrito, na própria linha: `rtk proxy grep -cE '^- \[x\] \*\*T1\.[0-9]+\*\*.*\*\*DoD: CUMPRIDO\*\*' docs/002_conta_e_configuracoes/03_plan.md` imprime `17`, e `rtk proxy grep -cE '^- \[.\] \*\*T1\.[0-9]+\*\*.*\*\*DoD: NÃO CUMPRIDO\*\*' docs/002_conta_e_configuracoes/03_plan.md` imprime `0`. O padrão ancora na fase e traz os asteriscos: sem os asteriscos a contagem inclui as próprias linhas de critério que citam o campo, e sem a âncora ela cresce a cada fase seguinte que marcar uma tarefa — nos dois casos o número nunca fecha.
 - [ ] `cd app && dart format --set-exit-if-changed lib patrol_test test`, `flutter analyze` e `flutter test -r compact` verdes; da raiz, `bash scripts/gates_guard.sh; echo $?` imprime `0`.
 - [ ] A consequência da medição está escrita: `docs/002_conta_e_configuracoes/e2e/round_01/report.md` responde que a sessão sobrevive a restart e a reboot, e `docs/002_conta_e_configuracoes/decisions.md` traz a **FD-023**, que tira "lembrar login" do escopo e põe no lugar o e-mail preenchido de volta ao sair. `rtk proxy grep -n 'FD-023' docs/002_conta_e_configuracoes/decisions.md` devolve a linha.
-- [ ] `docs/002_conta_e_configuracoes/e2e/round_02/` — o ciclo completo de conta: criar conta, **confirmar o e-mail e entrar com ela**, recuperar a senha, e o campo de e-mail preenchido de volta depois de sair (com o de senha vazio). **Nenhum passo avança por SQL, Studio ou painel de banco** — se algum for necessário para entrar, a fase não passa, porque é exatamente o que o critério A1 proíbe. **Atestado pelo dev humano**, não pelo QA; o `report.md` nomeia cada passo, comando e evidência.
+- [ ] `docs/002_conta_e_configuracoes/e2e/round_02/` — o ciclo completo de conta: criar conta, **confirmar o e-mail e entrar com ela**, recuperar a senha, e o campo de e-mail preenchido de volta depois de sair (com o de senha vazio). **Nenhum passo do fluxo avança por SQL, Studio ou painel de banco** — a conta sorteada da rodada nasce, confirma e entra só pelo app e pela mensagem capturada, e se algum SQL for necessário para isso a fase não passa, porque é exatamente o que o critério A1 proíbe. A conta-semente fixa `e2e@ganza.local`, que `scripts/local-supabase.sh` cria e confirma por `update` em `auth.users` **pelo id que ele próprio acabou de criar**, é preparação de ambiente para os roteiros herdados da feature 001 e não caminho de fluxo desta fase — o `report.md` diz isso com essas palavras e cola a prova de que a conta da rodada não foi alcançada (`changes.md`, CHG-010). **Atestado pelo dev humano**, não pelo QA; o `report.md` nomeia cada passo, comando e evidência.
+- [ ] A etapa de nova senha da recuperação tem saída explícita, e o que ela deixa para trás está atestado: `docs/002_conta_e_configuracoes/e2e/round_02/` traz o print da tela de entrar logo depois de acionar "Sair sem trocar a senha", e a cena do roteiro `patrol` que abandona a recuperação termina entrando com a senha antiga. **Fica aceito, e o dev humano atesta a fase sabendo disso: matar o app na etapa de nova senha deixa a sessão da recuperação válida no aparelho e a senha antiga valendo, sem nenhum aviso de que a troca não aconteceu** — o código de seis dígitos já provou posse do e-mail, e fechar esse resíduo exigiria persistir o escopo de recuperação em disco, trocando um estado raro por risco de trancar a pessoa numa tela sem saída (`changes.md`, CHG-009; `decisions.md`).
 - [ ] `rtk proxy grep -rn 'flutter_secure_storage' app/lib app/pubspec.yaml` não devolve nenhuma linha, e nenhum arquivo sob `app/lib/modules/auth_module/domain/` importa pacote de plataforma — a violação de camada da branch `feature/GZ-20-lembrar-login` não entrou.
 - [ ] `docs/decisions.md` com **D11** e **P4** marcadas como revogadas, e `docs/deploy/coolify.md` sem a instrução de redefinir senha pelo Studio.
 - [ ] `CHANGELOG.md`, seção `Unreleased`, atualizado no mesmo PR.
@@ -769,7 +832,7 @@ esbarrou em outra coisa".
 
 **DoD da Fase 2**
 
-- [ ] Todas as tarefas de T2.1 a T2.7 com o campo `DoD:` marcado CUMPRIDO, em negrito, na própria linha: `rtk proxy grep -c '\*\*DoD: CUMPRIDO\*\*' docs/002_conta_e_configuracoes/03_plan.md` imprime `7`, e `rtk proxy grep -c '\*\*DoD: NÃO CUMPRIDO\*\*' docs/002_conta_e_configuracoes/03_plan.md` imprime `0`. O padrão traz os asteriscos porque o campo da linha de tarefa é escrito em negrito, e sem eles a contagem inclui as próprias linhas de critério que citam o campo — o número nunca fecharia.
+- [ ] Todas as tarefas de T2.1 a T2.7 com o campo `DoD:` marcado CUMPRIDO, em negrito, na própria linha: `rtk proxy grep -cE '^- \[x\] \*\*T2\.[0-9]+\*\*.*\*\*DoD: CUMPRIDO\*\*' docs/002_conta_e_configuracoes/03_plan.md` imprime `7`, e `rtk proxy grep -cE '^- \[.\] \*\*T2\.[0-9]+\*\*.*\*\*DoD: NÃO CUMPRIDO\*\*' docs/002_conta_e_configuracoes/03_plan.md` imprime `0`. O padrão ancora na fase e traz os asteriscos: sem os asteriscos a contagem inclui as próprias linhas de critério que citam o campo, e sem a âncora ela cresce a cada fase seguinte que marcar uma tarefa — nos dois casos o número nunca fecha.
 - [ ] `cd app && dart format --set-exit-if-changed lib patrol_test test`, `flutter analyze` e `flutter test -r compact` verdes; da raiz, `bash scripts/gates_guard.sh; echo $?` imprime `0`.
 - [ ] `rtk proxy grep -rn 'Icons\.' app/lib` não devolve nenhuma linha — o glifo do Material não voltou pelo `DrawerButton` que o `Scaffold` injeta.
 - [ ] `docs/002_conta_e_configuracoes/e2e/round_03/` — os **três** roteiros verdes na mesma rodada, provando que a mudança de navegação não quebrou o E2E herdado da feature 001.
@@ -944,7 +1007,7 @@ sempre: quem escreve o driver é quem o depura quando a rodada falha.
 
 **DoD da Fase 3**
 
-- [ ] Todas as tarefas de T3.1 a T3.10 com o campo `DoD:` marcado CUMPRIDO, em negrito, na própria linha: `rtk proxy grep -c '\*\*DoD: CUMPRIDO\*\*' docs/002_conta_e_configuracoes/03_plan.md` imprime `10`, e `rtk proxy grep -c '\*\*DoD: NÃO CUMPRIDO\*\*' docs/002_conta_e_configuracoes/03_plan.md` imprime `0`. O padrão traz os asteriscos porque o campo da linha de tarefa é escrito em negrito, e sem eles a contagem inclui as próprias linhas de critério que citam o campo — o número nunca fecharia.
+- [ ] Todas as tarefas de T3.1 a T3.10 com o campo `DoD:` marcado CUMPRIDO, em negrito, na própria linha: `rtk proxy grep -cE '^- \[x\] \*\*T3\.[0-9]+\*\*.*\*\*DoD: CUMPRIDO\*\*' docs/002_conta_e_configuracoes/03_plan.md` imprime `10`, e `rtk proxy grep -cE '^- \[.\] \*\*T3\.[0-9]+\*\*.*\*\*DoD: NÃO CUMPRIDO\*\*' docs/002_conta_e_configuracoes/03_plan.md` imprime `0`. O padrão ancora na fase e traz os asteriscos: sem os asteriscos a contagem inclui as próprias linhas de critério que citam o campo, e sem a âncora ela cresce a cada fase seguinte que marcar uma tarefa — nos dois casos o número nunca fecha.
 - [ ] `cd app && dart format --set-exit-if-changed lib patrol_test test`, `flutter analyze` e `flutter test -r compact` verdes; da raiz, `bash scripts/gates_guard.sh; echo $?` imprime `0`.
 - [ ] Job "Banco — migrations aplicam limpo e RLS está ligada" verde no CI do PR da migration, e o PR da migration mergeado **antes** de o PR da fase abrir.
 - [ ] `docs/002_conta_e_configuracoes/e2e/round_04/` — nome salvo, e-mail não editável e troca de senha ponta a ponta, **atestados pelo dev humano**. O `report.md` nomeia cada passo, comando e evidência.
@@ -1172,7 +1235,7 @@ para escrever.
 
 **DoD da Fase 4**
 
-- [ ] Todas as tarefas de T4.1 a T4.13 com o campo `DoD:` marcado CUMPRIDO, em negrito, na própria linha: `rtk proxy grep -c '\*\*DoD: CUMPRIDO\*\*' docs/002_conta_e_configuracoes/03_plan.md` imprime `13`, e `rtk proxy grep -c '\*\*DoD: NÃO CUMPRIDO\*\*' docs/002_conta_e_configuracoes/03_plan.md` imprime `0`. O padrão traz os asteriscos porque o campo da linha de tarefa é escrito em negrito, e sem eles a contagem inclui as próprias linhas de critério que citam o campo — o número nunca fecharia.
+- [ ] Todas as tarefas de T4.1 a T4.13 com o campo `DoD:` marcado CUMPRIDO, em negrito, na própria linha: `rtk proxy grep -cE '^- \[x\] \*\*T4\.[0-9]+\*\*.*\*\*DoD: CUMPRIDO\*\*' docs/002_conta_e_configuracoes/03_plan.md` imprime `13`, e `rtk proxy grep -cE '^- \[.\] \*\*T4\.[0-9]+\*\*.*\*\*DoD: NÃO CUMPRIDO\*\*' docs/002_conta_e_configuracoes/03_plan.md` imprime `0`. O padrão ancora na fase e traz os asteriscos: sem os asteriscos a contagem inclui as próprias linhas de critério que citam o campo, e sem a âncora ela cresce a cada fase seguinte que marcar uma tarefa — nos dois casos o número nunca fecha.
 - [ ] `cd app && dart format --set-exit-if-changed lib patrol_test test`, `flutter analyze` e `flutter test -r compact` verdes; `cd supabase/functions && deno fmt --check && deno lint && deno task check && deno task test` verde; da raiz, `bash scripts/gates_guard.sh; echo $?` imprime `0`.
 - [ ] `rtk proxy grep -rniE 'AIza|sk-|apiKey' app/lib` não devolve nenhuma linha — nenhuma chave de terceiro, nem placeholder, entrou no binário.
 - [ ] `rtk proxy grep -rln 'aiConfigured' app/lib` devolve só arquivos sob `app/lib/core/session/`, `app/lib/core/widgets/navigation/` e `app/lib/app_router.dart` — o gate mora no router, não no corpo de página.
@@ -1339,7 +1402,7 @@ fora" só é barato para quem escreveu o roteiro.
 
 **DoD da Fase 5**
 
-- [ ] Todas as tarefas de T5.1 a T5.8 com o campo `DoD:` marcado CUMPRIDO, em negrito, na própria linha: `rtk proxy grep -c '\*\*DoD: CUMPRIDO\*\*' docs/002_conta_e_configuracoes/03_plan.md` imprime `8`, e `rtk proxy grep -c '\*\*DoD: NÃO CUMPRIDO\*\*' docs/002_conta_e_configuracoes/03_plan.md` imprime `0`. O padrão traz os asteriscos porque o campo da linha de tarefa é escrito em negrito, e sem eles a contagem inclui as próprias linhas de critério que citam o campo — o número nunca fecharia.
+- [ ] Todas as tarefas de T5.1 a T5.8 com o campo `DoD:` marcado CUMPRIDO, em negrito, na própria linha: `rtk proxy grep -cE '^- \[x\] \*\*T5\.[0-9]+\*\*.*\*\*DoD: CUMPRIDO\*\*' docs/002_conta_e_configuracoes/03_plan.md` imprime `8`, e `rtk proxy grep -cE '^- \[.\] \*\*T5\.[0-9]+\*\*.*\*\*DoD: NÃO CUMPRIDO\*\*' docs/002_conta_e_configuracoes/03_plan.md` imprime `0`. O padrão ancora na fase e traz os asteriscos: sem os asteriscos a contagem inclui as próprias linhas de critério que citam o campo, e sem a âncora ela cresce a cada fase seguinte que marcar uma tarefa — nos dois casos o número nunca fecha.
 - [ ] `cd app && dart format --set-exit-if-changed lib patrol_test test`, `flutter analyze` e `flutter test -r compact` verdes; `cd supabase/functions && deno fmt --check && deno lint && deno task check && deno task test` verde; da raiz, `bash scripts/gates_guard.sh; echo $?` imprime `0`.
 - [ ] `rtk proxy grep -rni 'pluggy' app/lib` não devolve nenhuma linha — quem fala com a Pluggy é a Edge Function, e isso é invariante de arquitetura, não estilo.
 - [ ] `rtk proxy grep -rniE 'PLUGGY_CLIENT_SECRET=[^$]' .` não devolve nenhuma linha em nenhum arquivo versionado.
@@ -1571,7 +1634,7 @@ documentar o que ainda não existe.
 
 **DoD da Fase 6**
 
-- [ ] Todas as tarefas de T6.1 a T6.9 com o campo `DoD:` marcado CUMPRIDO, em negrito, na própria linha: `rtk proxy grep -c '\*\*DoD: CUMPRIDO\*\*' docs/002_conta_e_configuracoes/03_plan.md` imprime `9`, e `rtk proxy grep -c '\*\*DoD: NÃO CUMPRIDO\*\*' docs/002_conta_e_configuracoes/03_plan.md` imprime `0`. O padrão traz os asteriscos porque o campo da linha de tarefa é escrito em negrito, e sem eles a contagem inclui as próprias linhas de critério que citam o campo — o número nunca fecharia.
+- [ ] Todas as tarefas de T6.1 a T6.9 com o campo `DoD:` marcado CUMPRIDO, em negrito, na própria linha: `rtk proxy grep -cE '^- \[x\] \*\*T6\.[0-9]+\*\*.*\*\*DoD: CUMPRIDO\*\*' docs/002_conta_e_configuracoes/03_plan.md` imprime `9`, e `rtk proxy grep -cE '^- \[.\] \*\*T6\.[0-9]+\*\*.*\*\*DoD: NÃO CUMPRIDO\*\*' docs/002_conta_e_configuracoes/03_plan.md` imprime `0`. O padrão ancora na fase e traz os asteriscos: sem os asteriscos a contagem inclui as próprias linhas de critério que citam o campo, e sem a âncora ela cresce a cada fase seguinte que marcar uma tarefa — nos dois casos o número nunca fecha.
 - [ ] Da pasta `supabase/functions/`, `deno fmt --check`, `deno lint`, `deno task check` e `deno task test` saem `0`, com os seis arquivos novos de `_shared/` na task `check` e **nenhuma entrada nova** em `imports` do `deno.json`.
 - [ ] Prova negativa consolidada, colada no corpo do PR: o corpus completo de `supabase/functions/_shared/ai/testdata/injection_corpus.json` passa pelo pipeline `buildEnvelope` → `parseProposals` → `writeProposals` contra o Postgres local, e `psql -tAc "select count(*) from public.transactions"` devolve `0`. Nenhum registro nasce de instrução injetada, sem exceção e sem confirmação.
 - [ ] Num Postgres vazio, `supabase/ci-bootstrap.sql` + `0001`…`0011` aplicam com `ON_ERROR_STOP=1` e `echo $?` igual a `0` em cada arquivo; `select tablename from pg_tables where schemaname='public' and rowsecurity = false` devolve **0 linhas**; e a consulta de tabela-com-RLS-sem-política do `.github/workflows/ci.yml` devolve **0 linhas**.
@@ -1637,6 +1700,7 @@ legitimamente precisa da chave coexiste com as que não precisam (X7).
 | X14 | **`category_hints` ainda não tem tabela**, porque `categories` não existe. A normalização fica pronta e sem consumidor. | Fase de finanças | Aceito: a **T6.6** fixa o mecanismo e a **T6.9** fixa a regra de escrita, para que a migration que criar a tabela já nasça com o `check` de charset e o caminho de escrita restrito, em vez de nascer permissiva e ser endurecida depois. |
 | X15 | **Provedor com saída estruturada não é controle de segurança.** `responseSchema` e `responseMimeType: 'application/json'` do provedor reduzem saída malformada; não impedem uma proposta bem-formada e hostil. | Toda chamada de IA | Tratado: a validação que decide é `parseProposals` (**T6.4**), do nosso lado da borda. Usar o recurso do provedor é economia de retentativa, e nunca substitui a validação — quem descrever a chamada ao provedor escreve isso junto. |
 | X17 | **O cadastro tem dois desfechos que o servidor não distingue, e uma janela curta que parece defeito.** Medido em 20/08/2026: repetir o cadastro do mesmo endereço fora da janela devolve `200` com `identities` preenchido e sem `error_code` — igual ao cadastro novo, sem `user_already_exists`; e duas tentativas seguidas batem em `over_email_send_rate_limit`, com cerca de 60 segundos de janela. Uma tela escrita para o caminho antigo mostraria "erro" onde houve sucesso, ou silêncio onde houve limite. | Fase 1 | **FD-024** e `02_specs.md` §7.1: mensagem única para endereço novo e repetido — não distinguir é o comportamento desejado, e construir a distinção seria um oráculo de enumeração de contas. Linha de DoD da **T1.7** para os dois desfechos com textos distintos entre si, e linha de DoD da **T1.10** proibindo repetir cadastro dentro da janela. A tradução de `user_already_exists` fica no código como caso morto documentado. |
+| X18 | **Abandonar a recuperação depois do código aceito deixa a sessão válida e a senha antiga valendo, sem aviso.** O `verifyOTP` do GoTrue autentica a sessão e o `supabase_flutter` a persiste em disco, enquanto o escopo de recuperação é memória. Com a saída da **T1.15** o caminho desenhado encerra a sessão, mas **matar o app** na etapa de nova senha continua deixando a pessoa dentro do app na abertura seguinte. | Fase 1, e reavaliar na Fase 5 | **Aceito por escrito** (`changes.md`, CHG-009, e `docs/002_conta_e_configuracoes/decisions.md`): quem digitou os seis dígitos já provou posse do e-mail, que é o mesmo fator com que o GoTrue autentica. Fechar o resíduo exige persistir o escopo em disco, o que troca um estado raro por risco de trancar a pessoa numa tela sem saída. **Condição que reabre:** a Fase 5 põe conta bancária atrás dessa sessão — o CISO reavalia antes do PR 5b. |
 | X16 | **Chave real de IA em produção antes de a chave-mestra do Vault estar em volume** seria segredo cifrado com material que some no primeiro `docker compose up --force-recreate`. | Fase 4, e depois dela | Linha do DoD da Fase 4 e entrada em `docs/002_conta_e_configuracoes/decisions.md`: **nenhuma chave real é salva em produção enquanto P12 não fechar**. Desenvolvimento e prova acontecem inteiros na stack local descartável. |
 
 ---
@@ -1648,7 +1712,7 @@ Legenda das fases: `[ ]` não iniciada · `[-]` em andamento · `[x]` mergeada e
 `CUMPRIDO` do `supervisor-dod`, registrado no campo `DoD:` da própria linha —
 tarefa sem esse veredito **não** é marcada, mesmo que o código pareça pronto.
 
-- [-] **Fase 1** — Auth completo: medir a sessão, cadastrar e recuperar senha · PR 1 (14 tarefas)
+- [-] **Fase 1** — Auth completo: medir a sessão, cadastrar e recuperar senha · PR 1 (17 tarefas)
 - [ ] **Fase 2** — Drawer e a casca das Configurações · PR 2 (7 tarefas)
 - [ ] **Fase 3** — Perfil do usuário · PR 3a + PR 3b (10 tarefas)
 - [ ] **Fase 4** — Configuração de IA e o gating · PR 4a + PR 4b (13 tarefas)

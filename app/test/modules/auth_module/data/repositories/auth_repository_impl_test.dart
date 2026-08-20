@@ -94,6 +94,61 @@ void main() {
     });
   });
 
+  group('AuthRepositoryImpl.resetPasswordForEmail', () {
+    // over_email_send_rate_limit só dispara quando o GoTrue de fato envia
+    // e-mail: para endereço sem conta o pedido nunca esbarra nesse limite,
+    // então revelar essa mensagem na segunda tentativa distinguiria conta
+    // existente de inexistente (FD-028,
+    // docs/002_conta_e_configuracoes/decisions.md).
+    test(
+      'GoTrue devolvendo over_email_send_rate_limit produz o mesmo Right(unit) '
+      'do pedido sem erro — segunda tentativa não pode virar Failure distinguível',
+      () async {
+        when(
+          () => auth.resetPasswordForEmail(any()),
+        ).thenThrow(
+          const AuthException(
+            'For security purposes, you can only request this after 46 seconds.',
+            code: 'over_email_send_rate_limit',
+          ),
+        );
+
+        final resultado = await repository.resetPasswordForEmail(
+          email: emailValido,
+        );
+
+        expect(resultado, const Right<Failure, Unit>(unit));
+      },
+    );
+
+    test('pedido sem erro devolve o mesmo Right(unit)', () async {
+      when(() => auth.resetPasswordForEmail(any())).thenAnswer((_) async {});
+
+      final resultado = await repository.resetPasswordForEmail(
+        email: emailValido,
+      );
+
+      expect(resultado, const Right<Failure, Unit>(unit));
+    });
+
+    test('outro código de erro continua virando Failure', () async {
+      when(
+        () => auth.resetPasswordForEmail(any()),
+      ).thenThrow(
+        const AuthException(
+          'Email rate limit exceeded',
+          code: 'over_request_rate_limit',
+        ),
+      );
+
+      final resultado = await repository.resetPasswordForEmail(
+        email: emailValido,
+      );
+
+      expect(resultado.getLeft().toNullable(), isA<UnexpectedFailure>());
+    });
+  });
+
   group('AuthRepositoryImpl.verifyRecoveryCode', () {
     // otp_expired cobre código errado e código vencido ao mesmo tempo
     // (FD-026, docs/002_conta_e_configuracoes/decisions.md) — não há como

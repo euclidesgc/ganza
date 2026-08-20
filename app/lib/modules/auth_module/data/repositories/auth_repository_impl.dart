@@ -83,6 +83,13 @@ class AuthRepositoryImpl implements AuthRepository {
       await _client.auth.resetPasswordForEmail(email);
       return const Right(unit);
     } on AuthException catch (error) {
+      // `over_email_send_rate_limit` só dispara quando o GoTrue de fato
+      // envia e-mail: para endereço sem conta nada é enviado, então o
+      // pedido nunca esbarra nesse limite. Devolver a mensagem própria
+      // (usada em signUp, onde o canal é uniforme) faria da segunda
+      // tentativa um oráculo de enumeração aqui — medido contra o GoTrue
+      // local, FD-028 em docs/002_conta_e_configuracoes/decisions.md.
+      if (error.code == 'over_email_send_rate_limit') return const Right(unit);
       return Left(_traduzir(error));
     } catch (error) {
       return Left(failureFromException(error));
