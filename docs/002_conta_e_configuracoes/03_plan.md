@@ -501,7 +501,7 @@ sobrou virou a **T1.12**.
 Consolidar as três frentes na branch da fase. Daqui até a T1.6 é sequencial —
 a camada data implementa o contrato que a frente A acabou de fechar.
 
-- [ ] **T1.6** — Implementar os quatro métodos novos em `app/lib/modules/auth_module/data/repositories/auth_repository_impl.dart` e trocar a tradução de erro por mapeamento sobre o código do GoTrue. · camada **data** · `especialista-dados`
+- [x] **T1.6** — Implementar os quatro métodos novos em `app/lib/modules/auth_module/data/repositories/auth_repository_impl.dart` e trocar a tradução de erro por mapeamento sobre o código do GoTrue. · camada **data** · `especialista-dados` · **DoD: CUMPRIDO**
 
   **DoD da tarefa**
   - `app/lib/modules/auth_module/data/repositories/auth_repository_impl.dart` implementa `signUp`, `resetPasswordForEmail`, `verifyRecoveryCode` e `updatePassword`, e continua sendo o **único** arquivo do módulo com `try`/`catch`: `rtk proxy grep -rn 'catch (' app/lib/modules/auth_module/` só devolve linhas desse arquivo.

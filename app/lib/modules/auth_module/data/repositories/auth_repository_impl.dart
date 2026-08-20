@@ -121,6 +121,12 @@ class AuthRepositoryImpl implements AuthRepository {
   /// Mapeia pelo `code` do GoTrue (https://supabase.com/docs/guides/auth/debugging/error-codes),
   /// nunca pela mensagem em inglês — só o código é estável entre versões.
   Failure _traduzir(AuthException error) {
+    if (error is AuthRetryableFetchException) {
+      return const NetworkFailure();
+    }
+    // Comparação por String, não por `ErrorCode.fromCode`: o enum do
+    // pacote gotrue-2.27.2 não lista 'invalid_credentials' — usar o enum
+    // faria o caso mais comum de login cair no fallback genérico.
     return switch (error.code) {
       'invalid_credentials' => const AuthFailure('E-mail ou senha incorretos.'),
       'email_not_confirmed' => const AuthFailure(
