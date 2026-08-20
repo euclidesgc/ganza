@@ -8,7 +8,7 @@ escopo: ele distribui o DoD entre as fases e acrescenta o que falta para cada
 fase se sustentar sozinha.**
 
 Estado: **Fase 1 em andamento** · branch `feature/GZ-24-conta-e-configuracoes`
-(de `develop`) · seis fases fatiadas em 66 tarefas · **T1.1 a T1.14 com
+(de `develop`) · seis fases fatiadas em 67 tarefas · **T1.1 a T1.14 com
 `CUMPRIDO`**; **próximo passo: despachar a T1.15 — a etapa de nova senha da
 recuperação não tem saída, e abandoná-la deixa a pessoa dentro do app com a
 senha antiga valendo (`changes.md`, CHG-009). Depois dela, a T1.17 fecha a fase;
@@ -848,6 +848,15 @@ Consolidar as duas frentes antes de seguir.
   - Tirar `/configuracoes` de dentro do `ShellRoute` faz esse teste falhar — provar tirando, colar a saída vermelha e restaurar. Sem essa reversão o teste prova que passa, não que mede.
   - `cd app && dart format --set-exit-if-changed lib test`, `flutter analyze` e `flutter test -r compact` terminam com código de saída `0`; da raiz, `bash scripts/gates_guard.sh; echo $?` imprime `0`.
 
+- [ ] **T2.9** — Fazer `scripts/gates_guard.sh` acusar `Icons.` cru em `app/lib`, que hoje ele não olha. · camada **infra** · `especialista-infra`
+
+  **DoD da tarefa**
+  - `scripts/gates_guard.sh` passa a acusar o uso cru de `Icons.` nos arquivos de `app/lib`, com padrão **ancorado** (`(^|[^A-Za-z])Icons\.`): `rtk proxy grep -n 'Icons' scripts/gates_guard.sh` devolve pelo menos uma linha, e hoje não devolve nenhuma. A âncora é obrigatória — sem ela o script acusaria `AppIcons.`, que é o token que o projeto obriga a usar.
+  - Com o repositório no estado atual, `bash scripts/gates_guard.sh; echo $?` imprime `0`: as 13 linhas que hoje casam `Icons.` são todas `AppIcons.*` e **não** podem ser acusadas.
+  - Prova de que a checagem morde: acrescentar `const Icon(Icons.add)` a um arquivo qualquer sob `app/lib/`, rodar `bash scripts/gates_guard.sh; echo $?` e obter valor **diferente de `0`** com o arquivo e a linha apontados; remover a linha e obter `0` de novo. Colar as duas saídas.
+  - O escape documentado no cabeçalho do script continua valendo para a checagem nova: a mesma linha com `// gate4-ok: <motivo>` no fim **não** é acusada — provar e colar a saída `0`.
+  - `bash -n scripts/gates_guard.sh` sai `0`, e o cabeçalho do próprio script descreve a checagem nova junto das que já lista — nenhuma frase do cabeçalho ficou falsa depois da mudança.
+
 A **T2.8** nasce de um desvio registrado em [`changes.md`](changes.md) (CHG-014): o executor da T2.5 tirou `/configuracoes` do shell para fazer um teste passar, e o contrato da §3 diz o contrário. **O contrato não cede** — quem estava errado era o teste, que montava um `GoRouter` isolado sem a chave root e por isso não suportava `parentNavigatorKey`. Teste de widget não decide topologia de navegação.
 
 Instrumentar (T2.6) e executar (T2.7) ficam com o mesmo agente pela mesma razão
@@ -858,7 +867,7 @@ continuam juntas lá: adiar não desfaz o motivo de estarem no mesmo agente.
 
 **DoD da Fase 2**
 
-- [ ] As seis tarefas que a fase leva ao PR 2 — T2.1 a T2.5 e a **T2.8**, já que a **T2.6** e a **T2.7** estão adiadas para o lote de fechamento (§9) — com o campo `DoD:` marcado CUMPRIDO, em negrito, na própria linha: `rtk proxy grep -cE '^- \[x\] \*\*T2\.[0-9]+\*\*.*\*\*DoD: CUMPRIDO\*\*' docs/002_conta_e_configuracoes/03_plan.md` imprime `6`, e `rtk proxy grep -cE '^- \[.\] \*\*T2\.[0-9]+\*\*.*\*\*DoD: NÃO CUMPRIDO\*\*' docs/002_conta_e_configuracoes/03_plan.md` imprime `0`. O padrão ancora na fase e traz os asteriscos: sem os asteriscos a contagem inclui as próprias linhas de critério que citam o campo, e sem a âncora ela cresce a cada fase seguinte que marcar uma tarefa — nos dois casos o número nunca fecha.
+- [ ] As sete tarefas que a fase leva ao PR 2 — T2.1 a T2.5, a **T2.8** e a **T2.9**, já que a **T2.6** e a **T2.7** estão adiadas para o lote de fechamento (§9) — com o campo `DoD:` marcado CUMPRIDO, em negrito, na própria linha: `rtk proxy grep -cE '^- \[x\] \*\*T2\.[0-9]+\*\*.*\*\*DoD: CUMPRIDO\*\*' docs/002_conta_e_configuracoes/03_plan.md` imprime `7`, e `rtk proxy grep -cE '^- \[.\] \*\*T2\.[0-9]+\*\*.*\*\*DoD: NÃO CUMPRIDO\*\*' docs/002_conta_e_configuracoes/03_plan.md` imprime `0`. O padrão ancora na fase e traz os asteriscos: sem os asteriscos a contagem inclui as próprias linhas de critério que citam o campo, e sem a âncora ela cresce a cada fase seguinte que marcar uma tarefa — nos dois casos o número nunca fecha.
 - [ ] `cd app && dart format --set-exit-if-changed lib patrol_test test`, `flutter analyze` e `flutter test -r compact` verdes; da raiz, `bash scripts/gates_guard.sh; echo $?` imprime `0`.
 - [ ] `rtk proxy grep -rnE '(^|[^A-Za-z])Icons\.' app/lib` não devolve nenhuma linha — **o padrão é ancorado de propósito e não se simplifica para `'Icons\.'`**: sem a âncora ele casa `Icons.` como pedaço de `AppIcons.`, que é justamente o token que o Gate 4 obriga a usar, e o critério passa a reprovar as 10 linhas legítimas que o repositório já tem — o glifo do Material não voltou pelo `DrawerButton` que o `Scaffold` injeta.
 - [ ] `CHANGELOG.md`, seção `Unreleased`, atualizado no mesmo PR.
@@ -868,7 +877,7 @@ continuam juntas lá: adiar não desfaz o motivo de estarem no mesmo agente.
 na mesma rodada e o atestado do dev humano sobre ela — saiu do gate do PR 2 e
 está na §9 (`changes.md`, CHG-012). A troca de navegação continua provada dentro
 da fase pelo teste de widget da **T2.4** e pelo
-`grep 'Icons\.'` acima; o que fica sem prova até o lote é o roteiro herdado da
+`grep -rnE '(^|[^A-Za-z])Icons\.'` acima; o que fica sem prova até o lote é o roteiro herdado da
 feature 001 seguir verde no emulador — risco **X3**, aceito por escrito.
 
 ---
@@ -1756,7 +1765,7 @@ legitimamente precisa da chave coexiste com as que não precisam (X7).
 | # | Risco | Onde dói | Tratamento neste plano |
 |---|---|---|---|
 | X1 | **O cadastro tranca calado se a confirmação for desligada sem o e-mail sair.** O risco mudou de forma em 20/08/2026: a **FD-022** desligou a confirmação automática, e com isso morreu o risco original — "qualquer endereço inventado vira conta confirmada". O que ficou é o inverso e é de ordem: com `GOTRUE_MAILER_AUTOCONFIRM: 'false'` e SMTP mudo, todo cadastro novo nasce não confirmado e **ninguém consegue entrar** — e nada no app acusa, porque o `signup` responde `200`. | Fase 1, e a virada da HML | As duas variáveis do GoTrue viram **no mesmo redeploy** das cinco de SMTP, nunca antes: a ordem está escrita em `docs/deploy/coolify.md`, seção "Ainda por fazer", e na **FD-022**. Na stack local o modo de falha não existe desde a T1.5 — o capturador recebe todo e-mail. Prova de que o caminho funciona antes de a HML virar: o E2E da Fase 1, que cria conta e confirma lendo o capturador. |
-| X2 | **O `Scaffold` com `drawer:` reintroduz o glifo do Material** e `scripts/gates_guard.sh` não pega: o guard procura o literal `Icons.`, e o `DrawerButton` injetado não escreve isso. | Fase 2 | Linha de DoD da T2.5: `leading:` explícito com token de `AppIcons`, e `grep -rn 'Icons\.' app/lib` vazio no DoD da fase. |
+| X2 | **O `Scaffold` com `drawer:` reintroduz o glifo do Material** pelo `DrawerButton` que ele injeta, e **nada no CI pega isso**: medido em 20/08/2026, `scripts/gates_guard.sh` **não tem checagem de ícone nenhuma** — `rtk proxy grep -n 'Icons' scripts/gates_guard.sh` não devolve nada, e o Gate 4 do script cobre `Color(0x`, `Colors.<nome>`, `fontSize`, `circular(` e `EdgeInsets`, mais nada. **A linha anterior desta célula dizia que o guard "procura o literal `Icons.`", e era falsa** — risco mitigado no papel por mecanismo inexistente. | Fase 2, e toda feature depois dela | Duas camadas, uma por fase e outra permanente: **hoje**, a linha de DoD da **T2.5** (`leading:` explícito com token de `AppIcons`) e a do DoD da Fase 2, ambas com `rtk proxy grep -rnE '(^|[^A-Za-z])Icons\.' app/lib` vazio — o padrão é ancorado porque sem a âncora ele casa `Icons.` dentro de `AppIcons.` e reprova as 13 linhas legítimas do repositório; **a partir da T2.9**, a checagem entra no próprio `scripts/gates_guard.sh`, que é o que faz a proteção valer nas features seguintes sem depender de alguém repetir a linha no DoD. |
 | X3 | **`flutter test` não cobre `app/patrol_test/`** e `flutter analyze` não pega string que deixou de casar, então a troca de navegação deixa o CI verde e o emulador vermelho. | Fase 2, e daí até o lote de fechamento | **O tratamento mudou em 20/08/2026 e o risco cresceu** (`changes.md`, CHG-012): a T2.6 e a T2.7 saíram do gate do PR 2 por **D30**, e com elas a linha do DoD da fase que exigia os três roteiros verdes na mesma rodada. Os dois roteiros herdados da feature 001 ficam **vermelhos desde a Fase 2 até o lote rodar**, sem nada no CI acusando, e o descasamento de string se acumula pelas fases seguintes em vez de aparecer numa. **Aceito por escrito, e é o preço explícito da velocidade** — quem rodar o lote começa por estes dois arquivos, que são os mais prováveis de falhar. |
 | X4 | **A recuperação por OTP não cobre o clique no link do e-mail.** O GoTrue manda o link junto do código; quem clicar cai no navegador e não volta para o app. | Fase 1 | Limitação **conhecida e aceita**: o texto do e-mail e a tela de recuperação instruem a digitar o código. O deep link PKCE fica registrado em `docs/002_conta_e_configuracoes/decisions.md` como o passo seguinte, com o custo já levantado (source set de flavor + `GOTRUE_URI_ALLOW_LIST`). |
 | X5 | **A chave-mestra do Vault não está em volume.** Ela mora em `/etc/postgresql-custom/pgsodium_root.key`, na camada gravável do contêiner; `infra/local/docker-compose.yml` monta só `db-data:/var/lib/postgresql/data`. Recriar o contêiner do Postgres transforma todo segredo do Vault em ciphertext permanentemente indecifrável. | Fase 4 | Pendência **P12** mais a tarefa **T4.3**, que mede em produção, reproduz o modo de falha na stack local e deixa o trecho de compose pronto. Linha do DoD da fase: nenhuma chave real em produção antes de P12 fechar. |
@@ -1784,7 +1793,7 @@ Legenda das fases: `[ ]` não iniciada · `[-]` em andamento · `[x]` mergeada e
 tarefa sem esse veredito **não** é marcada, mesmo que o código pareça pronto.
 
 - [-] **Fase 1** — Auth completo: medir a sessão, cadastrar e recuperar senha · PR 1 (17 tarefas — 16 no PR 1; a T1.16 está adiada para o lote de fechamento, §9)
-- [ ] **Fase 2** — Drawer e a casca das Configurações · PR 2 (8 tarefas — 6 no PR 2, com a T2.8 nascida do CHG-014; T2.6 e T2.7 no lote de fechamento, §9)
+- [ ] **Fase 2** — Drawer e a casca das Configurações · PR 2 (9 tarefas — 7 no PR 2, com a T2.8 do CHG-014 e a T2.9 do CHG-015; T2.6 e T2.7 no lote de fechamento, §9)
 - [ ] **Fase 3** — Perfil do usuário · PR 3a + PR 3b (10 tarefas — 8 no PR 3b; T3.9 e T3.10 no lote de fechamento, §9)
 - [ ] **Fase 4** — Configuração de IA e o gating · PR 4a + PR 4b (14 tarefas — 12 nos PRs; T4.12 e T4.13 no lote de fechamento, §9; a T4.14 nasceu ao partir a prova de isolamento da execução do E2E)
 - [ ] **Fase 5** — Integração bancária · PR 5a + PR 5b (8 tarefas — 6 nos PRs; T5.7 e T5.8 no lote de fechamento, §9)

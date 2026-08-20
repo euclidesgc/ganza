@@ -7,6 +7,58 @@ estado final, sem preservar neles uma versão obsoleta do planejamento.
 
 ## Mudanças registradas
 
+### CHG-015 - O risco X2 estava mitigado por um mecanismo que não existe
+
+- **Data:** 2026-08-20
+- **Fase/PR:** Fase 2 (PR 2), no `fechar-etapa`, antes de o PR abrir.
+- **Planejado originalmente:** o risco **X2** — o `DrawerButton` que o `Scaffold`
+  injeta reintroduz o glifo do Material — era dado por tratado com esta frase, no
+  plano e no `02_specs.md`: `scripts/gates_guard.sh` "procura o literal `Icons.`",
+  e o botão injetado não escreve esse literal, logo bastava a linha de DoD com
+  `grep -rn 'Icons\.' app/lib` vazio.
+- **Por que não foi possível prosseguir:** as duas metades da frase são falsas.
+  **A primeira:** `rtk proxy grep -n 'Icons' scripts/gates_guard.sh` não devolve
+  nada — o script não tem checagem de ícone nenhuma; o Gate 4 dele cobre
+  `Color(0x`, `Colors.<nome>`, `fontSize`, `circular(` e `EdgeInsets`, e mais
+  nada. **A segunda:** o padrão `'Icons\.'` sem âncora casa como substring de
+  `AppIcons.`, então o critério "não devolve nenhuma linha" é incumprível — hoje
+  devolve **13**, todas legítimas. O risco estava mitigado no papel por mecanismo
+  inexistente, e a prova que sobrava era inexequível. Resíduo do mesmo padrão
+  ainda estava em quatro pontos (`03_plan.md` na nota da Fase 2 e na linha do X2;
+  `02_specs.md` na armadilha do guard e na tabela de riscos).
+- **Alternativas consideradas:** (a) reescrever só o texto do risco, dizendo que
+  o que protege é a linha de DoD com o grep ancorado — honesto e barato, mas a
+  proteção morre no fim da Fase 2, porque nenhuma feature seguinte repete essa
+  linha; (b) **pôr a checagem no guard**, que é onde ela vale para sempre e roda
+  em todo PR, e corrigir o texto do risco junto.
+- **Decisão tomada:** (b), pelo `tech-lead`. O argumento que decide é o
+  **precedente do `Colors.<nome>`**: o guard já recusa a constante crua do
+  Material quando ela substitui um token de cor, e ícone virou responsabilidade
+  de `core/theme/` pela **D22**. Recusar `Icons.` cru é a mesma regra, e a
+  ausência dela é omissão, não escolha de desenho. Nasce a **T2.9**
+  (`especialista-infra`, camada infra, no PR 2), com bloco DoD de cinco linhas:
+  a checagem entra ancorada, o repositório atual continua saindo `0`, e a prova
+  de que **morde** é introduzir um `Icons.add` cru, ver saída diferente de `0` e
+  restaurar — mais o escape `// gate4-ok` continuando a valer.
+- **Resumo da resolução:** o texto do X2 passa a dizer o que de fato protege, em
+  duas camadas — a linha de DoD **hoje**, o guard **a partir da T2.9** — e os
+  quatro resíduos do padrão cru foram trocados pelo ancorado
+  `(^|[^A-Za-z])Icons\.`, com a razão da âncora escrita em cada um, para ninguém
+  "simplificar" de volta. Fase 2 vai de 8 para **9** tarefas e leva **7** ao PR 2;
+  a feature, de 66 para **67**. **Varredura dos outros riscos, rodando cada
+  mecanismo citado:** X3 (`app/patrol_test/` existe e está fora de `test/`), X5
+  (`infra/local/docker-compose.yml` monta só `db-data:/var/lib/postgresql/data`,
+  sem a chave-mestra do Vault), X7 (`envVars` em
+  `supabase/functions/main/index.ts:42`), X10 (`scripts/local-supabase.sh:130`
+  com o `to_regclass('public.transactions')`), X17 (**FD-024** em `decisions.md`)
+  e X18 (`app/lib/core/session/password_recovery_scope.dart`) — **todos
+  verdadeiros**. O X2 era o único falso.
+- **Reconciliação documental:** `docs/002_conta_e_configuracoes/03_plan.md`
+  (linha do X2, nota da Fase 2, tarefa **T2.9**, contagem do DoD da fase, §8 e
+  cabeçalho), `docs/002_conta_e_configuracoes/02_specs.md` (armadilha do guard e
+  tabela de riscos) e `docs/decisions.md` (**D31** ganha o fato medido).
+  `scripts/gates_guard.sh` **não** foi tocado: mexer nele é a T2.9.
+
 ### CHG-014 - O contrato de navegação não cede a um teste mal montado, e a T2.5 deixa uma tarefa para trás
 
 - **Data:** 2026-08-20
