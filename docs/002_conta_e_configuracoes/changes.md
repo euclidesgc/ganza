@@ -7,6 +7,58 @@ estado final, sem preservar neles uma versão obsoleta do planejamento.
 
 ## Mudanças registradas
 
+### CHG-003 - A confirmação de e-mail criou um estado que nenhum documento descrevia
+
+- **Data:** 2026-08-20
+- **Fase/PR:** Fase 1 (PR 1), tarefas T1.7 e T1.10.
+- **Planejado originalmente:** com a confirmação automática ligada, `signUp`
+  devolvia conta **já confirmada e com sessão**, e o caminho feliz da Fase 1 ia
+  direto do cadastro para dentro do app. Nem o `01_prd.md` §8 nem o
+  `02_specs.md` tinham linha para "conta criada, e-mail ainda não confirmado", e
+  a T1.7 não pedia tela nenhuma para ele.
+- **Por que não foi possível prosseguir:** a **FD-022** desligou a confirmação
+  automática, e com isso o cadastro passou a terminar num estado que a tela não
+  sabe exibir — conta existe, sessão não. Sem texto, a pessoa toca "criar conta",
+  vê a tela não mudar e conclui que falhou. **Duas medições contra o GoTrue da
+  stack local** fecharam o resto do quadro: (1) repetir o cadastro do **mesmo
+  endereço**, esperando 75 s para sair da janela de reenvio, devolve
+  `HTTP 200` com `identities` preenchido e **sem** `error_code` — resposta
+  **idêntica** à do cadastro novo, e nenhum `user_already_exists`; (2) duas
+  tentativas **seguidas** batem em `over_email_send_rate_limit`, janela de cerca
+  de 60 segundos. Ou seja: **pelo caminho do erro, o app não tem como saber que o
+  endereço já tinha conta.**
+- **Alternativas consideradas:** (a) deixar como está e tratar depois — entrega
+  um cadastro que parece quebrado; (b) navegar para dentro do app assim mesmo —
+  impossível, não há sessão, e mentiria sobre o estado da conta; (c) declarar o
+  estado no `02_specs.md` e exigir da tela uma mensagem que diga o que falta sem
+  afirmar que a conta está pronta, **com o mesmo texto para endereço novo e para
+  endereço repetido**; (d) tentar distinguir os dois casos por outro caminho —
+  consultar a existência do e-mail antes de cadastrar —, o que construiria de
+  propósito um **oráculo de enumeração de contas** num app que guarda extrato
+  bancário.
+- **Decisão tomada:** (c), registrada como **FD-024** em
+  [`decisions.md`](decisions.md), pelo `tech-lead`. (d) foi descartada como
+  regressão de segurança: não poder distinguir é o comportamento **desejável**, e
+  a mensagem única passa a ser escolha, não conformação. A T1.7 ganha uma linha
+  de DoD para o estado de confirmação pendente, e a T1.10, uma linha para a
+  janela de reenvio — o roteiro de E2E não pode repetir cadastro em sequência.
+- **Resumo da resolução:** `02_specs.md` §7.1 passa a descrever o cadastro do
+  primeiro toque até a confirmação, com a régua de que **a tela nunca afirma que
+  a conta está pronta para usar** e **nunca revela se o endereço já tinha
+  conta**. A tradução de `user_already_exists` que a T1.6 implementou vira **caso
+  morto neste modo** — fica no código, documentada, porque a configuração que a
+  dispara existe e apagá-la é regressão silenciosa esperando a próxima virada de
+  ambiente. Nasce o risco **X17** no `03_plan.md` §7.
+- **Reconciliação documental:** `02_specs.md` §3.1, §7 (agora 7.1 e 7.2) e §9
+  (linhas 1 e 4); `03_plan.md` — DoD da T1.7, DoD da T1.10 e risco **X17**;
+  `decisions.md` (**FD-024**). **Pendente, e é fatia do `product-manager`:** o
+  `01_prd.md` §8 promete "Cadastro com e-mail já existente → mensagem própria,
+  distinta de qualquer outra", promessa que a medição tornou inentregável e que
+  precisa virar a mensagem única. **Medição que não foi feita, e por que não
+  vale:** o teste usou conta **não confirmada**; conta já confirmada pode ofuscar
+  com `identities` vazio. O desfecho não muda nada — a mensagem é a mesma nos
+  dois —, e por isso a medição não foi pedida.
+
 ### CHG-001 - A P10 foi decidida pela saída cara, e a P9 saiu da fila junto
 
 - **Data:** 2026-08-20
