@@ -972,7 +972,7 @@ próprio** — sem isso o `dart format` de um pisa no arquivo aberto do outro.
 Consolidar as duas antes de seguir: as camadas de dados implementam contratos
 que estas duas acabaram de fechar.
 
-- [ ] **T3.4** — Implementar `app/lib/modules/settings_module/data/`: model de perfil validado por zard e implementação do repositório sobre o `SupabaseClient`. · camada **data** · `especialista-dados`
+- [x] **T3.4** — Implementar `app/lib/modules/settings_module/data/`: model de perfil validado por zard e implementação do repositório sobre o `SupabaseClient`. · camada **data** · `especialista-dados` · **DoD: CUMPRIDO**
 
   **DoD da tarefa**
   - `app/lib/modules/settings_module/data/models/profile_model.dart` valida a resposta com `safeParse` do zard e devolve `Either<Failure, UserProfile>`; `rtk proxy grep -n 'safeParse' app/lib/modules/settings_module/data/models/profile_model.dart` devolve pelo menos uma linha, e nenhuma conversão de campo acontece fora do schema.
@@ -981,7 +981,7 @@ que estas duas acabaram de fechar.
   - O `update` do nome envia **apenas** a coluna de nome de exibição: o mapa passado ao `.update(...)` tem exatamente uma chave, e o filtro é por igualdade sobre o identificador da sessão — quem decide a permissão é a RLS, não o corpo.
   - `cd app && dart format --set-exit-if-changed lib/modules/settings_module` e `flutter analyze lib/modules/settings_module` terminam com código de saída `0`.
 
-- [ ] **T3.5** — Implementar `changePassword` em `app/lib/modules/auth_module/data/repositories/auth_repository_impl.dart`, confirmando a senha atual antes de trocar. · camada **data** · `especialista-dados`
+- [x] **T3.5** — Implementar `changePassword` em `app/lib/modules/auth_module/data/repositories/auth_repository_impl.dart`, confirmando a senha atual antes de trocar. · camada **data** · `especialista-dados` · **DoD: CUMPRIDO**
 
   **DoD da tarefa**
   - O método confirma a senha atual **antes** de trocar: a chamada de troca está dentro do ramo de sucesso da confirmação, e senha atual errada devolve `Failure` sem que a troca chegue a ser chamada — conferir lendo o corpo do método.
