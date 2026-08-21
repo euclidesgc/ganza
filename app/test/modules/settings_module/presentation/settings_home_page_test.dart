@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:ganza/app_router.dart';
+import 'package:ganza/core/error/failure.dart';
 import 'package:ganza/core/session/session.dart';
 import 'package:ganza/core/theme/app_theme.dart';
 import 'package:ganza/injection.dart';
 import 'package:ganza/modules/auth_module/auth_module.dart';
 import 'package:ganza/modules/settings_module/domain/domain.dart';
 import 'package:ganza/modules/settings_module/presentation/account/account_cubit.dart';
+import 'package:ganza/modules/settings_module/presentation/ai/ai_settings_cubit.dart';
 import 'package:ganza/modules/settings_module/settings_module.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mocktail/mocktail.dart';
@@ -19,6 +21,18 @@ class _MockGetCurrentUser extends Mock implements GetCurrentUser {}
 class _MockGetUserProfile extends Mock implements GetUserProfile {}
 
 class _MockUpdateDisplayName extends Mock implements UpdateDisplayName {}
+
+class _MockGetAiProviderKinds extends Mock implements GetAiProviderKinds {}
+
+class _MockGetAiCredential extends Mock implements GetAiCredential {}
+
+class _MockSaveAiCredential extends Mock implements SaveAiCredential {}
+
+class _FakeCapabilitiesSource implements CapabilitiesSource {
+  @override
+  Future<Either<Failure, UserCapabilities>> load() async =>
+      const Right(UserCapabilities.unresolved());
+}
 
 void main() {
   setUp(() {
@@ -42,6 +56,12 @@ void main() {
       ),
     );
 
+    final getProviderKinds = _MockGetAiProviderKinds();
+    final getCredential = _MockGetAiCredential();
+    final saveCredential = _MockSaveAiCredential();
+    when(() => getProviderKinds()).thenAnswer((_) async => const Right([]));
+    when(() => getCredential()).thenAnswer((_) async => const Right(null));
+
     getIt
       ..registerLazySingleton<ObserveCurrentUser>(() => observeCurrentUser)
       ..registerLazySingleton<GetCurrentUser>(() => getCurrentUser)
@@ -50,6 +70,19 @@ void main() {
       ..registerLazySingleton<UpdateDisplayName>(() => updateDisplayName)
       ..registerFactory(
         () => AccountCubit(getIt<GetUserProfile>(), getIt<UpdateDisplayName>()),
+      )
+      ..registerLazySingleton<GetAiProviderKinds>(() => getProviderKinds)
+      ..registerLazySingleton<GetAiCredential>(() => getCredential)
+      ..registerLazySingleton<SaveAiCredential>(() => saveCredential)
+      ..registerFactory(
+        () => AiSettingsCubit(
+          getIt<GetAiProviderKinds>(),
+          getIt<GetAiCredential>(),
+          getIt<SaveAiCredential>(),
+        ),
+      )
+      ..registerLazySingleton<CapabilitiesCubit>(
+        () => CapabilitiesCubit(_FakeCapabilitiesSource())..refresh(),
       );
   });
 

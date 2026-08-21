@@ -7,6 +7,360 @@ estado final, sem preservar neles uma versão obsoleta do planejamento.
 
 ## Mudanças registradas
 
+### CHG-025 - A correção da CHG-024 restaurou a distinção de camada mas trocou a varredura total por um allowlist, reduzindo a cobertura do negativo
+
+- **Data:** 2026-08-21
+- **Fase/PR:** Fase 4 (PR 4b). Alcança a primeira linha do bloco DoD da
+  **T4.11** (corrigida pela CHG-023) e a quarta linha do **DoD da Fase 4**
+  (corrigida pela CHG-024), ambas em `03_plan.md`; e a linha "Jobs … verdes no
+  CI dos dois PRs" do mesmo DoD da Fase 4.
+- **Planejado originalmente:** a CHG-023 e a CHG-024 corrigiram o defeito de
+  camada — um grep de `app/lib` inteiro que não distinguia o identificador
+  usado como condição de gate do identificador usado como parâmetro nomeado na
+  construção da entidade — restringindo a varredura negativa a duas listas
+  fechadas de diretórios: `app/lib/modules/*/presentation` e
+  `app/lib/app_shell.dart` na T4.11, e o mesmo padrão herdado na Fase 4.
+- **Por que não foi possível prosseguir:** o `qa`, julgando de forma
+  independente a pedido do orquestrador, mostrou que restringir por allowlist
+  de diretórios não é o mesmo que "varredura total menos o arquivo conhecido".
+  O padrão `app/lib/modules/*/presentation` exclui a família `*/presentation`
+  **inteira**, não o arquivo `capabilities_source_impl.dart` que motivou a
+  exclusão, e deixa fora do escopo negativo todo o resto de `app/lib/core/`
+  (`core/widgets/forms/`, `core/widgets/feedback/`, `core/network/`,
+  `core/theme/`, …), `domain/` e `data/` de qualquer módulo que não seja o
+  `settings_module`, e arquivos soltos em `app/lib/` como `bootstrap.dart` e
+  `injection.dart`. Um segundo gate, uma cópia esquecida ou um atalho
+  `if (aiConfigured)` em qualquer um desses lugares passaria pelas duas linhas
+  sem ser detectado. O `fechar-etapa` de hoje não denuncia isso porque os
+  únicos quatro arquivos que usam o identificador na árvore atual são os três
+  do gate mais o `capabilities_source_impl.dart` — mas quem garante essa
+  ausência é o estado da árvore, não a linha.
+- **Alternativas consideradas:** (a) manter o allowlist de diretórios e aceitar
+  a lacuna como risco conhecido — descartada porque a régua do `CLAUDE.md`
+  para DoD de fase e de tarefa é prova executável do que a linha promete, não
+  do que hoje é verdade por acaso; (b) expandir o allowlist para cobrir todo
+  subdiretório plausível de `core/` — descartada porque a lista cresceria a
+  cada pasta nova e nunca fecharia, o mesmo defeito de contagem sem âncora que
+  a **D21** já pagou; (c) voltar à varredura total de `app/lib`, excluindo só o
+  arquivo conhecido por um `grep -v` de caminho exato, com o resultado
+  comparado a uma lista fixa e completa dos arquivos esperados.
+- **Decisão tomada:** (c) — endosso do orquestrador ao endurecimento sugerido
+  pelo `qa`. **A exigência não mudou em nenhum dos dois níveis:** gate fora do
+  router, do item de menu e da declaração do campo no domínio continua
+  reprovando — só a medição voltou a cobrir `app/lib` inteiro, o que é
+  **endurecimento**, não afrouxamento. Junto, a linha "Jobs … verdes no CI dos
+  dois PRs" saiu da lista de DoD da Fase 4 e virou nota de ritual logo abaixo
+  dela: o `fechar-etapa` roda **antes** de os PRs existirem, então exigir CI
+  verde nos PRs no próprio gate que autoriza abri-los era dependência circular
+  embutida no ritual, não pendência de timing — a exigência de CI verde
+  continua de pé pela regra geral de CI-como-cancela do `CLAUDE.md`, só relida
+  no passo do ritual em que alguém de fato a confere a tempo de agir.
+- **Resumo da resolução:** as duas linhas passam a rodar
+  `rtk proxy grep -rln 'aiConfigured' app/lib | grep -v
+  '^app/lib/modules/settings_module/data/repositories/capabilities_source_impl.dart$'
+  | sort`, cujo resultado hoje é exatamente `app/lib/app_router.dart`,
+  `app/lib/core/session/user_capabilities.dart` e
+  `app/lib/core/widgets/navigation/chat_drawer_item.dart` — verificado
+  rodando. Qualquer arquivo novo em qualquer lugar de `app/lib` que use o
+  identificador volta a reprovar a linha, cobertura que a CHG-024 tinha
+  deixado de garantir.
+- **Reconciliação documental:** `03_plan.md`, primeira linha do bloco DoD da
+  **T4.11** e quarta linha do **DoD da Fase 4**, que ficam coerentes com esta
+  entrada e **superam, neste ponto, a CHG-023 e a CHG-024** — as duas
+  continuam válidas quanto ao diagnóstico (grep de camada única não distingue
+  gate de construção de entidade), mas a forma de correção que propuseram
+  (allowlist de diretórios) foi substituída pela varredura total com exclusão
+  pontual. A linha de CI dos dois PRs sai do DoD da Fase 4 e vira nota de
+  ritual no mesmo arquivo. Nada em `01_prd.md` ou `02_specs.md` muda.
+
+### CHG-024 - O DoD da Fase 4 tinha o mesmo defeito de camada que a CHG-023 corrigiu na T4.11, um nível acima
+
+- **Data:** 2026-08-21
+- **Fase/PR:** Fase 4 (PR 4b). Alcança a quarta linha do bloco **DoD da Fase 4**
+  em `03_plan.md`, verificada pela skill `fechar-etapa`.
+- **Planejado originalmente:** a linha exigia que
+  `rtk proxy grep -rln 'aiConfigured' app/lib` devolvesse exatamente três
+  caminhos — `app/lib/core/session/`, `app/lib/core/widgets/navigation/` e
+  `app/lib/app_router.dart` — e nenhum outro, para provar que o gate mora no
+  router e no item de menu.
+- **Por que não foi possível prosseguir:** rodando o gate `fechar-etapa` hoje, o
+  mesmo comando devolve quatro caminhos, não três. O quarto é
+  `app/lib/modules/settings_module/data/repositories/capabilities_source_impl.dart`,
+  onde a T4.9 constrói `UserCapabilities(aiConfigured: rows.isNotEmpty, ...)` —
+  uso legítimo do campo na camada `data`, a origem do dado, não um gate. É o
+  mesmo defeito que a **CHG-023** já havia corrigido na primeira linha do DoD
+  da T4.11: um grep de camada única sobre `app/lib` inteiro não distingue o
+  identificador usado como condição de gate do identificador usado como
+  parâmetro nomeado na construção da entidade. A linha da Fase 4 herdava a
+  contagem antiga (três) sem herdar a correção de escopo que a T4.11 já tinha
+  recebido, e por isso travou o `fechar-etapa` sem que nada de errado tivesse
+  sido implementado.
+- **Alternativas consideradas:** (a) renomear o campo do domínio ou o parâmetro
+  do construtor para escapar do grep — fora de escopo, e piora o nome só para
+  satisfazer uma medição; (b) tratar a linha como falso positivo conhecido e
+  liberar o `fechar-etapa` manualmente — deixa o critério mentindo para a
+  próxima fase que rodar o mesmo gate; (c) reescrever a linha para separar
+  presença (domínio + item de menu + router) de ausência (camada
+  `presentation` dos módulos e `app_shell.dart`), excluindo explicitamente a
+  construção da entidade em `data`, no mesmo padrão que a CHG-023 já validou.
+- **Decisão tomada:** (c). A exigência não mudou — gate fora do router e do
+  item de menu continua reprovando —, só a medição passou a distinguir camada
+  `data` (origem do dado) de camada `presentation` (gate), coerente com a
+  CHG-023.
+- **Resumo da resolução:** a linha passou a três comandos:
+  `rtk proxy grep -c 'aiConfigured' app/lib/app_router.dart` (imprime `1` ou
+  mais), `rtk proxy grep -rl 'aiConfigured' app/lib/core/session/
+  app/lib/core/widgets/navigation/` (devolve os dois caminhos) e
+  `rtk proxy grep -rl 'aiConfigured' app/lib/modules/*/presentation
+  app/lib/app_shell.dart` (não devolve nenhum caminho). Rodados agora, os três
+  resultados batem com o esperado.
+- **Reconciliação documental:** `03_plan.md`, quarta linha do bloco **DoD da
+  Fase 4**. Nada em `01_prd.md` ou `02_specs.md` muda — o desvio é do critério
+  de prova, não do comportamento prometido.
+
+### CHG-023 - O DoD da T4.11 media a camada errada, e a linha era insatisfazível desde antes da tarefa
+
+- **Data:** 2026-08-21
+- **Fase/PR:** Fase 4 (PR 4b). Alcança a primeira linha do bloco DoD da tarefa
+  **T4.11** em `03_plan.md`.
+- **Planejado originalmente:** a primeira linha do DoD da T4.11 exigia que
+  `rtk proxy grep -rl 'aiConfigured' app/lib/modules app/lib/app_shell.dart`
+  não devolvesse nenhum caminho, para provar que o gate mora no router e no item
+  de menu, nunca no corpo de página.
+- **Por que não foi possível prosseguir:** o comando varre `app/lib/modules`
+  inteiro e não distingue o identificador usado como condição de gate do campo
+  nomeado na construção da entidade. `UserCapabilities` nasceu com o campo
+  obrigatório `aiConfigured` em `b16b89d`, e a implementação que o instancia,
+  `app/lib/modules/settings_module/data/repositories/capabilities_source_impl.dart`,
+  é da **T4.9** (`09b76b2`) — as duas anteriores à T4.11. A checagem já era falsa
+  antes de a tarefa começar, e nenhuma implementação dela poderia satisfazê-la
+  sem renomear o campo do domínio, o que está fora do escopo declarado.
+- **Alternativas consideradas:** (a) renomear o campo do domínio para escapar do
+  grep — trabalho fora de escopo, e piora o nome para satisfazer uma medição;
+  (b) aceitar a linha como exceção conhecida na leitura de intenção — deixa o
+  DoD mentindo para quem o ler depois, e o `supervisor-dod` é cego ao plano;
+  (c) corrigir o escopo do comando para a camada que a linha sempre quis medir.
+- **Decisão tomada:** (c). O `supervisor-dod` devolveu `DOD INVÁLIDO` nessa linha
+  e `CUMPRIDO` nas outras cinco; o orquestrador corrigiu a **forma** do critério
+  por conta própria, saída (1) da regra de `DOD INVÁLIDO` do `CLAUDE.md`, porque
+  a intenção estava declarada na própria linha e a correção não muda a exigência.
+- **Resumo da resolução:** a varredura passou a ser
+  `rtk proxy grep -rl 'aiConfigured' app/lib/modules/*/presentation app/lib/app_shell.dart`,
+  e a linha explica por que a camada `data` fica de fora — a construção da
+  entidade é a origem do dado, não um gate. A exigência continua a mesma: gate
+  em página reprova.
+- **Reconciliação documental:** `03_plan.md`, primeira linha do bloco DoD da
+  **T4.11**. Nada em `01_prd.md` ou `02_specs.md` muda — o desvio é do critério
+  de prova, não do comportamento prometido.
+
+### CHG-022 - A stack local nunca tinha executado `ai-credentials` de verdade, e faltava a chave que a `service_role` do handler exige
+
+- **Data:** 2026-08-21
+- **Fase/PR:** Fase 4 (PR 4b). Alcança a tarefa **T4.14** e
+  `infra/local/docker-compose.yml`.
+- **Planejado originalmente:** a **T4.14** provaria o isolamento entre dois
+  usuários rodando `curl` e `psql` contra a stack de `scripts/local-supabase.sh
+  up`, sem tocar infraestrutura — a T4.4, que criou a função `ai-credentials`,
+  já estava com `DoD: CUMPRIDO` e a função tinha teste `deno test` verde.
+- **Por que não foi possível prosseguir:** `supabase/functions/ai-credentials/
+  handler.ts` lê `Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')` para o passo 2 do
+  desenho de dois passos (decifrar via `service_role` só depois de a RLS
+  resolver o `secret_ref` pelo passo 1). O bloco `functions:` de
+  `infra/local/docker-compose.yml` nunca ganhou essa variável — só
+  `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_JWT_SECRET` e
+  `SUPABASE_DB_URL`. O teste `deno test` da T4.4 passava porque stuba o
+  ambiente por completo (`AMBIENTE_COMPLETO` em `handler_test.ts`); contra a
+  stack local de verdade, `action: save` respondia `500
+  {"error":{"code":"internal_error","message":"configuração do servidor
+  ausente"}}` — sem credencial de A criada, a prova central da T4.14 (a
+  chamada `test` de B contra o `credential_id` de A) não tinha o que testar.
+- **Alternativas consideradas:** (a) provar o isolamento só via PostgREST e
+  `psql`, pulando a Edge Function — descartada porque o DoD da T4.14 pede
+  explicitamente a chamada `action: test` contra a função, que é metade do
+  desenho de dois passos que a **FD-006** documenta; (b) mudar o handler para
+  aceitar um nome de variável diferente — descartada porque moveria o defeito
+  do compose local para o código, sem razão; (c) acrescentar a variável que
+  falta ao serviço `functions` do compose local, com o mesmo JWT de
+  `service_role` já usado em texto plano pelos serviços `storage` e `studio`
+  do mesmo arquivo — nenhum segredo novo, só a variável que faltava.
+- **Decisão tomada:** (c) — `especialista-infra`/`qa` executa, decisão
+  reversível de infra local registrada aqui em vez de levada ao humano (regra
+  de "decida sozinho" do `CLAUDE.md` para o que é aditivo e reversível dentro
+  da stack local).
+- **Resumo da resolução:** `infra/local/docker-compose.yml` ganha
+  `SUPABASE_SERVICE_ROLE_KEY` no bloco `functions:`, com o mesmo valor que
+  `SERVICE_KEY`/`SUPABASE_SERVICE_KEY` já usam em `storage` e `studio` no
+  mesmo arquivo. Depois de `docker compose -f infra/local/docker-compose.yml
+  up -d functions`, `action: save` passou a responder `201` e a T4.14 rodou a
+  prova completa; evidência em
+  `docs/002_conta_e_configuracoes/provas/isolamento_credenciais_ia.md`.
+- **Reconciliação documental:** nenhuma em `01_prd.md`/`02_specs.md` — é
+  gap de ambiente local, não de comportamento de produto ou contrato de API.
+  `03_plan.md` não muda: a T4.14 já previa rodar contra a stack local, só não
+  previa que a stack estivesse incompleta para isso.
+
+### CHG-021 - O gate de IA protegia um destino que não era rota, e sem a rota a prova do gate não podia ser escrita
+
+- **Data:** 2026-08-21
+- **Fase/PR:** Fase 4 (PR 4b), onda 6. Alcança a tarefa **T4.11**, o risco **X9**
+  e a tabela de rotas do plano, e a §6 das specs.
+- **Planejado originalmente:** `/chat` ficaria **fora** do conjunto de rotas
+  registradas nesta feature. A tabela de rotas da §3 do `03_plan.md` o listava
+  como "feature seguinte do roadmap", com a coluna de fase vazia, e a §6 das
+  specs não o citava entre as rotas novas. A **T4.11** aplicaria o gate nos três
+  pontos — `redirect`, `refreshListenable` e o item do menu — sobre um caminho
+  que o `redirect` desviava mas que nenhum `GoRoute` atendia.
+- **Por que não foi possível prosseguir:** ao reescrever o bloco DoD da T4.11
+  pela régua do `supervisor-dod`, a linha do item de menu só deixa de ser verde
+  por construção se cobrar o que a tarefa **acrescenta** — o item refletindo o
+  estado real. E o estado real, pelo critério **A8** do `01_prd.md`, é o item
+  **alcançável logo depois** de a chave ser salva. Com `/chat` sem rota, item
+  aceso leva à tela de erro do go_router: exatamente a alternativa "deixar ativo
+  e falhar depois" que o §4 do PRD rejeita por escrito. E há um problema pior que
+  o conflito de produto: **a prova central da tarefa fica inescrevível.** O teste
+  das três transições precisa navegar para `/chat` para asserir que o `redirect`
+  desvia, que depois deixa passar sem navegação manual e que volta a desviar ao
+  apagar a credencial — sem destino registrado, não há o que observar.
+- **Alternativas consideradas:** (a) **registrar `/chat` com tela mínima nesta
+  fase**, reusando o corpo de placeholder que o repositório já tem; (b) **manter
+  o item sempre desabilitado**, trocando apenas o motivo de "chegando em breve"
+  para "configure a IA" — honesto hoje, mas exige emendar o **A8** e o §4 do PRD
+  e deixa o gate sem destino observável; (c) **deixar o buraco** até a feature
+  003, aceitando que o item aceso leve à tela de erro.
+- **Decisão tomada:** (a), pelo orquestrador, sobre recomendação do `tech-lead`,
+  registrada como **FD-033** em [`decisions.md`](decisions.md). Duas razões:
+  custa uma rota e uma página, menos que emendar PRD e specs; e sem a rota o gate
+  não é provável. A rota entra na **T4.11**, que já mexe em
+  `app/lib/app_router.dart` e é do mesmo tecido — **nenhuma tarefa nova**, e a
+  contagem da Fase 4 segue em **13**.
+- **Resumo da resolução:** nasce `app/lib/modules/chat_module/` com barrel,
+  `chat_routes.dart` e uma página mínima; `app/lib/app_router.dart` registra
+  `ChatRoutes.route` **dentro do `ShellRoute`**, como destino de topo que mantém
+  o menu. O corpo de placeholder que era interno do `settings_module` sobe para
+  `app/lib/core/widgets/feedback/placeholder_body.dart`, porque passa a servir
+  dois módulos — é a regra de tier do `CLAUDE.md`, não preferência. A tela desta
+  fase é **placeholder**: a feature 003 a substitui **sem tocar router nem
+  gate**.
+- **Reconciliação documental:**
+  - `docs/002_conta_e_configuracoes/03_plan.md` — §3: a linha `/chat` da tabela
+    de rotas deixa de dizer "feature seguinte do roadmap" e passa a declarar onde
+    a rota mora, a fase **4** e que fica dentro do `ShellRoute`. §5, Fase 4: a
+    linha da **T4.11** cobra a rota junto, e o bloco DoD prova a rota pela
+    própria transição liberada — o teste encontra a página de chat, o que só
+    acontece se a rota existir; a prosa da fase deixa de afirmar que o destino
+    "ainda não tem tela". §7: a célula **X9** reescrita.
+  - `docs/002_conta_e_configuracoes/02_specs.md` — §6.1: `/chat` entra na lista
+    de rotas novas, com a razão. §6.2: a frase do destino protegido passa a
+    descrever também o estado aceso.
+  - `docs/002_conta_e_configuracoes/01_prd.md` — **não muda.** O **A8** continua
+    verdadeiro e passa a ser satisfazível de verdade, e "não há chat ainda"
+    continua verdadeiro, porque tela mínima não é chat.
+  - `docs/002_conta_e_configuracoes/decisions.md` — nasce a **FD-033**.
+
+### CHG-020 - A premissa da chave-mestra do Vault era inferência, e a medição a inverteu
+
+- **Data:** 2026-08-21
+- **Fase/PR:** Fase 4 (PR 4b), depois da onda 1. Alcança a pendência **P12**, os
+  riscos **X5** e **X16** do plano, o **X4** e o bloqueio **B4** das specs, e a
+  linha do DoD da Fase 4 que citava a consequência.
+- **Planejado originalmente:** o plano afirmava que a chave-mestra do `pgsodium`
+  — com a qual o `supabase_vault` cifra todo segredo — vivia em
+  `/etc/postgresql-custom/pgsodium_root.key` **na camada gravável do contêiner**,
+  também em produção, e que recriar o Postgres tornaria todo segredo do Vault
+  ciphertext permanentemente indecifrável. Daí saíam três coisas: a pendência
+  humana **P12** ("montar a chave em volume muda estado de serviço da VPS
+  compartilhada e depende de autorização do humano"), os riscos **X5** e **X16**,
+  e uma linha no **DoD da Fase 4** exigindo que `decisions.md` registrasse a
+  consequência **"nenhuma chave real de IA é salva em produção enquanto a P12 não
+  fechar"**. O `01_prd.md` repetia a mesma consequência como restrição de produto,
+  e o `02_specs.md` a repetia como bloqueio **B4** e risco **X4**.
+- **Por que não foi possível prosseguir:** a premissa **nunca foi medida**. Ela
+  saiu da leitura de `infra/local/docker-compose.yml`, que monta só
+  `db-data:/var/lib/postgresql/data`, mais a suposição não verificada de que "a
+  stack de produção nasceu do mesmo desenho". A **T4.3** foi ao servidor em
+  21/08/2026, com comandos **só de leitura**, e mediu o contrário: a chave está
+  dentro do volume nomeado `lqsjrqqs6r8rnggbvwpi4nuf_supabase-db-config`, montado
+  em `/etc/postgresql-custom`, e **recriar o contêiner `supabase-db` não a
+  destrói**. Executor e supervisor conferiram de forma independente, cada um na
+  VPS. As saídas de `ls -l` e de `docker inspect` estão coladas em
+  `docs/deploy/coolify.md`, seção "Chave-mestra do Vault (`pgsodium`) — recriar
+  `supabase-db` não a destrói"; a decisão está em
+  [`decisions.md`](decisions.md), **FD-032**. Com isso, três documentos passaram a
+  afirmar por escrito um fato falso, e uma pendência humana passou a pedir
+  autorização para um trabalho já feito.
+- **Alternativas consideradas:** (a) **manter a restrição "nenhuma chave real em
+  produção" por precaução**, trocando de justificativa — recusada: restrição sem
+  motivo escrito é superstição operacional, e a próxima pessoa a lê como se
+  ainda houvesse um risco medido por trás; se nenhum motivo a sustenta, ela sai,
+  e o que fica no lugar são as **condições que a reabrem**, nomeadas; (b)
+  **converter a P12 em outra pendência humana**, agora sobre "não remover o
+  volume" — recusada: isso já está coberto pela regra geral de não executar ação
+  destrutiva na VPS compartilhada sem ordem do humano, e restrição permanente de
+  operação não é pendência aberta, é regra; (c) **riscar X5 e X16 e seguir** —
+  recusada: apagaria a procedência, e a procedência é o que impede a mesma
+  inferência de ser refeita; (d) **reescrever X5/X16/P12 preservando o que se
+  supunha, o que foi medido e quando, fechar a P12 e transformar o resíduo real
+  numa tarefa** — escolhida.
+- **Decisão tomada:** (d), pelo `tech-lead`, com o fato medido registrado como
+  **FD-032** pela T4.3. A **P12 fecha em 21/08/2026 por medição, não por
+  autorização** — não sobrou pedido ao humano, porque o volume que faltaria já
+  existe e a única mudança restante é no repositório. A restrição **"nenhuma
+  chave real de IA é salva em produção" deixa de valer** e sai do DoD da Fase 4:
+  conferiu-se motivo por motivo e nenhum outro a sustenta — a fase seguir se
+  provando contra a stack local é sequência de trabalho, não proibição; e a
+  ausência de backup (**D4**) não a segura, porque o pior caso de perder o volume
+  é cada pessoa salvar a chave de novo, já que chave de IA se reobtém no
+  provedor, ao contrário de dado financeiro.
+- **Resumo da resolução:** **X5 muda de sujeito, não some** — deixa de ser "a
+  chave-mestra não está em volume" e passa a ser "**a stack local diverge da de
+  produção**", que é o que sobrou de verdadeiro: em
+  `infra/local/docker-compose.yml` o modo de falha existe de fato, e enquanto os
+  dois desenhos divergirem a próxima medição feita ali volta a ser lida como
+  verdade sobre produção. **X16 registra a queda do bloqueio** e guarda as **duas
+  condições que o reabrem**, ambas não testadas porque testá-las mudaria estado
+  de serviço compartilhado: remover o volume
+  `lqsjrqqs6r8rnggbvwpi4nuf_supabase-db-config` (`docker compose down -v` ou
+  `docker volume rm`) e um redeploy do Coolify que recrie a stack sem preservá-lo.
+  Se qualquer uma ocorrer, os segredos existentes param de abrir e a tela de IA
+  cai no estado de falha do cubit da **T4.10**, com o caminho de volta sendo
+  salvar a chave outra vez. **O remendo agora é o inverso do que o plano previa**
+  — nada a aplicar em produção, e sim replicar
+  `supabase-db-config:/etc/postgresql-custom` na stack local: virou a tarefa
+  **T4.15**, mudança só no repositório, sem tocar a VPS e sem autorização a pedir.
+  Ela fica na **onda 5** porque **T4.2** e **T4.14** provam contra a stack local e
+  mexer no compose durante essas provas as invalidaria — a restrição é a stack
+  compartilhada, não o arquivo. **Esta entrada não implementa a T4.15.**
+  **O bloco de DoD da T4.3 fica como está**, com o veredito `CUMPRIDO`
+  preservado: as suas linhas são condicionais ("enquanto a chave não estiver em
+  volume…", "se a chave não estiver em volume…") e continuam verdadeiras como
+  condicionais; reescrever bloco já julgado seria reescrever o registro.
+- **Reconciliação documental:**
+  - `docs/002_conta_e_configuracoes/03_plan.md` — §1: **P12** reescrita e
+    **fechada**, com o que se supunha, o que foi medido e quando; a linha "duas
+    delas já caíram" vira "três". §5, Fase 4: nasce a tarefa **T4.15** com bloco
+    DoD, a tabela de **Ondas de execução** ganha a T4.15 na onda 5 marcada
+    `[paralela]`, a linha do DoD da fase que citava a consequência antiga é
+    reescrita para o que a **FD-032** de fato registra, e a contagem da fase vai
+    de **12 para 13** tarefas (na linha do DoD, na §8 e no total da feature, que
+    vai de 64 para 65). §7: a prosa de abertura e as células **X5** e **X16**
+    reescritas.
+  - `docs/002_conta_e_configuracoes/02_specs.md` — §10: **B4** marcada resolvida
+    por medição. §11: **X4** reescrito como divergência entre stacks.
+  - `docs/002_conta_e_configuracoes/01_prd.md` — §11: o item da chave-mestra
+    reescrito, com a restrição de produto removida e a procedência preservada.
+    **Arquivo de fatia do `product-manager`, editado aqui por pedido explícito do
+    orquestrador** por conter afirmação factual que ficou falsa.
+  - `docs/002_conta_e_configuracoes/decisions.md` — a **FD-018** ("nenhuma chave
+    real de IA é salva em produção enquanto a chave-mestra do cofre não estiver em
+    volume") estava viva na tabela de decisões vigentes afirmando a premissa
+    invertida, e nenhum documento a marcava: fica **riscada e revogada pela
+    FD-032**, preservada em vez de removida porque o plano e esta entrada a citam
+    como a premissa que caiu. A **FD-032**, escrita pela T4.3, não é alterada.
+  - `docs/deploy/coolify.md` — a seção da chave-mestra, escrita pela T4.3, não é
+    alterada por esta entrada; ela é a fonte da medição. A frase dela que anuncia
+    o remendo local como pendente sai quando a **T4.15** for executada, e isso é
+    linha do DoD da T4.15.
+
 ### CHG-019 - O E2E sai de escopo, e o lote de fechamento perde a razão de existir
 
 - **Data:** 2026-08-20

@@ -13,8 +13,12 @@ import 'package:ganza/modules/auth_module/auth_module.dart';
 import 'package:ganza/modules/auth_module/domain/usecases/change_password.dart';
 import 'package:ganza/modules/auth_module/presentation/change_password/change_password_cubit.dart';
 import 'package:ganza/modules/auth_module/presentation/change_password/change_password_page.dart';
+import 'package:ganza/core/error/failure.dart';
+import 'package:ganza/core/widgets/forms/secret_field.dart';
 import 'package:ganza/modules/settings_module/domain/domain.dart';
 import 'package:ganza/modules/settings_module/presentation/account/account_cubit.dart';
+import 'package:ganza/modules/settings_module/presentation/ai/ai_settings_cubit.dart';
+import 'package:ganza/modules/settings_module/presentation/ai/settings_ai_page.dart';
 import 'package:ganza/modules/settings_module/settings_module.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mocktail/mocktail.dart';
@@ -31,7 +35,25 @@ class _MockUpdateDisplayName extends Mock implements UpdateDisplayName {}
 
 class _MockChangePassword extends Mock implements ChangePassword {}
 
+class _MockGetAiProviderKinds extends Mock implements GetAiProviderKinds {}
+
+class _MockGetAiCredential extends Mock implements GetAiCredential {}
+
+class _MockSaveAiCredential extends Mock implements SaveAiCredential {}
+
+class _FakeCapabilitiesSource implements CapabilitiesSource {
+  _FakeCapabilitiesSource({required this.aiConfigured});
+
+  final bool aiConfigured;
+
+  @override
+  Future<Either<Failure, UserCapabilities>> load() async =>
+      Right(UserCapabilities(aiConfigured: aiConfigured, bankConnected: false));
+}
+
 void main() {
+  late bool aiConfigured;
+
   setUp(() {
     final observeCurrentUser = _MockObserveCurrentUser();
     final getCurrentUser = _MockGetCurrentUser();
@@ -60,6 +82,13 @@ void main() {
 
     final changePassword = _MockChangePassword();
 
+    aiConfigured = false;
+    final getProviderKinds = _MockGetAiProviderKinds();
+    final getCredential = _MockGetAiCredential();
+    final saveCredential = _MockSaveAiCredential();
+    when(() => getProviderKinds()).thenAnswer((_) async => const Right([]));
+    when(() => getCredential()).thenAnswer((_) async => const Right(null));
+
     getIt
       ..registerLazySingleton<ObserveCurrentUser>(() => observeCurrentUser)
       ..registerLazySingleton<GetCurrentUser>(() => getCurrentUser)
@@ -72,7 +101,22 @@ void main() {
         () => AccountCubit(getIt<GetUserProfile>(), getIt<UpdateDisplayName>()),
       )
       ..registerLazySingleton<ChangePassword>(() => changePassword)
-      ..registerFactory(() => ChangePasswordCubit(getIt<ChangePassword>()));
+      ..registerFactory(() => ChangePasswordCubit(getIt<ChangePassword>()))
+      ..registerLazySingleton<CapabilitiesCubit>(
+        () => CapabilitiesCubit(
+          _FakeCapabilitiesSource(aiConfigured: aiConfigured),
+        )..refresh(),
+      )
+      ..registerLazySingleton<GetAiProviderKinds>(() => getProviderKinds)
+      ..registerLazySingleton<GetAiCredential>(() => getCredential)
+      ..registerLazySingleton<SaveAiCredential>(() => saveCredential)
+      ..registerFactory(
+        () => AiSettingsCubit(
+          getIt<GetAiProviderKinds>(),
+          getIt<GetAiCredential>(),
+          getIt<SaveAiCredential>(),
+        ),
+      );
   });
 
   tearDown(getIt.reset);
@@ -145,4 +189,56 @@ void main() {
       );
     },
   );
+
+  testWidgets('com a IA não configurada, drawer > Configurações > IA chega '
+      'utilizável a /configuracoes/ia', (tester) async {
+    aiConfigured = false;
+    final router = createRouter();
+    await tester.pumpWidget(envolver(router));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('Abrir menu'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Configurações'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('IA'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(SettingsAiPage), findsOneWidget);
+    expect(find.byType(SecretField), findsOneWidget);
+    expect(
+      GoRouterState.of(
+        tester.element(find.byType(SettingsAiPage)),
+      ).uri.toString(),
+      SettingsRoutes.aiFullPath,
+    );
+  });
+
+  testWidgets('com a IA já configurada, drawer > Configurações > IA chega '
+      'utilizável a /configuracoes/ia', (tester) async {
+    aiConfigured = true;
+    final router = createRouter();
+    await tester.pumpWidget(envolver(router));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('Abrir menu'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Configurações'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('IA'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(SettingsAiPage), findsOneWidget);
+    expect(find.byType(SecretField), findsOneWidget);
+    expect(
+      GoRouterState.of(
+        tester.element(find.byType(SettingsAiPage)),
+      ).uri.toString(),
+      SettingsRoutes.aiFullPath,
+    );
+  });
 }

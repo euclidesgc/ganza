@@ -1,10 +1,12 @@
 # RETOMADA
 
-- **Item em curso**: 002 - Conta, configurações e chaves do usuário — Fase 3 (Perfil do usuário) implementada e consolidada, PR 3b pronto para fechar
-- **Branch / PR**: `feature/GZ-27-perfil-do-usuario` → `develop`, PR #30 aberto — CI **verde** (todos os checks SUCCESS/SKIPPED, conferido agora via `gh pr view 30 --json statusCheckRollup`)
-- **Último gate/veredito**: as 10 tarefas da Fase 3 com `**DoD: CUMPRIDO**` e o DoD da fase **9/9 marcado** em `docs/002_conta_e_configuracoes/03_plan.md`
-- **Primeira ação da retomada**: mergear o PR #30 (decisão do humano) e iniciar a Fase 4
-- **Depois**: Fase 4 — Configuração de IA e o gating (`docs/002_conta_e_configuracoes/03_plan.md`, seção "Fase 4"), pelas ondas já escritas no plano
-- **Pendências do humano**: nenhuma bloqueante conhecida no momento
-- **Harness**: reforma de agentes/skills aplicada (D35 em `docs/decisions.md`) — `auditor-de-criterios`, protocolo de execução nos agentes, `checkpoint` automatizado (D36); E2E suspenso por completo (D34)
-- **Ponteiros**: `docs/002_conta_e_configuracoes/03_plan.md` · `decisions.md` · `changes.md` · `docs/decisions.md` (D30, D32, D34, D35, D36)
+- **Item em curso**: 002 - Conta, configurações e chaves do usuário — **Fase 4 fechada**, 13 de 13 tarefas `CUMPRIDO` e DoD da fase verificado rodando pela skill `fechar-etapa`.
+- **Branch / PR**: pilha `gh stack` #33 sobre `develop` — **PR #31** (`feature/GZ-28-schema-credenciais-de-ia`, as duas migrations) embaixo e **PR #32** (`feature/GZ-29-configuracao-de-ia`) no topo. Ambos abertos, fora de rascunho, **CI verde** nos jobs que se aplicam a cada um (os demais pulam por paths-filter, o que é o comportamento correto).
+- **Último gate/veredito**: `fechar-etapa` deu **FAIL** na primeira passada (DoD da fase medindo a camada errada, `CLAUDE.md` sem a D24, `CHANGELOG.md` sem a Fase 4) e **PASS** depois das correções. CISO deu **PASS** no estouro do GitGuardian: falso positivo nos três achados, nada a rotacionar.
+- **Primeira ação da retomada**: `gh pr view 32 --json state` — **se ainda estiver `OPEN`, o merge é do humano e nada da Fase 5 começa** (1 fase = 1 PR). Mergear o #32 leva o #31 junto, numa operação só; não mergeie os dois separadamente.
+- **Depois**: com a pilha mergeada, abrir a **Fase 5 — Integração bancária** (`03_plan.md:1404`), que começa com **T5.1** e **T5.2** marcadas `[paralela · worktree]`.
+- **Pendências do humano**: **uma, e ela bloqueia a T5.2** — o par Client ID/Secret da **Pluggy** precisa ser criado na conta dele e registrado como env do Coolify e da stack local. As demais tarefas da Fase 5 não dependem disso.
+- **Decisões desta fase**: **D24** em `docs/decisions.md` — credencial do projeto e credencial do usuário são coisas diferentes, e o invariante 4 do `CLAUDE.md` passou a carregar a distinção. **CHG-023/024/025** corrigiram a régua do DoD, sendo a **025 um endurecimento** (a varredura voltou a cobrir `app/lib` inteiro). A linha que exigia CI verde nos PRs saiu do DoD e virou nota de ritual — era circular, o gate roda antes de os PRs existirem.
+- **Armadilhas de ambiente já pagas** (repassar a todo executor): heredoc para `docker exec -i psql` chega **vazio** e sai `exit 0` sem executar; `git log` cru mostra parentesco errado em worktree, use `rtk proxy git`; Postgres de outro projeto ocupa a **5432**, o do ganza vai por `docker compose -f infra/local/docker-compose.yml exec -T db`; `flutter test -r compact` usa `\r`, então `| tail` não corta — passe por `tr '\r' '\n'` antes; **`/clear` não mata sub-agente vivo**, e worktree "preservado — sujo" pode estar sujo porque alguém ainda escreve nele: cheque processo e topo da branch antes de redespachar.
+- **GitGuardian**: achado se resolve **no dashboard**, nunca no `.gitguardian.yaml` — o check vem do GitHub App e o arquivo versionado só é lido pelo `ggshield` CLI, que não roda no CI (**P7** em `docs/decisions.md`).
+- **Ponteiros**: `docs/002_conta_e_configuracoes/03_plan.md` (Fase 5 a partir da linha 1404) · `decisions.md` e `changes.md` da feature · `docs/decisions.md` (**D24**, **P7**) · corpo dos PRs #31 e #32 (DoD verificado linha a linha).

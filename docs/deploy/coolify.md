@@ -77,6 +77,36 @@ Geradas pelo Coolify e visíveis em `GET /api/v1/services/{uuid}/envs`. **Nunca 
 - `SERVICE_SUPABASESERVICE_KEY` — a **service_role**. Chega pronta ao runtime das functions; **nunca** ao app. Se aparecer no cliente ou numa variável de build do front, é incidente.
 - `SERVICE_PASSWORD_POSTGRES`, `SERVICE_PASSWORD_JWT`, `SERVICE_USER_ADMIN`/`SERVICE_PASSWORD_ADMIN` (login do Studio).
 
+### Chave-mestra do Vault (`pgsodium`) — recriar `supabase-db` não a destrói
+
+**Medido em 21/08/2026, direto no contêiner de produção: recriar `supabase-db` não destrói a chave-mestra do Vault, porque `/etc/postgresql-custom` já é um volume nomeado, não a camada gravável do contêiner.**
+
+Saída literal, dentro do contêiner (`supabase-db-lqsjrqqs6r8rnggbvwpi4nuf`):
+
+```
+$ sudo docker exec supabase-db-lqsjrqqs6r8rnggbvwpi4nuf ls -l /etc/postgresql-custom/pgsodium_root.key
+-rw------- 1 postgres postgres 64 Aug 16 19:30 /etc/postgresql-custom/pgsodium_root.key
+```
+
+Saída literal do `docker inspect` sobre o mesmo contêiner:
+
+```
+$ sudo docker inspect --format '{{json .Mounts}}' supabase-db-lqsjrqqs6r8rnggbvwpi4nuf
+[{"Type":"volume","Name":"lqsjrqqs6r8rnggbvwpi4nuf_supabase-db-data","Source":"/var/lib/docker/volumes/lqsjrqqs6r8rnggbvwpi4nuf_supabase-db-data/_data","Destination":"/var/lib/postgresql/data","Driver":"local","Mode":"rw","RW":true,"Propagation":""},
+ {"Type":"bind","Source":"/data/coolify/services/lqsjrqqs6r8rnggbvwpi4nuf/volumes/db/pooler.sql","Destination":"/docker-entrypoint-initdb.d/migrations/99-pooler.sql","Mode":"rw","RW":true,"Propagation":"rprivate"},
+ {"Type":"volume","Name":"lqsjrqqs6r8rnggbvwpi4nuf_supabase-db-config","Source":"/var/lib/docker/volumes/lqsjrqqs6r8rnggbvwpi4nuf_supabase-db-config/_data","Destination":"/etc/postgresql-custom","Driver":"local","Mode":"rw","RW":true,"Propagation":""},
+ {"Type":"bind","Source":"/data/coolify/services/lqsjrqqs6r8rnggbvwpi4nuf/volumes/db/webhooks.sql","Destination":"/docker-entrypoint-initdb.d/init-scripts/98-webhooks.sql","Mode":"rw","RW":true,"Propagation":"rprivate"},
+ {"Type":"bind","Source":"/data/coolify/services/lqsjrqqs6r8rnggbvwpi4nuf/volumes/db/roles.sql","Destination":"/docker-entrypoint-initdb.d/init-scripts/99-roles.sql","Mode":"rw","RW":true,"Propagation":"rprivate"},
+ {"Type":"bind","Source":"/data/coolify/services/lqsjrqqs6r8rnggbvwpi4nuf/volumes/db/logs.sql","Destination":"/docker-entrypoint-initdb.d/migrations/99-logs.sql","Mode":"rw","RW":true,"Propagation":"rprivate"},
+ {"Type":"bind","Source":"/data/coolify/services/lqsjrqqs6r8rnggbvwpi4nuf/volumes/db/_supabase.sql","Destination":"/docker-entrypoint-initdb.d/migrations/97-_supabase.sql","Mode":"rw","RW":true,"Propagation":"rprivate"},
+ {"Type":"bind","Source":"/data/coolify/services/lqsjrqqs6r8rnggbvwpi4nuf/volumes/db/jwt.sql","Destination":"/docker-entrypoint-initdb.d/init-scripts/99-jwt.sql","Mode":"rw","RW":true,"Propagation":"rprivate"},
+ {"Type":"bind","Source":"/data/coolify/services/lqsjrqqs6r8rnggbvwpi4nuf/volumes/db/realtime.sql","Destination":"/docker-entrypoint-initdb.d/migrations/99-realtime.sql","Mode":"rw","RW":true,"Propagation":"rprivate"}]
+```
+
+**Cruzando as duas saídas:** a chave-mestra mora em `/etc/postgresql-custom/pgsodium_root.key`. Entre os `Destination` do `docker inspect`, um é exatamente `/etc/postgresql-custom` — tipo `volume`, nome `lqsjrqqs6r8rnggbvwpi4nuf_supabase-db-config`, `RW: true`. Esse `Destination` cobre o diretório inteiro onde `pgsodium_root.key` está, então o arquivo mora dentro do volume, não na camada gravável do contêiner. Os demais `Destination` são `bind` de scripts de init (`*.sql`) ou o volume de dados (`/var/lib/postgresql/data`) — nenhum concorre com esse caminho. **Recriar o contêiner (`--force-recreate`, ou um redeploy do Coolify que recrie só o contêiner) preserva a chave**, porque volume nomeado não é apagado por recriação de contêiner — só por `docker compose down -v` ou `docker volume rm` do volume específico, ações já vetadas nesta VPS compartilhada sem autorização do humano.
+
+**Isto inverteu o risco X5/X16 de `docs/002_conta_e_configuracoes/03_plan.md` e a pendência P12.** Os dois foram escritos a partir da leitura de `infra/local/docker-compose.yml` de antes da T4.15, quando o serviço `db` local montava **apenas** `db-data:/var/lib/postgresql/data` — e assumiram, sem medir, que "a stack de produção nasceu do mesmo desenho". A produção nunca teve esse desenho: ela já tinha o volume `supabase-db-config` cobrindo `/etc/postgresql-custom` (`sudo docker volume ls` confirma `lqsjrqqs6r8rnggbvwpi4nuf_supabase-db-config` ao lado de `lqsjrqqs6r8rnggbvwpi4nuf_supabase-db-data`). **Não houve remendo de compose a aplicar em produção** — o volume já existia lá. A T4.15 aplicou o remendo no lugar certo, o repositório: `infra/local/docker-compose.yml` passou a montar `supabase-db-config:/etc/postgresql-custom` no serviço `db`, ao lado de `db-data:/var/lib/postgresql/data`, e a stack local agora reflete o mesmo desenho da VPS nesse ponto.
+
 ## Edge Functions
 
 A lógica de servidor roda no `supabase-edge-functions`, dentro da própria stack (decisão **D10** do roadmap). Não há aplicação separada no Coolify.

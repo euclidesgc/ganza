@@ -2,6 +2,7 @@
 // despacha para a pasta correspondente. É o padrão do Supabase self-hosted —
 // sem ele, cada função precisaria de um worker próprio.
 import { STATUS_CODE } from '@std/http/status';
+import { envVarsFor } from './env.ts';
 
 const JWT_SECRET = Deno.env.get('SUPABASE_JWT_SECRET') ?? Deno.env.get('JWT_SECRET');
 const VERIFY_JWT = Deno.env.get('VERIFY_JWT') === 'true';
@@ -39,13 +40,13 @@ Deno.serve(async (req: Request) => {
       memoryLimitMb: 150,
       workerTimeoutMs: 60_000,
       noModuleCache: false,
-      envVars: [
-        ['SUPABASE_URL', Deno.env.get('SUPABASE_URL') ?? ''],
-        ['SUPABASE_ANON_KEY', Deno.env.get('SUPABASE_ANON_KEY') ?? ''],
-        ['SUPABASE_SERVICE_ROLE_KEY', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''],
-        ['SUPABASE_DB_URL', Deno.env.get('SUPABASE_DB_URL') ?? ''],
-        ['SUPABASE_JWT_SECRET', JWT_SECRET ?? ''],
-      ],
+      envVars: envVarsFor(nome, {
+        SUPABASE_URL: Deno.env.get('SUPABASE_URL'),
+        SUPABASE_ANON_KEY: Deno.env.get('SUPABASE_ANON_KEY'),
+        SUPABASE_SERVICE_ROLE_KEY: Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'),
+        SUPABASE_DB_URL: Deno.env.get('SUPABASE_DB_URL'),
+        SUPABASE_JWT_SECRET: JWT_SECRET,
+      }),
     });
 
     return await worker.fetch(req);
