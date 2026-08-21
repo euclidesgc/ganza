@@ -7,6 +7,47 @@ estado final, sem preservar neles uma versão obsoleta do planejamento.
 
 ## Mudanças registradas
 
+### CHG-036 - Três linhas do DoD da T5.2 apontavam para um host que não existe, mandavam mutar ambiente compartilhado e pediam julgamento subjetivo
+
+- **Data:** 2026-08-21
+- **Fase/PR:** Fase 5 (PR 5b). Alcança a terceira, a quarta e a quinta linha do
+  bloco DoD da **T5.2** em `03_plan.md`, antes de a tarefa ser despachada.
+- **Planejado originalmente:** a terceira linha pedia "um `curl` de emissão de
+  token contra a **sandbox** da Pluggy a partir da stack local" devolvendo
+  `200`; a quarta mandava provar o `503` **retirando as variáveis** e colando o
+  que voltou; a quinta pedia reler `docs/deploy/coolify.md` inteiro e conferir
+  que "nenhuma frase vizinha ficou falsa".
+- **Por que não foi possível prosseguir:** o `auditor-de-criterios` reprovou as
+  três. A Pluggy **não tem host de sandbox**: `api.pluggy.ai` atende os dois
+  modos e "sandbox" é escolha de conector, então a palavra não materializa
+  destino nenhum; e "a partir da stack local" não dizia se era do host ou de
+  dentro do contêiner, que provam coisas diferentes — medido depois: o contêiner
+  `functions` **não tem `curl`**, então a variante de dentro dele era
+  impossível de qualquer forma. A quarta linha mandava mutar o projeto Docker
+  `ganza-local`, que é **único e compartilhado pelos três worktrees**, sem
+  variante isolada nem restauração garantida — medição que derruba o ambiente
+  alheio. A quinta não tinha comando: era releitura de 14,5 KB com julgamento
+  aberto sobre o que conta como contradição.
+- **Alternativas consideradas:** (a) montar um segundo projeto Compose
+  descartável só para provar o `503` — caro e desnecessário, porque a prova já
+  existe em teste; (b) instalar `curl` na imagem de functions só para satisfazer
+  a linha — mudar a imagem para agradar a um critério é a cauda balançando o
+  cachorro.
+- **Decisão:** a terceira linha virou **duas** provas separadas, porque são
+  fatos distintos — `docker compose ... exec -T functions sh -c 'test -n
+  "$PLUGGY_CLIENT_ID" && ...'` imprimindo `presentes` mostra que a variável
+  chega ao serviço, e um `curl` do host, lendo `infra/local/.env`, com
+  `-o /dev/null -w '%{http_code}'`, mostra que o par é válido; nenhuma das duas
+  imprime valor, e a segunda nunca mostra o corpo, que traz a `apiKey`. A quarta
+  passou a se apoiar no teste que a **T5.3 já escreveu** — `503
+  missing_configuration` em `supabase/functions/bank-connections/handler_test.ts`,
+  linha 179 —, rodado por `deno test --filter '503'`, e passou a **proibir
+  explicitamente** a mutação da stack. A quinta virou mecânica:
+  `git diff --numstat -- docs/deploy/coolify.md` com `0` removidas.
+- **Resumo:** o bloco continua com cinco linhas. Nenhuma exigência caiu: a de
+  configuração válida ficou mais precisa, a do `503` ficou mais forte (teste no
+  lugar de print manual) e a de não invalidar o documento ficou conferível.
+
 ### CHG-035 - A varredura de segredo do DoD casava o próprio texto do critério e o arquivo de env ignorado, sendo insatisfazível dos dois jeitos
 
 - **Data:** 2026-08-21
