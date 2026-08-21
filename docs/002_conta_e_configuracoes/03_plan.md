@@ -1181,7 +1181,7 @@ duas migrations são do mesmo agente em fila — `0008` depende de `0007` existi
   - `app/lib/core/session/session.dart` exporta os três arquivos novos além do que já exportava, e `rtk proxy grep -n 'CapabilitiesCubit' app/lib/injection.dart` mostra o registro com `registerLazySingleton`, não `registerFactory`: router e drawer precisam da **mesma** instância, senão o gate e o menu discordam.
   - Da raiz do repositório, `cd app && dart format --output=none --set-exit-if-changed lib test && flutter analyze lib/core` termina com código de saída `0` — um único encadeamento, os dois comandos rodando de dentro de `app/` — e `bash scripts/gates_guard.sh; echo $?`, da raiz, imprime `0`.
 
-- [ ] **T4.7** `[paralela · frente C · worktree]` — Criar `app/lib/core/widgets/forms/secret_field.dart` com barrel `forms.dart` e export em `app/lib/core/widgets/widgets.dart`. · camada **core/presentation** · `especialista-apresentacao`
+- [x] **T4.7** `[paralela · frente C · worktree]` — Criar `app/lib/core/widgets/forms/secret_field.dart` com barrel `forms.dart` e export em `app/lib/core/widgets/widgets.dart`. · camada **core/presentation** · `especialista-apresentacao` · **DoD: CUMPRIDO**
 
   **DoD da tarefa**
   - `app/lib/core/widgets/forms/secret_field.dart` declara um único widget que recebe rótulo, controlador e callbacks **pelo construtor**; `app/lib/core/widgets/forms/forms.dart` o exporta, e `app/lib/core/widgets/widgets.dart` exporta o barrel novo além de `brand/brand.dart`, `navigation/navigation.dart` e `pulse/pulse.dart`: `rtk proxy grep -n 'forms/forms.dart' app/lib/core/widgets/widgets.dart` devolve a linha do export novo.
