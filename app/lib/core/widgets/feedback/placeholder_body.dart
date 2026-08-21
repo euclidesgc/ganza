@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/theme.dart';
+import '../../theme/theme.dart';
 
-class SettingsPlaceholderBody extends StatelessWidget {
-  const SettingsPlaceholderBody({required this.title, super.key});
+class PlaceholderBody extends StatelessWidget {
+  const PlaceholderBody({required this.title, super.key});
 
   final String title;
 

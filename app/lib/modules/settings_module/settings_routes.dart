@@ -15,6 +15,7 @@ abstract final class SettingsRoutes {
 
   static const aiName = 'configuracoes-ia';
   static const aiPath = 'ia';
+  static const aiFullPath = '$path/$aiPath';
 
   static const bankName = 'configuracoes-banco';
   static const bankPath = 'banco';

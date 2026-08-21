@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:ganza/app_router.dart';
+import 'package:ganza/core/error/failure.dart';
 import 'package:ganza/core/session/session.dart';
 import 'package:ganza/core/theme/app_theme.dart';
 import 'package:ganza/injection.dart';
@@ -26,6 +27,12 @@ class _MockGetAiProviderKinds extends Mock implements GetAiProviderKinds {}
 class _MockGetAiCredential extends Mock implements GetAiCredential {}
 
 class _MockSaveAiCredential extends Mock implements SaveAiCredential {}
+
+class _FakeCapabilitiesSource implements CapabilitiesSource {
+  @override
+  Future<Either<Failure, UserCapabilities>> load() async =>
+      const Right(UserCapabilities.unresolved());
+}
 
 void main() {
   setUp(() {
@@ -73,6 +80,9 @@ void main() {
           getIt<GetAiCredential>(),
           getIt<SaveAiCredential>(),
         ),
+      )
+      ..registerLazySingleton<CapabilitiesCubit>(
+        () => CapabilitiesCubit(_FakeCapabilitiesSource())..refresh(),
       );
   });
 

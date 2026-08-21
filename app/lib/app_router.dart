@@ -9,14 +9,21 @@ import 'core/session/session.dart';
 import 'injection.dart';
 import 'modules/areas_module/areas_module.dart';
 import 'modules/auth_module/auth_module.dart';
+import 'modules/chat_module/chat_module.dart';
 import 'modules/settings_module/settings_module.dart';
 import 'modules/transactions_module/transactions_module.dart';
+
+/// Caminhos que só fazem sentido com IA configurada. O redirect desvia para
+/// a própria tela que remove a barreira — nunca para fora dela.
+const _aiGatedPaths = {ChatRoutes.path};
 
 /// Sem `extra:` em nenhuma rota — ele some no refresh do navegador, e o
 /// mesmo `lib/` serve Android e Web.
 GoRouter createRouter({String initialLocation = AreasRoutes.path}) {
   final sessions = getIt<ObserveCurrentUser>()();
   final recoveryScope = getIt<PasswordRecoveryScope>();
+  final capabilities = getIt<CapabilitiesCubit>();
+  var pendingAiGatedDestination = '';
 
   return GoRouter(
     navigatorKey: rootNavigatorKey,
@@ -24,6 +31,7 @@ GoRouter createRouter({String initialLocation = AreasRoutes.path}) {
     refreshListenable: Listenable.merge([
       _SessionListenable(sessions),
       recoveryScope,
+      _CapabilitiesListenable(capabilities),
     ]),
     redirect: (context, state) {
       final location = state.matchedLocation;
@@ -50,13 +58,33 @@ GoRouter createRouter({String initialLocation = AreasRoutes.path}) {
       if (!signedIn) {
         return publicPaths.contains(location) ? null : AuthRoutes.loginPath;
       }
-      return publicPaths.contains(location) ? AreasRoutes.path : null;
+      if (publicPaths.contains(location)) {
+        return AreasRoutes.path;
+      }
+      final aiConfigured = capabilities.state.capabilities.aiConfigured;
+      if (_aiGatedPaths.contains(location) && !aiConfigured) {
+        pendingAiGatedDestination = location;
+        return SettingsRoutes.aiFullPath;
+      }
+      // O redirect só derruba o usuário para a tela de IA; a volta ao
+      // destino que ele pediu depende de o refreshListenable reavaliar
+      // este mesmo caminho quando a credencial é salva — sem isso ele
+      // fica preso na tela que acabou de preencher.
+      if (pendingAiGatedDestination.isNotEmpty &&
+          location == SettingsRoutes.aiFullPath &&
+          aiConfigured) {
+        final destination = pendingAiGatedDestination;
+        pendingAiGatedDestination = '';
+        return destination;
+      }
+      return null;
     },
     routes: [
       ShellRoute(
         builder: (context, state, child) => AppShell(child: child),
         routes: [
           AreasRoutes.route,
+          ChatRoutes.route,
           SettingsRoutes.route,
           TransactionsRoutes.route,
         ],
@@ -78,6 +106,22 @@ class _SessionListenable extends ChangeNotifier {
   }
 
   late final StreamSubscription<AuthenticatedUser?> _subscription;
+
+  @override
+  void dispose() {
+    unawaited(_subscription.cancel());
+    super.dispose();
+  }
+}
+
+/// Sem isto, salvar a chave de IA não reavalia o `redirect`: o usuário fica
+/// preso na tela que acabou de preencher até navegar manualmente de novo.
+class _CapabilitiesListenable extends ChangeNotifier {
+  _CapabilitiesListenable(CapabilitiesCubit capabilities) {
+    _subscription = capabilities.stream.listen((_) => notifyListeners());
+  }
+
+  late final StreamSubscription<CapabilitiesState> _subscription;
 
   @override
   void dispose() {
