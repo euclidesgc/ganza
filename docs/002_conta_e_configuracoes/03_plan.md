@@ -1028,7 +1028,7 @@ A **T3.11** depende da T3.6 (tela de Conta) e da T3.8 (rota e DI registrados); a
 - [x] Nenhum arquivo de `app/lib` escuta o stream **síncrono** de auth: `rtk proxy grep -rn 'onAuthStateChangeSync' app/lib` não devolve nenhuma linha. É o que sustenta a **FD-031**: a confirmação da senha atual emite `AuthChangeEvent.signedIn`, e a entrega só fica fora da fase de build porque o app consome `onAuthStateChange`, servido por um `ReplaySubject` sem `sync: true`. Trocar de stream reintroduziria o modo de falha que o commit `c278c9f` corrigiu.
 - [x] `docs/002_conta_e_configuracoes/decisions.md` registra, com a razão escrita, que a troca de e-mail fica fora desta feature **por escopo** — nenhuma fase a entrega, e reabri-la é chamada do humano —, e a tela de conta exibe esse motivo em texto visível, com o e-mail somente leitura.
 - [x] `CHANGELOG.md`, seção `Unreleased`, atualizado no mesmo PR.
-- [ ] Jobs "App" e "Banco" verdes no CI.
+- [x] Jobs "App" e "Banco" verdes no CI. — PR 3b (#30): App `pass`; Banco não roda no 3b por paths-filter (sem mudança em `supabase/**`) e foi verde no PR 3a (#29), onde a migration mora.
 
 **O que esta fase não cobra mais, e o que ela ganhou no lugar:** a rodada
 `round_04` deixou de existir com a suspensão do E2E (**D34**; `changes.md`,
