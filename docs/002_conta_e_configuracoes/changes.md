@@ -7,6 +7,51 @@ estado final, sem preservar neles uma versão obsoleta do planejamento.
 
 ## Mudanças registradas
 
+### CHG-024 - O DoD da Fase 4 tinha o mesmo defeito de camada que a CHG-023 corrigiu na T4.11, um nível acima
+
+- **Data:** 2026-08-21
+- **Fase/PR:** Fase 4 (PR 4b). Alcança a quarta linha do bloco **DoD da Fase 4**
+  em `03_plan.md`, verificada pela skill `fechar-etapa`.
+- **Planejado originalmente:** a linha exigia que
+  `rtk proxy grep -rln 'aiConfigured' app/lib` devolvesse exatamente três
+  caminhos — `app/lib/core/session/`, `app/lib/core/widgets/navigation/` e
+  `app/lib/app_router.dart` — e nenhum outro, para provar que o gate mora no
+  router e no item de menu.
+- **Por que não foi possível prosseguir:** rodando o gate `fechar-etapa` hoje, o
+  mesmo comando devolve quatro caminhos, não três. O quarto é
+  `app/lib/modules/settings_module/data/repositories/capabilities_source_impl.dart`,
+  onde a T4.9 constrói `UserCapabilities(aiConfigured: rows.isNotEmpty, ...)` —
+  uso legítimo do campo na camada `data`, a origem do dado, não um gate. É o
+  mesmo defeito que a **CHG-023** já havia corrigido na primeira linha do DoD
+  da T4.11: um grep de camada única sobre `app/lib` inteiro não distingue o
+  identificador usado como condição de gate do identificador usado como
+  parâmetro nomeado na construção da entidade. A linha da Fase 4 herdava a
+  contagem antiga (três) sem herdar a correção de escopo que a T4.11 já tinha
+  recebido, e por isso travou o `fechar-etapa` sem que nada de errado tivesse
+  sido implementado.
+- **Alternativas consideradas:** (a) renomear o campo do domínio ou o parâmetro
+  do construtor para escapar do grep — fora de escopo, e piora o nome só para
+  satisfazer uma medição; (b) tratar a linha como falso positivo conhecido e
+  liberar o `fechar-etapa` manualmente — deixa o critério mentindo para a
+  próxima fase que rodar o mesmo gate; (c) reescrever a linha para separar
+  presença (domínio + item de menu + router) de ausência (camada
+  `presentation` dos módulos e `app_shell.dart`), excluindo explicitamente a
+  construção da entidade em `data`, no mesmo padrão que a CHG-023 já validou.
+- **Decisão tomada:** (c). A exigência não mudou — gate fora do router e do
+  item de menu continua reprovando —, só a medição passou a distinguir camada
+  `data` (origem do dado) de camada `presentation` (gate), coerente com a
+  CHG-023.
+- **Resumo da resolução:** a linha passou a três comandos:
+  `rtk proxy grep -c 'aiConfigured' app/lib/app_router.dart` (imprime `1` ou
+  mais), `rtk proxy grep -rl 'aiConfigured' app/lib/core/session/
+  app/lib/core/widgets/navigation/` (devolve os dois caminhos) e
+  `rtk proxy grep -rl 'aiConfigured' app/lib/modules/*/presentation
+  app/lib/app_shell.dart` (não devolve nenhum caminho). Rodados agora, os três
+  resultados batem com o esperado.
+- **Reconciliação documental:** `03_plan.md`, quarta linha do bloco **DoD da
+  Fase 4**. Nada em `01_prd.md` ou `02_specs.md` muda — o desvio é do critério
+  de prova, não do comportamento prometido.
+
 ### CHG-023 - O DoD da T4.11 media a camada errada, e a linha era insatisfazível desde antes da tarefa
 
 - **Data:** 2026-08-21

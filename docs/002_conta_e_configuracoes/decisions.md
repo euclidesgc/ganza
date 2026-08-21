@@ -64,13 +64,13 @@ sobreposição está escrita na **D28** de `docs/decisions.md`, e o transversal
 sobrepõe o plano quando há conflito (`CLAUDE.md`).
 
 Sobem para `docs/decisions.md` como **transversais**, por valerem além desta
-feature: **FD-001** (muda o produto inteiro) e **FD-002** (muda o
-provisionamento dos ambientes), **ambas já escritas lá** — como **D28** e
-**D26**, respectivamente, em 19/08/2026; e ainda por escrever, quando a fase
-delas chegar, **FD-005** (muda como se lê a invariante 4 do `CLAUDE.md` em toda
-feature futura, id **D24**) e **FD-010** (é a política de defesa de todo o
-pipeline de IA, não só do que nasce aqui, id **D29**). As demais são desta
-feature.
+feature: **FD-001** (muda o produto inteiro), **FD-002** (muda o
+provisionamento dos ambientes) e **FD-005** (muda como se lê a invariante 4 do
+`CLAUDE.md` em toda feature futura), **as três já escritas lá** — como **D28**,
+**D26** e **D24**, respectivamente, em 19/08/2026, 19/08/2026 e 21/08/2026; e
+ainda por escrever, quando a fase dela chegar, **FD-010** (é a política de
+defesa de todo o pipeline de IA, não só do que nasce aqui, id **D29**). As
+demais são desta feature.
 
 A **P9** ("App Password do Gmail e as cinco variáveis de SMTP") **não entra em
 `docs/decisions.md` como pendência aberta**: foi resolvida junto desta fase pela
