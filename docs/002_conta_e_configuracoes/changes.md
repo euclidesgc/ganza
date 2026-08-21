@@ -7,6 +7,41 @@ estado final, sem preservar neles uma versão obsoleta do planejamento.
 
 ## Mudanças registradas
 
+### CHG-023 - O DoD da T4.11 media a camada errada, e a linha era insatisfazível desde antes da tarefa
+
+- **Data:** 2026-08-21
+- **Fase/PR:** Fase 4 (PR 4b). Alcança a primeira linha do bloco DoD da tarefa
+  **T4.11** em `03_plan.md`.
+- **Planejado originalmente:** a primeira linha do DoD da T4.11 exigia que
+  `rtk proxy grep -rl 'aiConfigured' app/lib/modules app/lib/app_shell.dart`
+  não devolvesse nenhum caminho, para provar que o gate mora no router e no item
+  de menu, nunca no corpo de página.
+- **Por que não foi possível prosseguir:** o comando varre `app/lib/modules`
+  inteiro e não distingue o identificador usado como condição de gate do campo
+  nomeado na construção da entidade. `UserCapabilities` nasceu com o campo
+  obrigatório `aiConfigured` em `b16b89d`, e a implementação que o instancia,
+  `app/lib/modules/settings_module/data/repositories/capabilities_source_impl.dart`,
+  é da **T4.9** (`09b76b2`) — as duas anteriores à T4.11. A checagem já era falsa
+  antes de a tarefa começar, e nenhuma implementação dela poderia satisfazê-la
+  sem renomear o campo do domínio, o que está fora do escopo declarado.
+- **Alternativas consideradas:** (a) renomear o campo do domínio para escapar do
+  grep — trabalho fora de escopo, e piora o nome para satisfazer uma medição;
+  (b) aceitar a linha como exceção conhecida na leitura de intenção — deixa o
+  DoD mentindo para quem o ler depois, e o `supervisor-dod` é cego ao plano;
+  (c) corrigir o escopo do comando para a camada que a linha sempre quis medir.
+- **Decisão tomada:** (c). O `supervisor-dod` devolveu `DOD INVÁLIDO` nessa linha
+  e `CUMPRIDO` nas outras cinco; o orquestrador corrigiu a **forma** do critério
+  por conta própria, saída (1) da regra de `DOD INVÁLIDO` do `CLAUDE.md`, porque
+  a intenção estava declarada na própria linha e a correção não muda a exigência.
+- **Resumo da resolução:** a varredura passou a ser
+  `rtk proxy grep -rl 'aiConfigured' app/lib/modules/*/presentation app/lib/app_shell.dart`,
+  e a linha explica por que a camada `data` fica de fora — a construção da
+  entidade é a origem do dado, não um gate. A exigência continua a mesma: gate
+  em página reprova.
+- **Reconciliação documental:** `03_plan.md`, primeira linha do bloco DoD da
+  **T4.11**. Nada em `01_prd.md` ou `02_specs.md` muda — o desvio é do critério
+  de prova, não do comportamento prometido.
+
 ### CHG-022 - A stack local nunca tinha executado `ai-credentials` de verdade, e faltava a chave que a `service_role` do handler exige
 
 - **Data:** 2026-08-21
