@@ -7,6 +7,48 @@ estado final, sem preservar neles uma versão obsoleta do planejamento.
 
 ## Mudanças registradas
 
+### CHG-034 - O DoD da T5.5 exigia zero menções a `pluggy` em `app/lib`, o que um comentário anterior à fase já torna insatisfazível, e o mesmo defeito estava no DoD da Fase 5
+
+- **Data:** 2026-08-21
+- **Fase/PR:** Fase 5 (PR 5b). Alcança cinco das seis linhas do bloco DoD da
+  **T5.5** e a quarta linha do **DoD da Fase 5**, ambas em `03_plan.md`, antes
+  de a tarefa ser despachada.
+- **Planejado originalmente:** a primeira linha da T5.5 e a linha equivalente do
+  DoD da fase exigiam que `rtk proxy grep -rni 'pluggy' app/lib` **não
+  devolvesse nenhuma linha**. A segunda linha pedia que um grep por `false` "não
+  devolva nenhuma linha de valor fixo para essa capacidade". A quarta falava em
+  "o model" sem caminho e sem arquivo de teste. A quinta exigia que só
+  `data/repositories/` tivesse `try`/`catch`. A sexta trazia
+  `flutter analyze lib/modules/settings_module` sem `cd app` próprio.
+- **Por que não foi possível prosseguir:** o `auditor-de-criterios` rodou tudo e
+  reprovou cinco linhas. O grep de `pluggy` devolve **uma** linha hoje —
+  `app/lib/core/network/dio_factory.dart:6`, um comentário que cita Gemini,
+  Pluggy e Google como exemplos de API de terceiro que o app **não** chama.
+  Nenhuma implementação correta desta tarefa zera esse grep, porque a linha
+  ofensora está fora do escopo dela: era vermelho impossível, e o mesmo texto
+  estava no DoD da fase, onde teria travado o `fechar-etapa`. O grep de `false`
+  devolve três linhas hoje, duas delas de comentário, e "de valor fixo para essa
+  capacidade" não é decidível por quem só tem o comando. "O model" não é caminho.
+  E o grep de `catch (` já devolve **só** linhas de `data/repositories/` antes de
+  qualquer arquivo desta tarefa existir — sete delas, de outras features: verde
+  por construção.
+- **Alternativas consideradas:** (a) apagar a menção à Pluggy do comentário de
+  `dio_factory.dart` para o grep zerar — mutila um comentário correto, que
+  explica exatamente o invariante que o critério quer proteger, só para agradar
+  a um padrão mal escolhido; (b) excluir o arquivo do grep com `grep -v` — o
+  critério fica ilegível e some a informação de que a exceção é conhecida.
+- **Decisão:** o critério passa a exigir **exatamente uma** linha, nomeando qual
+  é e por que ela é legítima, mais a exigência de **nenhuma** ocorrência sob
+  `app/lib/modules/settings_module/` — que é onde a tarefa escreve. A mesma
+  correção foi aplicada à linha do DoD da Fase 5. O grep de `false` virou dois
+  comandos mecânicos (`bankConnected:[[:space:]]*false` e `false`), ambos hoje
+  vermelhos. O model e o seu teste ganharam caminho completo. O `catch (` ganhou
+  a segunda metade que exige uma linha no arquivo novo. E o `flutter analyze`
+  ganhou `cd app` próprio.
+- **Resumo:** o bloco continua com seis linhas e nenhuma exigência saiu. Quatro
+  delas passaram a falhar antes da tarefa, que é o que faltava; uma deixou de
+  ser insatisfazível.
+
 ### CHG-033 - O grep de credencial do DoD da T5.3 induziu um rename de constante no código, e o nome resultante precisa de procedência
 
 - **Data:** 2026-08-21
