@@ -72,6 +72,7 @@ services:
     environment:
       SUPABASE_URL: http://kong:8000
       SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlIiwiZXhwIjo0MTAyNDQ0ODAwfQ.d_J3h-niwnX-XrnSujE0e_cZZ0qlybVYqi1dzzBAiGk
+      SUPABASE_SERVICE_ROLE_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIiwiaXNzIjoic3VwYWJhc2UiLCJleHAiOjQxMDI0NDQ4MDB9.ydGRVN9AnmAGxWzlW1sP9Iqx3g_q7xifaK_gF48rUeA
       SUPABASE_JWT_SECRET: local-development-jwt-secret-with-at-least-32-characters
       SUPABASE_DB_URL: postgres://postgres:postgres@db:5432/postgres
       VERIFY_JWT: 'false'

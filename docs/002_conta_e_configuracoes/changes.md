@@ -7,6 +7,52 @@ estado final, sem preservar neles uma versão obsoleta do planejamento.
 
 ## Mudanças registradas
 
+### CHG-022 - A stack local nunca tinha executado `ai-credentials` de verdade, e faltava a chave que a `service_role` do handler exige
+
+- **Data:** 2026-08-21
+- **Fase/PR:** Fase 4 (PR 4b). Alcança a tarefa **T4.14** e
+  `infra/local/docker-compose.yml`.
+- **Planejado originalmente:** a **T4.14** provaria o isolamento entre dois
+  usuários rodando `curl` e `psql` contra a stack de `scripts/local-supabase.sh
+  up`, sem tocar infraestrutura — a T4.4, que criou a função `ai-credentials`,
+  já estava com `DoD: CUMPRIDO` e a função tinha teste `deno test` verde.
+- **Por que não foi possível prosseguir:** `supabase/functions/ai-credentials/
+  handler.ts` lê `Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')` para o passo 2 do
+  desenho de dois passos (decifrar via `service_role` só depois de a RLS
+  resolver o `secret_ref` pelo passo 1). O bloco `functions:` de
+  `infra/local/docker-compose.yml` nunca ganhou essa variável — só
+  `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_JWT_SECRET` e
+  `SUPABASE_DB_URL`. O teste `deno test` da T4.4 passava porque stuba o
+  ambiente por completo (`AMBIENTE_COMPLETO` em `handler_test.ts`); contra a
+  stack local de verdade, `action: save` respondia `500
+  {"error":{"code":"internal_error","message":"configuração do servidor
+  ausente"}}` — sem credencial de A criada, a prova central da T4.14 (a
+  chamada `test` de B contra o `credential_id` de A) não tinha o que testar.
+- **Alternativas consideradas:** (a) provar o isolamento só via PostgREST e
+  `psql`, pulando a Edge Function — descartada porque o DoD da T4.14 pede
+  explicitamente a chamada `action: test` contra a função, que é metade do
+  desenho de dois passos que a **FD-006** documenta; (b) mudar o handler para
+  aceitar um nome de variável diferente — descartada porque moveria o defeito
+  do compose local para o código, sem razão; (c) acrescentar a variável que
+  falta ao serviço `functions` do compose local, com o mesmo JWT de
+  `service_role` já usado em texto plano pelos serviços `storage` e `studio`
+  do mesmo arquivo — nenhum segredo novo, só a variável que faltava.
+- **Decisão tomada:** (c) — `especialista-infra`/`qa` executa, decisão
+  reversível de infra local registrada aqui em vez de levada ao humano (regra
+  de "decida sozinho" do `CLAUDE.md` para o que é aditivo e reversível dentro
+  da stack local).
+- **Resumo da resolução:** `infra/local/docker-compose.yml` ganha
+  `SUPABASE_SERVICE_ROLE_KEY` no bloco `functions:`, com o mesmo valor que
+  `SERVICE_KEY`/`SUPABASE_SERVICE_KEY` já usam em `storage` e `studio` no
+  mesmo arquivo. Depois de `docker compose -f infra/local/docker-compose.yml
+  up -d functions`, `action: save` passou a responder `201` e a T4.14 rodou a
+  prova completa; evidência em
+  `docs/002_conta_e_configuracoes/provas/isolamento_credenciais_ia.md`.
+- **Reconciliação documental:** nenhuma em `01_prd.md`/`02_specs.md` — é
+  gap de ambiente local, não de comportamento de produto ou contrato de API.
+  `03_plan.md` não muda: a T4.14 já previa rodar contra a stack local, só não
+  previa que a stack estivesse incompleta para isso.
+
 ### CHG-021 - O gate de IA protegia um destino que não era rota, e sem a rota a prova do gate não podia ser escrita
 
 - **Data:** 2026-08-21
