@@ -1401,7 +1401,7 @@ e o DoD cobra que nada de conciliação vazou para o módulo.
 
 **Tarefas**
 
-- [ ] **T5.1** `[paralela · frente A · worktree]` — Criar `supabase/migrations/0009_criar_conexoes_bancarias.sql` com `public.bank_connections`, RLS e política de dono, via skill `criar-migration`. · camada **migration** · `especialista-backend`
+- [x] **T5.1** `[paralela · frente A · worktree]` — Criar `supabase/migrations/0009_criar_conexoes_bancarias.sql` com `public.bank_connections`, RLS e política de dono, via skill `criar-migration`. · camada **migration** · `especialista-backend` · **DoD: CUMPRIDO**
 
   **DoD da tarefa**
   - Num banco recriado do zero por `bash scripts/local-supabase.sh reset`, que aplica `supabase/migrations/*.sql` na ordem e aborta no primeiro erro, o comando termina com código de saída `0`, e `docker compose -f infra/local/docker-compose.yml exec -T db psql -U supabase_admin -d postgres -tAc "select to_regclass('public.bank_connections') is not null"` devolve `t`.
