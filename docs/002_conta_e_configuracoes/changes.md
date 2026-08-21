@@ -7,6 +7,72 @@ estado final, sem preservar neles uma versão obsoleta do planejamento.
 
 ## Mudanças registradas
 
+### CHG-019 - O E2E sai de escopo, e o lote de fechamento perde a razão de existir
+
+- **Data:** 2026-08-20
+- **Fase/PR:** Fase 3 (PR 3b), no fechamento. Alcança as Fases 4, 5 e 6, ainda
+  não iniciadas, e o lote de fechamento (§9 do plano).
+- **Planejado originalmente:** a **D30** de `docs/decisions.md`, de 20/08/2026,
+  tirou as rodadas **novas** de E2E do caminho crítico de cada fase e as mandou
+  para um **lote de fechamento** (§9), com dono, arquivos e o bloco DoD já
+  escrito. As rodadas `round_03` a `round_06` continuariam existindo — apenas
+  depois da última fase de implementação —, e a §9 era gate: enquanto uma linha
+  dela estivesse aberta, a feature 002 não seria dada por entregue.
+- **Por que não foi possível prosseguir:** decisão do humano em 20/08/2026,
+  **E2E suspenso por completo — o projeto trabalha apenas com testes unitários e
+  de widget.** Isso sobrepõe a D30 na parte do lote: o que era **pendência
+  adiada** vira **escopo removido**. Manter a §9 como estava deixaria quinze
+  linhas de DoD que ninguém vai executar bloqueando a entrega da feature, e um
+  gate que ninguém roda deixa de ser gate e vira opinião.
+- **Alternativas consideradas:** (a) manter as rodadas na §9 marcadas como
+  opcionais — é o pior dos dois mundos: continuam pesando na leitura do plano e
+  não pesam mais no gate; (b) apagar a §9 em bloco — rápido, e perde toda
+  exigência cuja **única** prova era a rodada, em silêncio, que é exatamente o
+  modo de falha que a **D32** já pagou; (c) aplicar linha a linha a régua já
+  usada na T2.4 e na T5.6 — print redundante sai **seco**, com uma linha de
+  justificativa; exigência cuja prova única era a rodada **migra para teste de
+  widget** ou saída de comando; e o que não couber em nenhum dos dois é dito por
+  extenso como buraco aceito, nunca omitido.
+- **Decisão tomada:** (c), pelo `tech-lead`, com a decisão do humano registrada
+  como **D34** em `docs/decisions.md`. Saem do plano as nove tarefas de E2E —
+  **T1.16**, **T2.6**, **T2.7**, **T3.9**, **T3.10**, **T4.12**, **T4.13**,
+  **T5.7** e **T5.8** — e as onze linhas de print que a §9 guardava. A §9 é
+  reformulada: deixa de ser "o lote de rodadas adiadas" e passa a ser o lote das
+  exigências que perderam a prova, com quatro tarefas novas de dono declarado —
+  **TL.1** (abandono da recuperação), **TL.2** (cadeia do drawer até
+  transações), **TL.3** (troca de senha logado não desloga nem navega) e
+  **TL.4** (remoção física de `app/patrol_test/`, da dependência `patrol` em
+  `app/pubspec.yaml` e das menções restantes). **`app/patrol_test/` deixa de ser
+  mantido a partir de agora; a remoção é a TL.4 e não é deste PR** — enquanto o
+  diretório existir, ele ainda precisa formatar e analisar limpo, porque o
+  `.github/workflows/ci.yml` roda `dart format` e `flutter analyze` sobre a
+  pasta `app/` inteira.
+- **Resumo da resolução:** duas exigências ficam **sem prova automatizada**, e
+  estão escritas assim na §9: o **glifo do Remix Icon desenhado** (o print da
+  T2.1; sobra a conferência de codepoint contra o `remixicon.glyph.json` da tag
+  `v4.9.1`, que prova que o codepoint existe na fonte, não que ele desenha) e a
+  **integração real com a sandbox da Pluggy** (a T5.3 cobre o contrato da Edge
+  Function com o `fetch` stubado, não a sandbox no ar). Um efeito colateral
+  achado ao reconciliar: a **T4.14** escrevia a prova de isolamento em
+  `docs/002_conta_e_configuracoes/e2e/round_05/isolamento.md`, e o
+  `scripts/verify-gauntlet.sh` exige um `report.md` válido em **todo** diretório
+  sob `e2e/` — sem a T4.13 para gerá-lo, o guard passaria a falhar por um
+  diretório órfão. A prova mudou de endereço para
+  `docs/002_conta_e_configuracoes/provas/isolamento_credenciais_ia.md`, fora de
+  `e2e/`, que é onde ela sempre pertenceu: é `curl` e `psql`, nunca foi rodada
+  de emulador. `docs/002_conta_e_configuracoes/e2e/round_01/` e `round_02/`
+  continuam no repositório como registro histórico. Contagem da feature: **69 →
+  64** (menos nove tarefas de E2E, mais quatro do lote). Junto, e pelo mesmo
+  toque: toda linha de DoD das Fases 4, 5 e 6 passou a usar
+  `dart format --output=none --set-exit-if-changed`, porque sem `--output=none`
+  o comando **escreve** o arquivo ao medir — prova que muta a árvore que ela
+  deveria medir (achado do `supervisor-dod` em 20/08/2026).
+- **Reconciliação documental:** `docs/002_conta_e_configuracoes/03_plan.md`
+  (seção Gauntlet, Fase 3, Fase 4, Fase 5, Fase 6, §6, §7 nos riscos **X3** e
+  **X19**, §8 e §9), `docs/decisions.md` (**D30** revisada, **D34** e **D35**
+  novas) e `CHANGELOG.md`. O `01_prd.md` e o `02_specs.md` não descrevem
+  política de teste e não foram tocados.
+
 ### CHG-018 - O DoD da T3.12 não pedia formato, e formatar cegava o gate que a tarefa criou
 
 - **Data:** 2026-08-20
