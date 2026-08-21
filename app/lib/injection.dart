@@ -24,7 +24,10 @@ void registerDependencies(AppConfig config) {
       ),
     )
     ..registerLazySingleton<PasswordRecoveryScope>(PasswordRecoveryScope.new)
-    ..registerLazySingleton<LastSignedInEmail>(LastSignedInEmail.new);
+    ..registerLazySingleton<LastSignedInEmail>(LastSignedInEmail.new)
+    ..registerLazySingleton<CapabilitiesCubit>(
+      () => CapabilitiesCubit(getIt<CapabilitiesSource>()),
+    );
 
   registerAuthModule(getIt);
   registerAreasModule(getIt);
