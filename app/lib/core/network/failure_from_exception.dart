@@ -53,9 +53,23 @@ Failure _fromFunction(FunctionException error) {
   // HTTP de verdade, que é o que a decisão A4 pede traduzir.
   if (error is FunctionsFetchException) return const NetworkFailure();
   return switch (error.status) {
-    400 => const ValidationFailure(),
+    400 || 409 => const ValidationFailure(),
     401 => const AuthFailure(),
     403 => const PermissionFailure(),
+    404 => const NotFoundFailure(),
+    // 502 é a Edge Function relatando que o provedor externo que ela chama
+    // não respondeu — do ponto de vista do app isso é indistinguível de uma
+    // falha de rede.
+    502 => const NetworkFailure(),
+    // 503 é a Edge Function dizendo que a integração ainda não está
+    // configurada no servidor (ex.: credencial de terceiro ausente). Não
+    // ganha um `Failure` próprio porque `Failure` é `sealed`: um caso novo
+    // quebraria o `switch` exaustivo de banners de outros módulos (fora
+    // desta fatia). A mensagem específica é o que a tela tem para
+    // diferenciar isto de um `UnexpectedFailure` de verdade.
+    503 => const UnexpectedFailure(
+      'A integração bancária ainda não foi configurada no servidor.',
+    ),
     _ => const UnexpectedFailure(),
   };
 }
