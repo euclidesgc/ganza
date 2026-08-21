@@ -122,6 +122,28 @@ Detalhes que custaram tempo e ficam registrados:
 
 Verificado: `GET /functions/v1/health` com `apikey` devolve `{"status":"ok","database":"reachable"}`; rota inexistente devolve 404.
 
+### Integração bancária (Pluggy)
+
+`bank-connections` fala com a Pluggy usando um par Client ID/Secret do
+próprio ganza (credencial do projeto, não do usuário — ver invariante 4 do
+[`../../CLAUDE.md`](../../CLAUDE.md)). Duas variáveis, cadastradas como
+**Environment Variable** no serviço `ganza-supabase` do Coolify (aba
+*Environment Variables* do serviço, não do contêiner):
+
+- `PLUGGY_CLIENT_ID`
+- `PLUGGY_CLIENT_SECRET`
+
+Nenhuma das duas tem valor de exemplo aqui nem em lugar nenhum do
+repositório — só o painel do Coolify. `supabase/functions/main/index.ts` lê
+as duas do ambiente do próprio contêiner `supabase-edge-functions` e as
+repassa somente à função `bank-connections` (`supabase/functions/main/env.ts`),
+então cadastrá-las exige redeploy desse serviço para o runtime pegar o
+valor novo — igual a qualquer outra env do GoTrue/Storage nesta stack.
+
+**Sem as duas variáveis, `bank-connections` responde `503`** com
+`missing_configuration` em vez de tentar falar com a Pluggy — não há
+caminho que degrade silenciosamente para "sem conexão bancária".
+
 ## Autenticação
 
 **A HML roda desde 20/08/2026 a configuração que vale:** cadastro aberto pelo app, com confirmação de e-mail obrigatória — `DISABLE_SIGNUP=false` e `ENABLE_EMAIL_AUTOCONFIRM=false`. O ganzá deixou de ser monousuário — passa a ser multiusuário por isolamento, cada conta enxergando só os próprios dados pela RLS (**D28** em [`../decisions.md`](../decisions.md), que revoga a D11 e, com ela, o `422 signup_disabled` que esta seção verificava). A conta criada sob a D11 (`euclides.catunda@gmail.com`) continua válida — deixa de ser a única, não some.

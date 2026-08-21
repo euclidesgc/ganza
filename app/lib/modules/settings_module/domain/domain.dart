@@ -1,11 +1,17 @@
 export 'entities/ai_credential.dart';
 export 'entities/ai_provider_kind.dart';
+export 'entities/bank_connection.dart';
+export 'entities/bank_connection_status.dart';
 export 'entities/user_profile.dart';
 export 'repositories/ai_credential_repository.dart';
+export 'repositories/bank_connection_repository.dart';
 export 'repositories/profile_repository.dart';
 export 'usecases/delete_ai_credential.dart';
+export 'usecases/disconnect_bank_connection.dart';
 export 'usecases/get_ai_credential.dart';
 export 'usecases/get_ai_provider_kinds.dart';
+export 'usecases/get_bank_connection.dart';
 export 'usecases/get_user_profile.dart';
 export 'usecases/save_ai_credential.dart';
+export 'usecases/start_bank_connection.dart';
 export 'usecases/update_display_name.dart';

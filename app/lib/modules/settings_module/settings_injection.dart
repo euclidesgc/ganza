@@ -3,18 +3,24 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/session/capabilities_source.dart';
 import 'data/repositories/ai_credential_repository_impl.dart';
+import 'data/repositories/bank_connection_repository_impl.dart';
 import 'data/repositories/capabilities_source_impl.dart';
 import 'data/repositories/profile_repository_impl.dart';
 import 'domain/repositories/ai_credential_repository.dart';
+import 'domain/repositories/bank_connection_repository.dart';
 import 'domain/repositories/profile_repository.dart';
 import 'domain/usecases/delete_ai_credential.dart';
+import 'domain/usecases/disconnect_bank_connection.dart';
 import 'domain/usecases/get_ai_credential.dart';
 import 'domain/usecases/get_ai_provider_kinds.dart';
+import 'domain/usecases/get_bank_connection.dart';
 import 'domain/usecases/get_user_profile.dart';
 import 'domain/usecases/save_ai_credential.dart';
+import 'domain/usecases/start_bank_connection.dart';
 import 'domain/usecases/update_display_name.dart';
 import 'presentation/account/account_cubit.dart';
 import 'presentation/ai/ai_settings_cubit.dart';
+import 'presentation/bank/bank_settings_cubit.dart';
 
 void registerSettingsModule(GetIt getIt) {
   getIt
@@ -26,6 +32,9 @@ void registerSettingsModule(GetIt getIt) {
     )
     ..registerLazySingleton<CapabilitiesSource>(
       () => CapabilitiesSourceImpl(getIt<SupabaseClient>()),
+    )
+    ..registerLazySingleton<BankConnectionRepository>(
+      () => BankConnectionRepositoryImpl(getIt<SupabaseClient>()),
     )
     ..registerFactory(() => GetUserProfile(getIt<ProfileRepository>()))
     ..registerFactory(() => UpdateDisplayName(getIt<ProfileRepository>()))
@@ -41,6 +50,22 @@ void registerSettingsModule(GetIt getIt) {
         getIt<GetAiProviderKinds>(),
         getIt<GetAiCredential>(),
         getIt<SaveAiCredential>(),
+      ),
+    )
+    ..registerFactory(
+      () => GetBankConnection(getIt<BankConnectionRepository>()),
+    )
+    ..registerFactory(
+      () => StartBankConnection(getIt<BankConnectionRepository>()),
+    )
+    ..registerFactory(
+      () => DisconnectBankConnection(getIt<BankConnectionRepository>()),
+    )
+    ..registerFactory(
+      () => BankSettingsCubit(
+        getIt<GetBankConnection>(),
+        getIt<StartBankConnection>(),
+        getIt<DisconnectBankConnection>(),
       ),
     );
 }

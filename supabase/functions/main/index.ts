@@ -46,6 +46,8 @@ Deno.serve(async (req: Request) => {
         SUPABASE_SERVICE_ROLE_KEY: Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'),
         SUPABASE_DB_URL: Deno.env.get('SUPABASE_DB_URL'),
         SUPABASE_JWT_SECRET: JWT_SECRET,
+        PLUGGY_CLIENT_ID: Deno.env.get('PLUGGY_CLIENT_ID'),
+        PLUGGY_CLIENT_SECRET: Deno.env.get('PLUGGY_CLIENT_SECRET'),
       }),
     });
 

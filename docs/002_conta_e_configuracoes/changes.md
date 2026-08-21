@@ -7,6 +7,600 @@ estado final, sem preservar neles uma versão obsoleta do planejamento.
 
 ## Mudanças registradas
 
+### CHG-041 - O DoD da Fase 5 exigia CI verde antes de os PRs existirem, e os DoDs de tarefa formatavam um alvo menor que o do CI
+
+- **Data:** 2026-08-21
+- **Fase/PR:** Fase 5 (PR 5a e 5b). Alcança a última linha do **DoD da Fase 5** em
+  `03_plan.md` e dois arquivos de teste sob `app/test/modules/settings_module/`.
+- **Planejado originalmente:** o DoD da fase terminava com `Jobs "App", "Edge
+  Functions" e "Banco" verdes no CI dos dois PRs`. E os blocos DoD das tarefas
+  cobravam `cd app && dart format --output=none --set-exit-if-changed
+  lib/modules/settings_module` — só `lib`.
+- **Por que não foi possível prosseguir:** a linha do CI é **circular**: a skill
+  `fechar-etapa` é o que autoriza abrir o PR, então ela roda quando PR nenhum
+  existe e nenhum job pôde ter rodado. A Fase 4 já a removera pelo mesmo motivo,
+  e ela sobreviveu aqui por herança do gabarito. O segundo defeito apareceu na
+  própria execução deste gate: `dart format --output=none
+  --set-exit-if-changed .` — o alvo que o `.github/workflows/ci.yml` usa — saiu
+  **`1`**, apontando `test/modules/settings_module/data/repositories/capabilities_source_impl_test.dart`
+  e `test/modules/settings_module/presentation/settings_home_page_test.dart`.
+  Nenhum DoD de tarefa pegou isso porque todos formatavam `lib`, e os dois
+  arquivos são de **teste**. O gate de fase fez exatamente o trabalho que lhe
+  cabe: encontrar o que o nível de baixo não alcança.
+- **Alternativas consideradas:** (a) manter a linha do CI e marcá-la como
+  pendente no corpo do PR — deixa uma linha de DoD que nunca é verificável no
+  momento em que o gate roda, e DoD com item permanentemente em aberto ensina
+  que DoD se cumpre pela metade; (b) mandar cada DoD de tarefa formatar `app/`
+  inteiro — cada tarefa passaria a reprovar por arquivo de outra, que é pior.
+- **Decisão tomada:** a linha do CI sai do DoD e vira **ritual pós-abertura**,
+  escrito logo abaixo do bloco, com a razão da retirada; o que a substitui é a
+  cancela de máquina, rodada neste gate com o mesmo alvo do `ci.yml`. Os dois
+  arquivos foram formatados com `dart format`, e a suíte reconferida: 85 testes
+  verdes, `dart format` saindo `0`.
+- **Resumo da resolução:** o DoD da fase perdeu uma linha inverificável e
+  ganhou, na prática, a verificação que ela pretendia. Fica registrado para as
+  próximas fases: **o alvo do format no DoD de tarefa deve ser o mesmo do CI, ou
+  o gate de fase será sempre o primeiro a ver o problema** — que é tarde, ainda
+  que não tarde demais.
+- **Reconciliação documental:** `03_plan.md`, última linha do **DoD da Fase 5**,
+  que deixou de ser item de checklist e virou nota de ritual. PRD e specs
+  inalterados.
+
+### CHG-040 - A correção da CHG-039 errou uma contagem e ancorou o teste de cadeia numa string que só existiria depois da tarefa
+
+- **Data:** 2026-08-21
+- **Fase/PR:** Fase 5 (PR 5b). Alcança a quarta linha do bloco DoD da **T5.6** em
+  `03_plan.md`, corrigida pela CHG-039 e ainda não despachada.
+- **Planejado originalmente:** a CHG-039 afirmava que o grep de `placeholder` em
+  `settings_bank_page.dart` "hoje devolve duas" linhas, e mandava o teste de
+  cadeia asserir na tela final "um dos quatro rótulos de estado".
+- **Por que não foi possível prosseguir:** o `auditor-de-criterios` rodou o grep
+  e ele devolve **uma** linha, não duas — a do `PlaceholderBody(title: 'Banco')`;
+  o `import` é de um barrel (`core/widgets/widgets.dart`) e não contém a
+  palavra. E os quatro rótulos de estado **são escolhidos por esta própria
+  tarefa**: quem lê o bloco hoje não tem como reproduzir a asserção sem adivinhar
+  o texto que o executor vai escrever, o que é exatamente o tipo de referência
+  que não resolve.
+- **Alternativas consideradas:** (a) fixar os quatro rótulos por extenso no
+  critério — tira do executor uma decisão de escrita de interface que é dele, e
+  engessa a redação da tela num documento de plano; (b) deixar a cadeia sem
+  asserção de conteúdo — volta a passar por construção, que foi o defeito que a
+  CHG-039 corrigiu.
+- **Decisão tomada:** corrigir a contagem para **uma**, e ancorar a cadeia no que já
+  existe e é conferível hoje — `find.byType(PlaceholderBody)` **não encontra
+  nada** na tela final. Isso prova "deixou de ser placeholder" sem depender de
+  string futura; que os quatro rótulos apareçam continua cobrado na segunda
+  linha, no teste de widget dela, onde é o lugar certo.
+- **Resumo da resolução:** o bloco continua com seis linhas e a mesma exigência. Um número
+  errado saiu e uma âncora impossível virou uma verificável.
+- **Reconciliação documental:** `03_plan.md`, bloco DoD da **T5.6**, quarta linha. PRD e specs inalterados.
+
+### CHG-039 - Quatro linhas do DoD da T5.6 já passavam sem a tarefa, e duas rodavam vazio por falta de `cd app`
+
+- **Data:** 2026-08-21
+- **Fase/PR:** Fase 5 (PR 5b). Alcança o bloco DoD da **T5.6** em `03_plan.md`,
+  inteiro, antes de a tarefa ser despachada.
+- **Planejado originalmente:** o bloco pedia o cubit com estado `sealed`, os
+  "quatro estados de conexão" sem nomeá-los, o grep de conciliação, e uma última
+  linha que empilhava seis exigências: declarar a rota `/configuracoes/banco`
+  fora do `ShellRoute`, `dart format`, `flutter analyze`, `flutter test -r
+  compact`, `gates_guard.sh` e um teste de cadeia partindo de `/`.
+- **Por que não foi possível prosseguir:** o `auditor-de-criterios` mediu tudo e
+  achou **quatro** critérios que já passam hoje, sem a tarefa existir. A rota
+  `/configuracoes/banco` **já está declarada** em `settings_routes.dart`, com
+  `parentNavigatorKey: rootNavigatorKey` e sem `extra:`, de commit anterior; o
+  item "Banco" já existe em `settings_section_list.dart` e a página
+  `settings_bank_page.dart` já existe como **placeholder** — de modo que o teste
+  de cadeia passaria sem o cubit e sem os estados desta tarefa. O grep de
+  `reconcil|concilia` devolve zero hoje, por ausência de trabalho. E os dois
+  comandos sem `cd app` próprio são piores que inúteis: `flutter analyze` da raiz
+  analisa o diretório do worktree, completa em 2 ms com "No issues found" e
+  **sempre** sai `0`; `flutter test -r compact` da raiz falha com
+  `Test directory "test" not found` e **nunca** sai `0`, para nenhuma
+  implementação. A linha dos quatro estados, além disso, não os nomeava, o que
+  deixava espaço para um quinto estado colidir com a **FD-034**.
+- **Alternativas consideradas:** (a) manter a linha composta e confiar em quem
+  a lê — foi justamente o empacotamento de seis exigências que escondeu os dois
+  "verde por construção" mais graves; (b) apagar as cláusulas que já passam —
+  perderia invariantes que vale manter, como a conciliação fora do escopo.
+- **Decisão tomada:** o escopo da tarefa passou a ser dito como é — **substituir o
+  placeholder**, não criar a rota. Os quatro estados foram escritos por extenso,
+  com `bank_connection_status.dart` como procedência e a proibição explícita de
+  um quinto. A cadeia de `app_router_test.dart` passou a exigir que a tela final
+  mostre **um dos quatro rótulos**, e não o texto do placeholder — sem isso ela
+  já passava. A página ganhou prova de que deixou de ser placeholder (grep que
+  hoje devolve duas linhas). Cada comando ganhou o seu `cd app`. E o grep de
+  conciliação ficou, **rotulado como invariante**, com a nota de que o sinal de
+  trabalho está nas outras linhas.
+- **Resumo da resolução:** o bloco continua com seis linhas. Nenhuma exigência saiu; quatro
+  passaram a falhar antes da tarefa e duas passaram a rodar de verdade.
+- **Reconciliação documental:** `03_plan.md`, bloco DoD da **T5.6**, seis linhas reescritas, e o enunciado da tarefa, que passou a dizer **substituir o placeholder** em vez de criar a rota. PRD e specs inalterados.
+
+### CHG-038 - A prova de ponta a ponta da T5.2 dependia de um arquivo de ambiente que não existe em worktree recém-criado
+
+- **Data:** 2026-08-21
+- **Fase/PR:** Fase 5 (PR 5b). Alcança a terceira linha do bloco DoD da **T5.2**
+  em `03_plan.md`, corrigida pela CHG-037 e ainda não despachada.
+- **Planejado originalmente:** a CHG-037 mandava recriar o serviço `functions` e
+  chamar `POST /functions/v1/bank-connections` lendo `$SUPABASE_URL` e
+  `$JWT_DONO` de `infra/local/.runtime.env`, esperando `200` — e afirmava que
+  antes da tarefa o mesmo comando devolve `503`.
+- **Por que não foi possível prosseguir:** o `auditor-de-criterios` rodou o
+  comando no worktree `gz-31` e obteve **`000`**, não `503`:
+  `infra/local/.runtime.env` **não existe ali**. O arquivo é ignorado pelo git
+  (`.gitignore:38`) e nasce só quando `scripts/local-supabase.sh up` roda a
+  função `write_runtime_files` — na árvore principal ele existe, num worktree
+  recém-criado não. Sem ele, `$SUPABASE_URL` e `$JWT_DONO` ficam vazios e o
+  `curl` falha antes de alcançar a função. A premissa da prova era falsa, e um
+  trabalho **correto** — Pluggy configurada, contêiner recriado — reprovaria
+  assim mesmo.
+- **Alternativas consideradas:** (a) usar a `ANON_KEY` versionada em
+  `infra/local/docker-compose.yml` em vez do JWT de dono — evita o arquivo, mas
+  troca a identidade da chamada e deixa de exercer o caminho do usuário
+  autenticado; (b) apontar o comando para o `.runtime.env` da árvore principal —
+  acopla o worktree a um caminho fora dele, que pode não existir.
+- **Decisão tomada:** escrever o bootstrap **na própria linha**:
+  `bash scripts/local-supabase.sh up` neste worktree, antes de tudo, com a razão
+  dita por extenso — o arquivo é ignorado, some em árvore nova, e a sua ausência
+  produz `000`, um código que se confunde com falha de rede em vez de apontar o
+  que está faltando.
+- **Resumo da resolução:** a exigência não mudou. O que mudou é que a linha agora descreve o
+  ambiente de que ela depende, em vez de presumi-lo.
+- **Reconciliação documental:** `03_plan.md`, bloco DoD da **T5.2**, terceira linha. PRD e specs inalterados.
+
+### CHG-037 - A prova do `503` da T5.2 já era satisfeita pela T5.3, o `git diff` sem base aprovava por ausência e o `curl` expunha o segredo no argv
+
+- **Data:** 2026-08-21
+- **Fase/PR:** Fase 5 (PR 5b). Alcança o bloco DoD da **T5.2** em `03_plan.md`,
+  que passa de cinco para quatro linhas, antes de a tarefa ser despachada.
+- **Planejado originalmente:** depois da CHG-036, a T5.2 provaria o `503` por
+  `deno test --filter '503'`, a validade do par por um `curl` de autenticação
+  contra `api.pluggy.ai` lendo `infra/local/.env`, e a não-reescrita de
+  `docs/deploy/coolify.md` por `git diff --numstat` sem referência.
+- **Por que não foi possível prosseguir:** o `auditor-de-criterios` mediu os
+  três e derrubou os três. O `deno test --filter '503'` **já passa hoje**, sem
+  nenhuma parte desta tarefa: o caso nasceu no commit `fec9d93`, da **T5.3**, e
+  simula a ausência das variáveis dentro do próprio teste, sem tocar em
+  `docker-compose.yml` — e, pior, `--filter` que não casa nada também sai `ok`
+  com código `0`, então nem sequer distingue "rodou e passou" de "não achou
+  nada". O `git diff --numstat` sem referência sai **vazio** hoje e volta a sair
+  vazio para sempre depois do commit do executor, de modo que o
+  `supervisor-dod`, que chega depois, aprovaria por ausência de diff. E o `curl`
+  de autenticação, embora não imprimisse o corpo, expandia `$PLUGGY_CLIENT_SECRET`
+  no **argv** do processo, visível em `ps aux` para qualquer usuário da máquina
+  enquanto a chamada durasse — um canal de vazamento que a linha não fechava.
+  O auditor apontou ainda que a prova de presença da variável no contêiner
+  falharia para um trabalho **correto**, porque o Docker injeta `environment:`
+  só na criação e a linha não mandava recriar o serviço.
+- **Alternativas consideradas:** (a) mandar o corpo do `curl` por stdin para
+  tirar o segredo do argv — resolve o vazamento, mas mantém uma prova que a
+  tarefa seguinte já faz melhor; (b) exigir `1 passed` na saída do `deno test` —
+  conserta o filtro vazio, mas não conserta o fato de o teste pertencer a outra
+  tarefa.
+- **Decisão tomada:** trocar as três por **uma** prova de ponta a ponta que só esta
+  tarefa faz passar: recriar o serviço com `docker compose up -d functions` e
+  chamar `POST /functions/v1/bank-connections` na stack local com o JWT de teste
+  de `infra/local/.runtime.env`, exigindo `200` — sendo que **antes** da tarefa o
+  mesmo comando devolve `503`. Ela prova de uma vez que a variável chegou ao
+  contêiner, que o par é válido na Pluggy (não há `200` sem autenticação bem
+  sucedida) e que o caminho de configuração ausente ficou para trás, sem
+  expor segredo em argv nenhum. O `git diff` ganhou base fixa via `git
+  merge-base HEAD origin/develop`.
+- **Resumo da resolução:** o bloco perdeu uma linha e ganhou poder. Nada do que se exigia
+  saiu: o `503` continua coberto — pelo teste da T5.3, onde ele pertence.
+- **Reconciliação documental:** `03_plan.md`, bloco DoD da **T5.2**, que passou de cinco para quatro linhas. PRD e specs inalterados — a exigência do `503` continua coberta pelo teste da T5.3.
+
+### CHG-036 - Três linhas do DoD da T5.2 apontavam para um host que não existe, mandavam mutar ambiente compartilhado e pediam julgamento subjetivo
+
+- **Data:** 2026-08-21
+- **Fase/PR:** Fase 5 (PR 5b). Alcança a terceira, a quarta e a quinta linha do
+  bloco DoD da **T5.2** em `03_plan.md`, antes de a tarefa ser despachada.
+- **Planejado originalmente:** a terceira linha pedia "um `curl` de emissão de
+  token contra a **sandbox** da Pluggy a partir da stack local" devolvendo
+  `200`; a quarta mandava provar o `503` **retirando as variáveis** e colando o
+  que voltou; a quinta pedia reler `docs/deploy/coolify.md` inteiro e conferir
+  que "nenhuma frase vizinha ficou falsa".
+- **Por que não foi possível prosseguir:** o `auditor-de-criterios` reprovou as
+  três. A Pluggy **não tem host de sandbox**: `api.pluggy.ai` atende os dois
+  modos e "sandbox" é escolha de conector, então a palavra não materializa
+  destino nenhum; e "a partir da stack local" não dizia se era do host ou de
+  dentro do contêiner, que provam coisas diferentes — medido depois: o contêiner
+  `functions` **não tem `curl`**, então a variante de dentro dele era
+  impossível de qualquer forma. A quarta linha mandava mutar o projeto Docker
+  `ganza-local`, que é **único e compartilhado pelos três worktrees**, sem
+  variante isolada nem restauração garantida — medição que derruba o ambiente
+  alheio. A quinta não tinha comando: era releitura de 14,5 KB com julgamento
+  aberto sobre o que conta como contradição.
+- **Alternativas consideradas:** (a) montar um segundo projeto Compose
+  descartável só para provar o `503` — caro e desnecessário, porque a prova já
+  existe em teste; (b) instalar `curl` na imagem de functions só para satisfazer
+  a linha — mudar a imagem para agradar a um critério é a cauda balançando o
+  cachorro.
+- **Decisão tomada:** a terceira linha virou **duas** provas separadas, porque são
+  fatos distintos — `docker compose ... exec -T functions sh -c 'test -n
+  "$PLUGGY_CLIENT_ID" && ...'` imprimindo `presentes` mostra que a variável
+  chega ao serviço, e um `curl` do host, lendo `infra/local/.env`, com
+  `-o /dev/null -w '%{http_code}'`, mostra que o par é válido; nenhuma das duas
+  imprime valor, e a segunda nunca mostra o corpo, que traz a `apiKey`. A quarta
+  passou a se apoiar no teste que a **T5.3 já escreveu** — `503
+  missing_configuration` em `supabase/functions/bank-connections/handler_test.ts`,
+  linha 179 —, rodado por `deno test --filter '503'`, e passou a **proibir
+  explicitamente** a mutação da stack. A quinta virou mecânica:
+  `git diff --numstat -- docs/deploy/coolify.md` com `0` removidas.
+- **Resumo da resolução:** o bloco continua com cinco linhas. Nenhuma exigência caiu: a de
+  configuração válida ficou mais precisa, a do `503` ficou mais forte (teste no
+  lugar de print manual) e a de não invalidar o documento ficou conferível.
+- **Reconciliação documental:** `03_plan.md`, bloco DoD da **T5.2**, terceira, quarta e quinta linhas. PRD e specs inalterados.
+
+### CHG-035 - A varredura de segredo do DoD casava o próprio texto do critério e o arquivo de env ignorado, sendo insatisfazível dos dois jeitos
+
+- **Data:** 2026-08-21
+- **Fase/PR:** Fase 5 (PR 5b). Alcança a primeira linha do bloco DoD da **T5.2**
+  e a quinta linha do **DoD da Fase 5**, ambas em `03_plan.md`.
+- **Planejado originalmente:** as duas linhas mandavam rodar
+  `rtk proxy grep -rniE 'PLUGGY_CLIENT_SECRET=[^$]'` — sobre `infra/ docs/
+  scripts/` na T5.2, e sobre a raiz inteira no DoD da fase — e exigiam nenhuma
+  linha de saída.
+- **Por que não foi possível prosseguir:** o par Client ID/Secret da Pluggy
+  chegou (a pendência **P13** caiu) e foi gravado em `infra/local/.env`, com
+  permissão `600`, que é ignorado pelo git desde `.gitignore:2`. Rodado o
+  comando como escrito, ele devolve **três** linhas: o `.env` — que é o lugar
+  correto do segredo e não deveria ser alcançado por uma varredura de
+  repositório —, e **duas linhas do próprio `03_plan.md`**, porque o texto do
+  critério contém a string `PLUGGY_CLIENT_SECRET=[^$]` e o `[` que vem depois do
+  `=` satisfaz `[^$]`. O critério casava a si mesmo: mesmo com zero segredo no
+  repositório, ele jamais devolveria saída vazia. Era insatisfazível por duas
+  razões independentes.
+- **Alternativas consideradas:** (a) excluir `03_plan.md` e `.env` do grep com
+  `--exclude` — trata o sintoma, e a lista de exclusões cresce a cada arquivo
+  novo que cite a variável; (b) escrever o nome da variável quebrado no plano
+  (`PLUGGY_CLIENT_` + `SECRET`) para o padrão não se achar — deixa a
+  documentação ilegível para proteger um comando mal escolhido.
+- **Decisão tomada:** trocar `grep -r` por **`git grep`**, que só enxerga arquivo
+  versionado — exatamente o que a linha sempre quis dizer, e que exclui o
+  `.env` ignorado sem precisar nomeá-lo. E trocar a classe `[^$]` por
+  `[A-Za-z0-9]`, que casa qualquer valor real e **não** casa o `[` do próprio
+  texto do critério. Medido depois da troca: `git grep -niE
+  'PLUGGY_CLIENT_SECRET=[A-Za-z0-9]' -- infra/ docs/ scripts/` sai `1`, sem
+  nenhuma linha, com as credenciais já gravadas no `.env`.
+- **Resumo da resolução:** a exigência é a mesma e ficou mais forte — nenhum valor real em
+  arquivo versionado. O que mudou é que agora ela pode ser satisfeita.
+- **Reconciliação documental:** `03_plan.md`, primeira linha do bloco DoD da **T5.2** e quinta linha do **DoD da Fase 5**. PRD e specs inalterados.
+
+### CHG-034 - O DoD da T5.5 exigia zero menções a `pluggy` em `app/lib`, o que um comentário anterior à fase já torna insatisfazível, e o mesmo defeito estava no DoD da Fase 5
+
+- **Data:** 2026-08-21
+- **Fase/PR:** Fase 5 (PR 5b). Alcança cinco das seis linhas do bloco DoD da
+  **T5.5** e a quarta linha do **DoD da Fase 5**, ambas em `03_plan.md`, antes
+  de a tarefa ser despachada.
+- **Planejado originalmente:** a primeira linha da T5.5 e a linha equivalente do
+  DoD da fase exigiam que `rtk proxy grep -rni 'pluggy' app/lib` **não
+  devolvesse nenhuma linha**. A segunda linha pedia que um grep por `false` "não
+  devolva nenhuma linha de valor fixo para essa capacidade". A quarta falava em
+  "o model" sem caminho e sem arquivo de teste. A quinta exigia que só
+  `data/repositories/` tivesse `try`/`catch`. A sexta trazia
+  `flutter analyze lib/modules/settings_module` sem `cd app` próprio.
+- **Por que não foi possível prosseguir:** o `auditor-de-criterios` rodou tudo e
+  reprovou cinco linhas. O grep de `pluggy` devolve **uma** linha hoje —
+  `app/lib/core/network/dio_factory.dart:6`, um comentário que cita Gemini,
+  Pluggy e Google como exemplos de API de terceiro que o app **não** chama.
+  Nenhuma implementação correta desta tarefa zera esse grep, porque a linha
+  ofensora está fora do escopo dela: era vermelho impossível, e o mesmo texto
+  estava no DoD da fase, onde teria travado o `fechar-etapa`. O grep de `false`
+  devolve três linhas hoje, duas delas de comentário, e "de valor fixo para essa
+  capacidade" não é decidível por quem só tem o comando. "O model" não é caminho.
+  E o grep de `catch (` já devolve **só** linhas de `data/repositories/` antes de
+  qualquer arquivo desta tarefa existir — sete delas, de outras features: verde
+  por construção.
+- **Alternativas consideradas:** (a) apagar a menção à Pluggy do comentário de
+  `dio_factory.dart` para o grep zerar — mutila um comentário correto, que
+  explica exatamente o invariante que o critério quer proteger, só para agradar
+  a um padrão mal escolhido; (b) excluir o arquivo do grep com `grep -v` — o
+  critério fica ilegível e some a informação de que a exceção é conhecida.
+- **Decisão tomada:** o critério passa a exigir **exatamente uma** linha, nomeando qual
+  é e por que ela é legítima, mais a exigência de **nenhuma** ocorrência sob
+  `app/lib/modules/settings_module/` — que é onde a tarefa escreve. A mesma
+  correção foi aplicada à linha do DoD da Fase 5. O grep de `false` virou dois
+  comandos mecânicos (`bankConnected:[[:space:]]*false` e `false`), ambos hoje
+  vermelhos. O model e o seu teste ganharam caminho completo. O `catch (` ganhou
+  a segunda metade que exige uma linha no arquivo novo. E o `flutter analyze`
+  ganhou `cd app` próprio.
+- **Resumo da resolução:** o bloco continua com seis linhas e nenhuma exigência saiu. Quatro
+  delas passaram a falhar antes da tarefa, que é o que faltava; uma deixou de
+  ser insatisfazível.
+- **Reconciliação documental:** `03_plan.md`, bloco DoD da **T5.5** (cinco linhas) e quarta linha do **DoD da Fase 5**. PRD e specs inalterados.
+
+### CHG-033 - O grep de credencial do DoD da T5.3 induziu um rename de constante no código, e o nome resultante precisa de procedência
+
+- **Data:** 2026-08-21
+- **Fase/PR:** Fase 5 (PR 5b). Alcança
+  `supabase/functions/bank-connections/handler.ts`, linha da constante de URL da
+  API do agregador.
+- **Planejado originalmente:** a segunda linha do bloco DoD da **T5.3** exige que
+  `rtk proxy grep -n 'PLUGGY' supabase/functions/bank-connections/handler.ts`
+  mostre **apenas** leituras de `Deno.env.get`. A intenção é que a credencial do
+  projeto não venha de tabela, de Vault nem de literal no código.
+- **Por que não foi possível prosseguir:** o grep é sensível a caixa e a
+  constante da URL nasceu como `PLUGGY_API_URL` — que não é credencial nenhuma,
+  é endereço público. Para satisfazer o critério, o executor a renomeou para
+  `BANK_AGGREGATOR_API_URL`. O código passou, mas por um motivo que não é o do
+  critério: o que se queria proibir era **origem de segredo**, não a palavra.
+- **Alternativas consideradas:** (a) mandar reverter o nome e afrouxar o grep
+  para ignorar a linha da URL — custa uma rodada de executor e mais uma de
+  supervisor por um ganho estético, e o valor literal `'https://api.pluggy.ai'`
+  segue na mesma linha, então nada ficou obscuro para quem lê; (b) reescrever o
+  critério para `PLUGGY_CLIENT` em vez de `PLUGGY` — corrigiria a causa, mas a
+  tarefa já está julgada e mexer no critério depois do veredito é pior
+  precedente do que o nome.
+- **Decisão tomada:** manter o nome `BANK_AGGREGATOR_API_URL` e registrar aqui a
+  procedência, para que ninguém o leia como abstração deliberada sobre o
+  provedor — não é: a função fala só com a Pluggy. **Na próxima função que ler
+  segredo de `Deno.env`, o critério deve mirar o identificador da credencial
+  (`PLUGGY_CLIENT`), não o nome do provedor.**
+- **Resumo da resolução:** nenhuma exigência mudou e a T5.3 está `CUMPRIDO`. O que fica é o
+  aprendizado de régua: grep por nome de provedor alcança identificador
+  legítimo e empurra rename cosmético.
+- **Reconciliação documental:** Nenhum documento canônico mudou: o alcance é o identificador `BANK_AGGREGATOR_API_URL` em `supabase/functions/bank-connections/handler.ts`, e esta entrada existe para dar procedência ao nome. PRD, specs e plano seguem válidos.
+
+### CHG-032 - A correção da CHG-030 provou ausência de `any` com um regex mais fraco que o lint já exigido, e conferiu o `deno.json` pelo arquivo em vez da chave
+
+- **Data:** 2026-08-21
+- **Fase/PR:** Fase 5 (PR 5b). Alcança a quinta linha do bloco DoD da **T5.3**
+  em `03_plan.md`, corrigida pela CHG-030 e ainda não despachada.
+- **Planejado originalmente:** a CHG-030 provava "nenhum `any` atravessa" com
+  `rtk proxy grep -nE ':[[:space:]]*any|as any'` esperando nenhuma linha, e a
+  inclusão na task `check` com `rtk proxy grep -n 'bank-connections'
+  supabase/functions/deno.json`.
+- **Por que não foi possível prosseguir:** o `auditor-de-criterios` quebrou as
+  duas rodando. Contra um arquivo sintético com seis usos de `any`, o grep pegou
+  quatro e **perdeu dois** — `Record<string, any>` e o cast `<any>x`, nenhum dos
+  quais tem `:` ou `as` imediatamente antes. E `deno lint`, que a **mesma linha**
+  já exigia, pega os seis: a regra `no-explicit-any` está ativa pelas
+  `tags: ["recommended"]` do `supabase/functions/deno.json`. Ou seja, o critério
+  reinventava, pior, uma checagem que já tinha. O grep no `deno.json` casou com
+  um arquivo sintético em que a task `check` continuava **sem** os arquivos
+  novos e uma task irrelevante mencionava as strings — passaria um `deno.json`
+  corrigido de fachada, com `deno check` nunca tipando a função nova.
+- **Alternativas consideradas:** (a) endurecer o regex de `any` — perseguir
+  todas as formas (`Array<any>`, `Promise<any>`, `<any>x`) é reescrever mal o
+  que o lint já faz bem; (b) conferir o `deno.json` com `grep -A` a partir da
+  linha da task — frágil a formatação do JSON.
+- **Decisão tomada:** apagar o grep de `any` e apoiar a exigência no `deno lint` que a
+  linha já cobra, deixando escrito **por que** ele basta e o que o grep perdia.
+  Trocar o grep do `deno.json` pela leitura da chave: `python3 -c "import json;
+  print(json.load(open('deno.json'))['tasks']['check'])"`, que só enxerga o
+  valor da task `check` e é indiferente ao resto do arquivo.
+- **Resumo da resolução:** o bloco continua com cinco linhas. A exigência de não deixar `any`
+  atravessar continua de pé, agora provada pela ferramenta que a pega de fato;
+  a de tipar a função nova continua de pé, agora ancorada na chave certa.
+- **Reconciliação documental:** `03_plan.md`, bloco DoD da **T5.3**, quinta linha. PRD e specs inalterados.
+
+### CHG-031 - A T5.3 foi antecipada à T5.2, invertendo a ordem das ondas, porque o bloqueio humano da Pluggy não a alcança
+
+- **Data:** 2026-08-21
+- **Fase/PR:** Fase 5 (PR 5b). Alcança a tabela **Ondas de execução** da Fase 5
+  em `03_plan.md`, que põe a **T5.3** na onda 2 dependendo de **T5.1** e
+  **T5.2**.
+- **Planejado originalmente:** "T5.3 — a Edge Function escreve na tabela que a
+  T5.1 cria e lê as variáveis que a T5.2 registra". A T5.2 depende da pendência
+  **P13**, humana: o par Client ID/Secret da Pluggy, que só o dono da conta pode
+  criar. Seguindo a ordem escrita, a fase inteira pararia aí.
+- **Por que não foi possível prosseguir:** a T5.2 continua bloqueada e não há
+  previsão. Parar a fase inteira por isso custaria também a onda 3 e a onda 4,
+  que não tocam a Pluggy.
+- **Alternativas consideradas:** (a) parar a fase até a pendência cair — o
+  fatiamento foi feito justamente para que o bloqueio custe o mínimo, e parar
+  tudo desfaz esse fatiamento; (b) escrever a T5.3 com credencial de teste
+  inventada — cria trabalho a refazer e um valor falso no repositório, que é
+  exatamente o que já disparou incidente de GitGuardian nesta feature.
+- **Decisão tomada:** antecipar a T5.3, mantendo a T5.2 pendurada. O
+  `auditor-de-criterios`, cego ao plano, foi perguntado diretamente se alguma
+  linha do bloco DoD da T5.3 exige credencial real ou variável de ambiente
+  configurada, e respondeu que **nenhuma** exige: o bloco verifica *como o
+  código lê* a credencial (`Deno.env.get`, nunca tabela nem Vault) e simula a
+  Pluggy fora do ar com o `fetch` stubado. A migration da T5.1, também citada
+  como dependência, já está `CUMPRIDO` e na base desta branch.
+- **Resumo da resolução:** a ordem das ondas muda, o conteúdo das tarefas não. A T5.2 segue
+  sendo pré-requisito de **rodar** a função contra a Pluggy de verdade — o que
+  a fase cobra no seu próprio DoD, não no da T5.3.
+- **Reconciliação documental:** `03_plan.md`, tabela **Ondas de execução** da Fase 5 e a ordem de despacho. O conteúdo das tarefas não mudou, então PRD e specs seguem válidos sem emenda.
+
+### CHG-030 - O DoD da T5.3 fechava em verde na árvore sem a tarefa, e duas cláusulas suas não diziam como se provam
+
+- **Data:** 2026-08-21
+- **Fase/PR:** Fase 5 (PR 5b). Alcança a segunda e a quinta linha do bloco DoD
+  da **T5.3** em `03_plan.md`, antes de a tarefa ser despachada.
+- **Planejado originalmente:** a segunda linha exigia que "nenhuma consulta a
+  tabela busca credencial de provedor", sem comando nem tabela nomeada; a quinta
+  exigia que "toda entrada do corpo é validada na borda antes de qualquer uso, e
+  nenhum `any` atravessa", também sem comando, e fechava com
+  `cd supabase/functions && deno fmt --check && deno lint && deno task check &&
+  deno task test` terminando em `0`.
+- **Por que não foi possível prosseguir:** o `auditor-de-criterios` rodou o
+  comando combinado na árvore atual, **sem nenhuma linha da tarefa feita**, e
+  ele fechou com código de saída `0` — `Checked 15 files`, `23 passed | 0
+  failed`. A task `check` do `supabase/functions/deno.json` lista oito arquivos
+  e nenhum é de `bank-connections`, e o `deno test` só descobre os `*_test.ts`
+  que já existem. A linha não distingue tarefa feita de tarefa não feita. As
+  outras duas cláusulas repetiam princípio do `CLAUDE.md` sem instanciar
+  comando, campo ou teste.
+- **Alternativas consideradas:** (a) exigir que o número de testes cresça — é
+  frágil, qualquer teste de outra tarefa o satisfaz; (b) deixar como está e
+  confiar no `supervisor-dod` para perceber — é precisamente o buraco que a
+  auditoria prévia existe para tapar.
+- **Decisão tomada:** a busca de credencial em tabela virou grep nomeado
+  (`ai_user_credentials|ai_providers|vault|.rpc(`), com a razão escrita na
+  linha; a ausência de `any` virou grep próprio; a inclusão no `deno.json` virou
+  `rtk proxy grep -n 'bank-connections' supabase/functions/deno.json`; e o gate
+  passou a exigir que a **saída** do `deno task test` nomeie os casos de
+  `bank-connections/handler_test.ts`, com a nota de que o código de saída
+  sozinho já fecha em verde sem a tarefa. A validação de borda ganhou o caso de
+  teste que faltava — corpo inválido devolve `400` antes de qualquer chamada
+  externa —, porque a cláusula já exigia validação na borda e não trazia
+  nenhuma prova sua; é a mesma exigência, agora verificável.
+- **Resumo da resolução:** o bloco continua com cinco linhas. Nenhuma exigência saiu; uma
+  ganhou prova (`400`) e três ganharam comando.
+- **Reconciliação documental:** `03_plan.md`, bloco DoD da **T5.3**, segunda e quinta linhas. PRD e specs inalterados.
+
+### CHG-029 - A linha da política no DoD da T5.1 media sob uma role cujo caminho de busca esconde o prefixo `auth.`
+
+- **Data:** 2026-08-21
+- **Fase/PR:** Fase 5 (PR 5a). Alcança a segunda linha do bloco DoD da **T5.1**
+  em `03_plan.md`, corrigida pela CHG-026, com a tarefa já executada e antes de
+  o `supervisor-dod` julgá-la.
+- **Planejado originalmente:** a CHG-026 mandou consultar `pg_policies` com
+  `docker compose -f infra/local/docker-compose.yml exec -T db psql -U
+  supabase_admin -d postgres -tAc "select qual, with_check ..."` e exigiu a
+  saída `(user_id = ( SELECT auth.uid() AS uid))` nas duas colunas.
+- **Por que não foi possível prosseguir:** o executor da T5.1 rodou a linha e
+  reportou que a saída real, sob `-U supabase_admin`, é `(user_id = ( SELECT
+  uid() AS uid))` — **sem** o prefixo `auth.`. Medido de novo aqui e confirmado:
+  essa role traz `auth` no `search_path` padrão da imagem
+  `supabase/postgres:15.8.1.085`, e o Postgres decompila a expressão sem
+  qualificar o esquema. A mesma consulta contra `ai_user_credentials`, cuja
+  política está correta desde a `0007`, devolve exatamente o mesmo texto sem
+  prefixo. Ou seja: a linha reprovaria uma implementação certa. O texto exigido
+  pela CHG-026 veio da medição do `auditor-de-criterios`, que conectou como
+  `postgres` pela porta `54322` — role diferente, `search_path` diferente,
+  saída diferente. Misturar a role de uma medição com o comando de outra foi o
+  defeito.
+- **Alternativas consideradas:** (a) `set search_path to public` num `-c`
+  antes do select — funciona, mas o `psql` imprime `SET` como primeira linha e
+  a exigência "devolve exatamente uma linha" passa a ser falsa; (b) comparar a
+  política nova com a da `0007` na mesma sessão, sem fixar texto — robusto ao
+  `search_path`, mas troca um critério literal por um relativo, e a exigência
+  deixa de ser legível sozinha.
+- **Decisão tomada:** fixar o caminho de busca na conexão, com `-e
+  PGOPTIONS=--search_path=public` no `docker compose exec`, mantendo o texto
+  qualificado como critério. Medido: a saída sai numa linha só, sem o `SET` na
+  frente, com código de saída `0`. A razão do `PGOPTIONS` ficou escrita na
+  própria linha, para quem a executar não achar que é adorno.
+- **Resumo da resolução:** a exigência é a mesma — uma política de dono, na convenção do
+  subselect que a `0005` estabeleceu. O que mudou é a role sob a qual ela é
+  lida. Nenhum trabalho da T5.1 precisou mudar: a migration já estava correta.
+- **Reconciliação documental:** `03_plan.md`, bloco DoD da **T5.1**, segunda linha. PRD e specs inalterados; a migration da T5.1 não precisou mudar.
+
+### CHG-028 - A correção da CHG-027 provava o tipo do status por grep negativo e contava arquivos novos sem nomeá-los
+
+- **Data:** 2026-08-21
+- **Fase/PR:** Fase 5 (PR 5b). Alcança a primeira, a terceira e a quarta linha
+  do bloco DoD da **T5.4** em `03_plan.md`, corrigidas pela CHG-027 e ainda não
+  despachadas a executor nenhum.
+- **Planejado originalmente:** a CHG-027 provava que o status não é `String`
+  com `rtk proxy grep -n 'String .*status\|status.*String'` esperando nenhuma
+  linha; exigia "exatamente três arquivos novos de conexão bancária" em
+  `app/lib/modules/settings_module/domain/usecases/` sem dizer quais; e mandava
+  rodar o grep de imports "também sobre os três arquivos novos de `usecases/`",
+  que por isso não tinha argumentos.
+- **Por que não foi possível prosseguir:** o `auditor-de-criterios`, reauditando
+  o bloco corrigido, demonstrou os dois defeitos rodando. Escreveu um
+  `bank_connection.dart` sintético com `final String` e `status;` em linhas
+  separadas: o grep saiu `1`, sem nenhuma linha — exatamente o resultado que o
+  critério trata como aprovação. Prova negativa por grep não distingue o tipo
+  certo de uma declaração quebrada em duas linhas. E `usecases/` já tem seis
+  arquivos de IA e perfil: sem os nomes esperados, "exatamente três novos" não
+  é contável por quem chega depois sem saber quais eram os antigos.
+- **Alternativas consideradas:** (a) manter o grep negativo e confiar na leitura
+  em prosa que a mesma linha pede — deixa um comando quebrado citado como prova
+  executável, que é o que o `supervisor-dod` vai rodar; (b) contar por
+  `git diff --stat` contra uma base — introduz no critério uma referência de
+  commit que a tarefa não controla.
+- **Decisão tomada:** trocar a prova de tipo por **positiva** —
+  `rtk proxy grep -nE 'BankConnectionStatus[[:space:]]+status'` devolvendo
+  exatamente uma linha —, nomear os três arquivos de use case
+  (`get_bank_connection.dart`, `start_bank_connection.dart`,
+  `disconnect_bank_connection.dart`) e nomear os seis arquivos de uma vez no
+  grep de imports, com o código de saída `0` fazendo parte do critério: o
+  auditor confirmou que o `rtk proxy` repassa o código real do `grep`, e que um
+  arquivo ausente entre os nomeados sai `2`.
+- **Resumo da resolução:** o bloco continua com cinco linhas e com as mesmas exigências da
+  CHG-027. O que mudou é que nenhuma delas passa mais sem o trabalho existir, e
+  nenhuma aprova uma implementação errada por acidente de formatação.
+- **Reconciliação documental:** `03_plan.md`, bloco DoD da **T5.4**, primeira, terceira e quarta linhas. PRD e specs inalterados.
+
+### CHG-027 - O bloco DoD da T5.4 dependia de arquivo entregue por outra frente, tinha uma linha verde por construção e um comando que não roda a partir da raiz
+
+- **Data:** 2026-08-21
+- **Fase/PR:** Fase 5 (PR 5b). Alcança as cinco linhas do bloco DoD da **T5.4**
+  em `03_plan.md`, antes de a tarefa ser despachada a executor nenhum.
+- **Planejado originalmente:** o bloco pedia que o enum de status fosse
+  conferido "contra a restrição de
+  `supabase/migrations/0009_criar_conexoes_bancarias.sql`"; provava o
+  isolamento de dependências com `rtk proxy grep -rn "^import"` sobre a pasta
+  `app/lib/modules/settings_module/domain/` inteira; e trazia
+  `flutter analyze lib/modules/settings_module/domain` como comando próprio,
+  entre crases, sem o `cd app` que só existia no comando anterior.
+- **Por que não foi possível prosseguir:** o `auditor-de-criterios`, cego ao
+  plano, executou as cinco linhas contra a árvore e reprovou três. A migration
+  `0009` é entregue pela **T5.1**, que roda em worktree paralelo — ela não
+  existe na árvore desta tarefa e a referência só resolveria depois de um merge
+  alheio, o que é critério observável fora da tarefa. O grep de imports **já
+  passa hoje**, sem nenhum arquivo da tarefa existir, porque a pasta `domain/`
+  do módulo já está povoada por `ai_credential*`, `profile*` e
+  `user_profile.dart`: a linha não distingue tarefa feita de tarefa não feita.
+  E `flutter analyze lib/modules/settings_module/domain`, rodado literalmente a
+  partir da raiz, sai `1` com "path does not exist on disk".
+- **Alternativas consideradas:** (a) manter a referência à `0009` e serializar
+  T5.4 depois de T5.1 — custa o paralelismo da onda 1 sem ganhar prova, já que
+  os quatro valores são conhecidos e podem ser escritos por extenso; (b)
+  devolver ao `tech-lead` — desnecessário, porque nenhuma correção muda **o
+  que** se exige.
+- **Decisão tomada:** corrigir a forma das cinco linhas no papel de orquestrador. Os
+  quatro estados passam a estar escritos por extenso no próprio critério, com a
+  migration citada **depois**, como procedência, e dito explicitamente que ela
+  não precisa existir nesta árvore. O arquivo do enum ganhou caminho completo. O
+  grep de imports passa a nomear os arquivos novos, um a um, e a exigir que o
+  comando devolva linha — arquivo ausente falha. Os dois comandos da última
+  linha ganharam `cd app` próprio.
+- **Resumo da resolução:** o bloco continua com cinco linhas e com as mesmas exigências —
+  entidade imutável, status como enum fechado de quatro valores, contrato com
+  três operações em `Either<Failure, …>`, um use case por operação, domain sem
+  dependência fora de equatable/fpdart/`core/error`, e formatação e análise
+  verdes. Nada além do bloco DoD da T5.4 mudou.
+- **Reconciliação documental:** `03_plan.md`, bloco DoD da **T5.4**, cinco linhas reescritas. PRD e specs não descreviam essas provas e seguem válidos.
+
+### CHG-026 - O bloco DoD da T5.1 não alcançava o banco do projeto, exigia da política uma string que o Postgres nunca devolve e contradizia a si mesmo no estado da tabela
+
+- **Data:** 2026-08-21
+- **Fase/PR:** Fase 5 (PR 5a). Alcança as seis linhas do bloco DoD da **T5.1**
+  em `03_plan.md`, antes de a tarefa ser despachada a executor nenhum.
+- **Planejado originalmente:** o bloco pedia `psql -v ON_ERROR_STOP=1 -f
+  supabase/migrations/0009_criar_conexoes_bancarias.sql` e mais quatro consultas
+  com `psql -tAc`, todas sem host, porta, usuário ou contêiner; exigia que
+  `select qual, with_check from pg_policies` devolvesse a string literal
+  `user_id = (select auth.uid())`; e pedia `count(*) = 1` para o usuário A logo
+  depois de duas linhas que inserem registros sem mandar desfazê-los.
+- **Por que não foi possível prosseguir:** o `auditor-de-criterios`, cego ao
+  plano, executou cada linha contra a árvore e reprovou o bloco inteiro. O
+  `psql` nu procura o socket default e nunca chega ao Postgres do ganza, que
+  mora em `infra/local/docker-compose.yml` na porta `54322`. A string da
+  política é **impossível**: o Postgres normaliza a expressão ao gravar, e a
+  política idêntica já em produção aparece como `(user_id = ( SELECT auth.uid()
+  AS uid))` — nenhuma implementação correta satisfaria a linha. E a prova de
+  isolamento pressupunha tabela vazia que as duas linhas anteriores enchem, o
+  que torna `count(*) = 1` indeterminado.
+- **Alternativas consideradas:** (a) despachar assim mesmo e deixar o defeito
+  aparecer como `DOD INVÁLIDO` do `supervisor-dod` — mais caro, porque o
+  executor já teria trabalhado, e é exatamente o que a auditoria prévia existe
+  para evitar; (b) devolver ao `tech-lead` — desnecessário, porque nenhuma das
+  três correções muda **o que** se exige, só **como** se mede.
+- **Decisão tomada:** corrigir a forma das seis linhas no papel de orquestrador, sem
+  afrouxar exigência nenhuma. A conexão passa a ser o wrapper que o próprio
+  repositório usa (`docker compose -f infra/local/docker-compose.yml exec -T db
+  psql -U supabase_admin -d postgres`), e a aplicação limpa passa a ser
+  `bash scripts/local-supabase.sh reset`, que aplica as migrations na ordem e
+  aborta no primeiro erro. A política passa a ser conferida pela forma
+  normalizada real, com a política da `0007` como referência viva. As duas
+  provas de constraint passam a rodar em transação encerrada por `rollback`, e
+  a linha de isolamento diz de que estado parte. A última linha ganhou a
+  instrução de que SQL de prova vai por arquivo redirecionado, nunca por
+  heredoc.
+- **Resumo da resolução:** o bloco continua com seis linhas e com as mesmas seis exigências
+  — migration aplica limpo, RLS ligada, política de dono, status fechado,
+  identificador único, isolamento por usuário e cascade. Nada além do bloco DoD
+  da T5.1 mudou; PRD e specs não descreviam essas linhas e seguem válidos.
+- **Reconciliação documental:** `03_plan.md`, bloco DoD da **T5.1**, seis linhas reescritas. PRD e specs não descreviam essas provas e seguem válidos.
+
 ### CHG-025 - A correção da CHG-024 restaurou a distinção de camada mas trocou a varredura total por um allowlist, reduzindo a cobertura do negativo
 
 - **Data:** 2026-08-21
