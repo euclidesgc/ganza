@@ -202,6 +202,17 @@ toda fase.
 - [ ] **T1.1** — Criar `supabase/migrations/0007_criar_lembretes.sql` com a tabela `public.lembretes`, RLS ligada e política de dono, via skill `criar-migration`. · camada **migration** · `especialista-backend`
 
   **DoD da tarefa**
+
+> **Não escreva linha de `dart format`, `flutter analyze` ou `gates_guard.sh`
+> num bloco de tarefa.** Desde 21/08/2026 higiene de código é **DoD geral** —
+> formatação aplicada e console limpo valem para toda entrega, sem estar escritos
+> em lugar nenhum —, e a cancela roda na skill `fechar-etapa`, com o mesmo alvo
+> que o `.github/workflows/ci.yml` usa. Gastar uma das três a seis linhas do
+> bloco com isso tem dois custos: rouba a linha de uma prova que só aquela tarefa
+> produz, e cria um alvo que **diverge** do CI — foi assim que a Fase 5 da
+> feature 002 chegou ao gate final com dois arquivos de `test/` desformatados,
+> invisíveis para seis supervisores que mediam só `lib/`.
+
   - `supabase/migrations/0007_criar_lembretes.sql` aplica limpo num Postgres vazio: `psql -v ON_ERROR_STOP=1 -f supabase/migrations/0007_criar_lembretes.sql; echo $?` imprime `0`. O `psql -q` do CI não imprime nada — quem prova é o código de saída, não a saída.
   - `psql -tAc "select rowsecurity from pg_tables where schemaname='public' and tablename='lembretes'"` devolve `t`.
   - `psql -tAc "select qual, with_check from pg_policies where tablename='lembretes'"` devolve exatamente uma linha, com `user_id = auth.uid()` nas duas colunas.
@@ -215,7 +226,7 @@ toda fase.
   **DoD da tarefa**
   - `app/lib/modules/lembretes_module/presentation/lembretes_list/lembretes_list_cubit.dart` existe, declara `sealed class LembretesListState` no mesmo arquivo via `part of`, com os quatro estados como `final class`, e nenhum `import` de `.../data/` aparece no arquivo.
   - Todo `emit` posterior a um `await` é precedido de `if (isClosed) return;` — conferir com `rtk proxy grep -n 'await\|isClosed\|emit' app/lib/modules/lembretes_module/presentation/lembretes_list/lembretes_list_cubit.dart`.
-  - `cd app && dart format --output=none --set-exit-if-changed lib/modules/lembretes_module` e `cd app && flutter analyze lib/modules/lembretes_module` terminam com código de saída `0`. **Cada comando leva o seu próprio `cd app`** — da raiz do repositório o `analyze` completa em milissegundos e sai `0` sem analisar nada, e o `test` falha com `Test directory "test" not found`; e `--output=none` é o que faz a linha **medir** em vez de reescrever a árvore que ela deveria estar medindo.
+  - O `switch` sobre o estado cobre os quatro casos sem cláusula `default` — remover um `final class` do `sealed` faz `flutter analyze` acusar `non_exhaustive_switch`; provar rodando e restaurando.
   - Da raiz do repositório, `scripts/gates_guard.sh; echo $?` imprime `0`: nenhum literal de cor, espaçamento ou tipografia fora de `app/lib/core/theme/`, e nenhum método que retorne `Widget`.
   - O `switch` sobre o estado é exaustivo sem cláusula `default` — remover um `final class` do `sealed` faz `flutter analyze` acusar `non_exhaustive_switch`; provar rodando e restaurando.
 

@@ -130,3 +130,17 @@ cobre estaticamente a maior parte desta lista, e
 bloco na árvore atual e mostra o que ele já devolve **hoje**. Linha que hoje já
 dá o resultado esperado é verde por construção e volta para você de qualquer
 forma — mais barato ver isso em segundos do que numa rodada de auditoria.
+
+## O que **não** entra num bloco DoD de tarefa
+
+**Higiene de código não é critério de tarefa.** Não escreva linha de
+`dart format`, `flutter analyze`, `deno fmt`, `deno lint` ou `gates_guard.sh`
+num bloco: desde 21/08/2026 isso é **DoD geral**, vale para toda entrega sem
+estar escrito, e a cancela roda na `fechar-etapa` com o alvo do CI. Cada linha
+que você gasta assim é uma linha a menos para a prova que **só aquela tarefa**
+produz — e é um alvo a mais para divergir do `ci.yml`, que foi como a Fase 5
+chegou ao fechamento com dois arquivos de `test/` desformatados enquanto todos
+os blocos mediam `lib/`.
+
+O bloco de tarefa responde a uma pergunta só: **o que esta tarefa faz existir no
+mundo que não existia antes, e como se observa isso?**
