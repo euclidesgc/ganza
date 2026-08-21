@@ -1855,11 +1855,7 @@ widget ou saída de comando**; e o que não couber em nenhum dos dois é dito po
 extenso como buraco aceito. A tabela abaixo é o resultado dessa passagem —
 **ela é o que resta do lote**, e cada linha tem dono, arquivos e bloco DoD.
 
-**`app/patrol_test/` deixa de ser mantido a partir de agora, e a remoção é a
-TL.4 — não é deste PR.** Enquanto o diretório existir, ele ainda precisa formatar
-e analisar limpo, porque `.github/workflows/ci.yml` roda `dart format` e
-`flutter analyze` sobre a pasta `app/` inteira. `docs/002_conta_e_configuracoes/e2e/round_01/`
-e `round_02/` **ficam**: são registro histórico, e apagá-los não devolve nada.
+**O diretório `app/patrol_test/` fica onde está** — a TL.4, que mandava removê-lo, foi **cancelada em 21/08/2026** (CHG-042): E2E voltou a ser ferramenta do humano, sob demanda. Enquanto o diretório existir, ele continua entrando no `dart format` e no `flutter analyze` do repositório, que é o estado em que o CI o encontra.
 
 **Tarefas do lote**
 
@@ -1887,7 +1883,7 @@ e `round_02/` **ficam**: são registro histórico, e apagá-los não devolve nad
   - `rtk proxy grep -rn 'onAuthStateChangeSync' app/lib` não devolve nenhuma linha: o app consome o stream assíncrono, e é isso que mantém a entrega fora da fase de build.
   - `cd app && dart format --output=none --set-exit-if-changed lib test`, `flutter analyze` e `flutter test -r compact` terminam com código de saída `0`.
 
-- [ ] **TL.4** — Remover fisicamente o E2E do repositório: o diretório `app/patrol_test/`, a dependência `patrol` de `app/pubspec.yaml` e as menções restantes. · camada **infra** · `especialista-infra`
+- [~] **TL.4** — ~~Remover fisicamente o E2E do repositório: o diretório `app/patrol_test/`, a dependência `patrol` de `app/pubspec.yaml` e as menções restantes.~~ **CANCELADA em 21/08/2026 (CHG-042).** O humano decidiu que **E2E não está suspenso: está com ele, para rodar quando quiser revisar**. Apagar `app/patrol_test/` e a dependência `patrol` destruiria exatamente o arranjo que ele voltou a usar. `app/patrol_test/` e `patrol: ^4.9.0` **ficam no repositório**, sem serem mantidos pelo fluxo automatizado e sem entrar em DoD nenhum. · camada **infra**
 
   **DoD da tarefa**
   - O diretório `app/patrol_test/` não existe mais: `ls app/patrol_test` responde que o caminho não existe, e `rtk proxy grep -n 'patrol' app/pubspec.yaml` não devolve nenhuma linha — some tanto a dependência quanto o bloco de configuração com `test_directory`.

@@ -136,6 +136,30 @@ Toda skill declara `allowed-tools` e **todas são auto-invocáveis pelo modelo**
 
 **Abrir o PR e mergear são do agente, não do humano** (decisão de 21/08/2026). Com unit, widget e golden verdes, o DoD da fase verificado rodando e a cancela de máquina limpa, siga: abra o PR, confira o CI e **mergeie**, sem esperar aprovação. **Depois do merge, apague as branches que já entraram e remova os worktrees da fase** — worktree existe enquanto o trabalho existe, e branch órfã não fica no repositório. O que **continua** sendo do humano é o **teste E2E**: ele não é escopo automatizado do ganza e o humano o roda quando quer revisar de fato. Peça revisão dele só quando a entrega precisar de olho humano — não como etapa de rotina.
 
+**Escreva ao lado de cada linha o que ela devolve HOJE, medido rodando.** Se a
+resposta for igual à que ela dará depois da tarefa, a linha não é critério — é
+decoração, e vai aprovar tarefa não feita. Se for um resultado que **nenhuma**
+implementação correta produz, é vermelho impossível e vai reprovar trabalho bom.
+As duas doenças são a mesma vista de lados opostos: a linha não distingue a
+árvore com o trabalho da árvore sem ele. Rodar o comando enquanto se escreve o
+critério custa segundos; descobrir isso pelo auditor custa uma rodada, e pelo
+supervisor custa o trabalho inteiro do executor.
+
+**A saída literal citada num critério tem de ser a saída daquele comando exato,
+na mesma role, ambiente e diretório em que o critério manda rodar.** Misturar a
+medição de um comando com o texto de outro foi o defeito da CHG-029: o valor
+esperado viera de uma conexão como `postgres`, e o comando escrito conectava
+como `supabase_admin`, que decompila a política sem o prefixo do schema.
+
+**Duas restrições de ambiente que valem para toda prova:** o alvo do
+`dart format` num DoD de fase é **o mesmo do `.github/workflows/ci.yml`** —
+`app/` inteiro, `test/` incluído; medir só `lib/` cega o gate para arquivo de
+teste, que foi como a Fase 5 chegou ao fechamento com dois arquivos
+desformatados. E **prova não muta recurso compartilhado**: o projeto Docker
+`ganza-local` é único para todos os worktrees, então derrubar contêiner ou
+apagar volume para medir alguma coisa quebra o ambiente de quem trabalha ao
+lado.
+
 **Toda linha do DoD é uma prova executável, de um destes três tipos:**
 
 | Tipo | Como se prova |
@@ -156,6 +180,25 @@ Toda skill declara `allowed-tools` e **todas são auto-invocáveis pelo modelo**
 **No PR, o DoD vai no corpo, com o resultado de cada linha.** É o que o revisor lê primeiro.
 
 **Roadmap vivo (`docs/roadmap.md`).** É a lista curta e ordenada de features: `[ ] NNN - descrição`. Cada item aponta para uma pasta `docs/NNN_descricao/`; o estado detalhado fica em `03_plan.md`. Decisões da feature ficam em `decisions.md`; decisões transversais ou pendências humanas ficam em `docs/decisions.md`, que sobrepõe `docs/plano.md` quando houver conflito.
+
+**O corte de uma entrega é por família de prova, não por contagem de tarefas.**
+As famílias são cinco: **migration/SQL**, **Edge Function/Deno**, **camada
+Dart** (domain, data), **tela/widget** e **infra/ambiente**. Uma entrega cobre
+**no máximo duas**. A medição que sustenta a regra: a Fase 5 da feature 002 teve
+**seis tarefas e seis famílias** — uma por tarefa — e custou **2,67 correções de
+critério por tarefa**; a Fase 1, com **16 tarefas** repetindo a mesma forma de
+prova, custou **0,69**. Menos tarefas não é entrega menor: o que encarece é
+trocar de família a cada tarefa, porque nenhum aprendizado de critério
+transfere e cada bloco DoD nasce do zero.
+
+**Tarefa cuja prova exige ambiente que não está no repositório — credencial de
+terceiro, stack no ar, VPS — é fase própria e PR próprio.** A T5.2 sozinha
+gerou quatro das dezesseis correções da Fase 5, todas de ambiente, e ainda
+travou a onda por pendência humana; isolá-la teria tirado as quatro e o
+bloqueio do caminho crítico das outras cinco tarefas.
+
+**Tarefa toca no máximo 6 arquivos.** Acima disso, fatie: a T4.11, com onze
+arquivos, foi a única tarefa da Fase 4 a precisar de mais de uma correção.
 
 **A ordem das fases é uma decisão de produto, não de conveniência:** rotina vem antes de finanças. É a rotina que faz o app ser aberto todo dia e é o domínio mais barato para construir a máquina de ocorrência, estado terminal, log de eventos e notificação em dupla via. **Se a fase N não estiver em uso diário, não comece a N+1.**
 

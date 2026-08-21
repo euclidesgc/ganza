@@ -7,6 +7,45 @@ estado final, sem preservar neles uma versão obsoleta do planejamento.
 
 ## Mudanças registradas
 
+### CHG-042 - A TL.4 mandava apagar o E2E do repositório, e o E2E deixou de estar suspenso: voltou a ser ferramenta do humano
+
+- **Data:** 2026-08-21
+- **Fase/PR:** Lote de fechamento (§9). Alcança a tarefa **TL.4** em
+  `03_plan.md` e as menções a ela nas linhas de contexto da §3 e da §9.
+- **Planejado originalmente:** a **TL.4** removeria fisicamente o E2E do
+  repositório — o diretório `app/patrol_test/`, a dependência `patrol` de
+  `app/pubspec.yaml` e as menções restantes. Ela nasceu da **D34** e do
+  **CHG-019**, de 20/08/2026, quando o humano suspendeu o E2E por completo e o
+  escopo automatizado passou a ser unit + widget.
+- **Por que não foi possível prosseguir:** em 21/08/2026 o humano **revisou a
+  decisão**: E2E não está suspenso, está **com ele** — ele o roda quando quer
+  revisar de fato, e o automatizado do agente é unit + widget + golden. Uma
+  retrospectiva do harness mediu o estado da árvore e encontrou o risco:
+  `app/patrol_test/` **existe** e `patrol: ^4.9.0` continua em
+  `app/pubspec.yaml:31`. Com a TL.4 ainda aberta no plano, o primeiro agente a
+  executar o lote de fechamento apagaria justamente o arranjo que o humano
+  acabou de dizer que vai usar — e a perda só apareceria quando ele fosse rodar
+  um roteiro.
+- **Alternativas consideradas:** (a) manter a TL.4 e reescrevê-la para "remover
+  só as menções, preservando o diretório" — meia-remoção deixa o `pubspec.yaml`
+  e o diretório num limbo, mantidos por ninguém e citados por nada; (b) executar
+  a TL.4 e reintroduzir o E2E depois, quando o humano precisar — jogar fora e
+  reconstruir o mesmo arranjo é trabalho puro.
+- **Decisão tomada:** **cancelar a TL.4.** `app/patrol_test/` e a dependência
+  `patrol` **ficam no repositório**, fora do fluxo automatizado e fora de
+  qualquer DoD — não são mantidos pelos agentes, não entram em gate e não são
+  pré-requisito de merge. O que continua valendo da D34 é o que ela sempre quis
+  dizer na prática: **o agente não escreve nem roda E2E**, e comportamento
+  visível se prova por teste de widget.
+- **Resumo da resolução:** o lote de fechamento passa de quatro tarefas para
+  três (TL.1 a TL.3). Nada é apagado do repositório. A ferramenta que o humano
+  usa para revisar continua onde está, e o risco de um agente destruí-la sem
+  perceber deixa de existir.
+- **Reconciliação documental:** `03_plan.md` — a linha da **TL.4** na §9, marcada
+  como cancelada com a razão por extenso, e o parágrafo da §9 que instruía os
+  agentes a contarem com a remoção. A **D34** de `docs/decisions.md` recebe a
+  revisão na mesma data. PRD e specs não descreviam a TL.4 e seguem válidos.
+
 ### CHG-041 - O DoD da Fase 5 exigia CI verde antes de os PRs existirem, e os DoDs de tarefa formatavam um alvo menor que o do CI
 
 - **Data:** 2026-08-21
