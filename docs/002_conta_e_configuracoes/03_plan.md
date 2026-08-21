@@ -1172,7 +1172,7 @@ A T4.3 corre em paralelo com T4.1 e T4.2: ela escreve só em `docs/`, elas só e
 `supabase/migrations/`. Vale worktree porque são três escritas simultâneas, e as
 duas migrations são do mesmo agente em fila — `0008` depende de `0007` existir.
 
-- [ ] **T4.4** — Criar a Edge Function `supabase/functions/ai-credentials/` com `index.ts` de borda, `handler.ts` testável e `handler_test.ts`: salvar a chave, testar a chave e apagar a credencial, sempre pelo desenho de dois passos. · camada **backend** · `especialista-backend`
+- [x] **T4.4** — Criar a Edge Function `supabase/functions/ai-credentials/` com `index.ts` de borda, `handler.ts` testável e `handler_test.ts`: salvar a chave, testar a chave e apagar a credencial, sempre pelo desenho de dois passos. · camada **backend** · `especialista-backend` · **DoD: CUMPRIDO**
 
   **DoD da tarefa**
   - `supabase/functions/ai-credentials/index.ts` é só a borda, e isso se conta em vez de se ler: `grep -cve '^[[:space:]]*$' supabase/functions/ai-credentials/index.ts` imprime `2` — o `import` do handler e o `Deno.serve(handler);` —, e `grep -c 'Deno.serve(handler)' supabase/functions/ai-credentials/index.ts` imprime `1`, no mesmo formato de `supabase/functions/health/index.ts` e `supabase/functions/transactions/index.ts`, que hoje imprimem `2`. O comportamento inteiro mora em `supabase/functions/ai-credentials/handler.ts`, exportado e testável sem subir servidor.
