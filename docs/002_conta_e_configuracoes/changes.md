@@ -7,6 +7,46 @@ estado final, sem preservar neles uma versão obsoleta do planejamento.
 
 ## Mudanças registradas
 
+### CHG-027 - O bloco DoD da T5.4 dependia de arquivo entregue por outra frente, tinha uma linha verde por construção e um comando que não roda a partir da raiz
+
+- **Data:** 2026-08-21
+- **Fase/PR:** Fase 5 (PR 5b). Alcança as cinco linhas do bloco DoD da **T5.4**
+  em `03_plan.md`, antes de a tarefa ser despachada a executor nenhum.
+- **Planejado originalmente:** o bloco pedia que o enum de status fosse
+  conferido "contra a restrição de
+  `supabase/migrations/0009_criar_conexoes_bancarias.sql`"; provava o
+  isolamento de dependências com `rtk proxy grep -rn "^import"` sobre a pasta
+  `app/lib/modules/settings_module/domain/` inteira; e trazia
+  `flutter analyze lib/modules/settings_module/domain` como comando próprio,
+  entre crases, sem o `cd app` que só existia no comando anterior.
+- **Por que não foi possível prosseguir:** o `auditor-de-criterios`, cego ao
+  plano, executou as cinco linhas contra a árvore e reprovou três. A migration
+  `0009` é entregue pela **T5.1**, que roda em worktree paralelo — ela não
+  existe na árvore desta tarefa e a referência só resolveria depois de um merge
+  alheio, o que é critério observável fora da tarefa. O grep de imports **já
+  passa hoje**, sem nenhum arquivo da tarefa existir, porque a pasta `domain/`
+  do módulo já está povoada por `ai_credential*`, `profile*` e
+  `user_profile.dart`: a linha não distingue tarefa feita de tarefa não feita.
+  E `flutter analyze lib/modules/settings_module/domain`, rodado literalmente a
+  partir da raiz, sai `1` com "path does not exist on disk".
+- **Alternativas consideradas:** (a) manter a referência à `0009` e serializar
+  T5.4 depois de T5.1 — custa o paralelismo da onda 1 sem ganhar prova, já que
+  os quatro valores são conhecidos e podem ser escritos por extenso; (b)
+  devolver ao `tech-lead` — desnecessário, porque nenhuma correção muda **o
+  que** se exige.
+- **Decisão:** corrigir a forma das cinco linhas no papel de orquestrador. Os
+  quatro estados passam a estar escritos por extenso no próprio critério, com a
+  migration citada **depois**, como procedência, e dito explicitamente que ela
+  não precisa existir nesta árvore. O arquivo do enum ganhou caminho completo. O
+  grep de imports passa a nomear os arquivos novos, um a um, e a exigir que o
+  comando devolva linha — arquivo ausente falha. Os dois comandos da última
+  linha ganharam `cd app` próprio.
+- **Resumo:** o bloco continua com cinco linhas e com as mesmas exigências —
+  entidade imutável, status como enum fechado de quatro valores, contrato com
+  três operações em `Either<Failure, …>`, um use case por operação, domain sem
+  dependência fora de equatable/fpdart/`core/error`, e formatação e análise
+  verdes. Nada além do bloco DoD da T5.4 mudou.
+
 ### CHG-026 - O bloco DoD da T5.1 não alcançava o banco do projeto, exigia da política uma string que o Postgres nunca devolve e contradizia a si mesmo no estado da tabela
 
 - **Data:** 2026-08-21
