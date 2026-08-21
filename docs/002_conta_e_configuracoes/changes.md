@@ -7,6 +7,47 @@ estado final, sem preservar neles uma versão obsoleta do planejamento.
 
 ## Mudanças registradas
 
+### CHG-026 - O bloco DoD da T5.1 não alcançava o banco do projeto, exigia da política uma string que o Postgres nunca devolve e contradizia a si mesmo no estado da tabela
+
+- **Data:** 2026-08-21
+- **Fase/PR:** Fase 5 (PR 5a). Alcança as seis linhas do bloco DoD da **T5.1**
+  em `03_plan.md`, antes de a tarefa ser despachada a executor nenhum.
+- **Planejado originalmente:** o bloco pedia `psql -v ON_ERROR_STOP=1 -f
+  supabase/migrations/0009_criar_conexoes_bancarias.sql` e mais quatro consultas
+  com `psql -tAc`, todas sem host, porta, usuário ou contêiner; exigia que
+  `select qual, with_check from pg_policies` devolvesse a string literal
+  `user_id = (select auth.uid())`; e pedia `count(*) = 1` para o usuário A logo
+  depois de duas linhas que inserem registros sem mandar desfazê-los.
+- **Por que não foi possível prosseguir:** o `auditor-de-criterios`, cego ao
+  plano, executou cada linha contra a árvore e reprovou o bloco inteiro. O
+  `psql` nu procura o socket default e nunca chega ao Postgres do ganza, que
+  mora em `infra/local/docker-compose.yml` na porta `54322`. A string da
+  política é **impossível**: o Postgres normaliza a expressão ao gravar, e a
+  política idêntica já em produção aparece como `(user_id = ( SELECT auth.uid()
+  AS uid))` — nenhuma implementação correta satisfaria a linha. E a prova de
+  isolamento pressupunha tabela vazia que as duas linhas anteriores enchem, o
+  que torna `count(*) = 1` indeterminado.
+- **Alternativas consideradas:** (a) despachar assim mesmo e deixar o defeito
+  aparecer como `DOD INVÁLIDO` do `supervisor-dod` — mais caro, porque o
+  executor já teria trabalhado, e é exatamente o que a auditoria prévia existe
+  para evitar; (b) devolver ao `tech-lead` — desnecessário, porque nenhuma das
+  três correções muda **o que** se exige, só **como** se mede.
+- **Decisão:** corrigir a forma das seis linhas no papel de orquestrador, sem
+  afrouxar exigência nenhuma. A conexão passa a ser o wrapper que o próprio
+  repositório usa (`docker compose -f infra/local/docker-compose.yml exec -T db
+  psql -U supabase_admin -d postgres`), e a aplicação limpa passa a ser
+  `bash scripts/local-supabase.sh reset`, que aplica as migrations na ordem e
+  aborta no primeiro erro. A política passa a ser conferida pela forma
+  normalizada real, com a política da `0007` como referência viva. As duas
+  provas de constraint passam a rodar em transação encerrada por `rollback`, e
+  a linha de isolamento diz de que estado parte. A última linha ganhou a
+  instrução de que SQL de prova vai por arquivo redirecionado, nunca por
+  heredoc.
+- **Resumo:** o bloco continua com seis linhas e com as mesmas seis exigências
+  — migration aplica limpo, RLS ligada, política de dono, status fechado,
+  identificador único, isolamento por usuário e cascade. Nada além do bloco DoD
+  da T5.1 mudou; PRD e specs não descreviam essas linhas e seguem válidos.
+
 ### CHG-025 - A correção da CHG-024 restaurou a distinção de camada mas trocou a varredura total por um allowlist, reduzindo a cobertura do negativo
 
 - **Data:** 2026-08-21
