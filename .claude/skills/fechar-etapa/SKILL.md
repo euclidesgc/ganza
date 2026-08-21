@@ -1,7 +1,7 @@
 ---
 name: fechar-etapa
 description: Verifica o DoD da fase rodando cada prova de verdade, antes de abrir o PR. Use ao terminar uma fase do 03_plan.md ou item do roadmap, com todas as tarefas já em CUMPRIDO — é o que autoriza abrir PR, mergear e passar para a próxima fase. Não use ao fim de uma tarefa; o DoD de tarefa é outro nível e quem o julga é o supervisor-dod.
-allowed-tools: Read, Write, Edit, Glob, Grep, Bash, mcp__dart__run_tests, mcp__dart__analyze_files
+allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 ---
 
 # Skill: fechar uma etapa
@@ -58,9 +58,8 @@ Nada de "os testes passaram, então está tudo certo". Cada linha do DoD tem um 
 
 | Tipo de linha | O que verificar |
 |---|---|
-| **Teste automatizado** | Passa. E **falha sem a mudança**: reverta o trecho, rode o teste, veja vermelho, restaure. Teste que nunca foi visto falhar não prova nada — este projeto já teve um caso em que o CI estava verde e o serviço não subia. |
-| **Saída de comando** | O comando roda e devolve exatamente o esperado. Se envolve serviço no ar, rode **contra o domínio real**, não contra `localhost`. |
-| **Evidência de E2E** | O print existe em `docs/NNN_<nome>/e2e/round_MM/` e o `report.md` da rodada está completo: título `# Round MM …`, `## Contexto`, `## Passos executados` (a tabela ligando passo, comando, resultado e o PNG que o prova), `## Ambiente e comandos` — os rótulos que `bash scripts/verify-gauntlet.sh` cobra —, mais `## Rastro` e `## Limpeza no wrap`, escritos por quem instrumentou. O guard passa, e o dev humano **atestou**. |
+| **Teste automatizado** | Passa. E **falha sem a mudança**: reverta o trecho, rode o teste, veja vermelho, restaure. Teste que nunca foi visto falhar não prova nada — este projeto já teve um caso em que o CI estava verde e o serviço não subia. Comportamento visível ao usuário prova por **teste de widget** — o escopo automatizado do ganza é unit + widget, sem E2E. |
+| **Saída de comando** | O comando roda e devolve exatamente o esperado, e é **só de leitura** — se ele tiver variante somente-leitura (`--output=none`, `--dry-run`), use-a; comando que reescreve a árvore ao medir não é prova, é mutação. Se envolve serviço no ar, rode **contra o domínio real**, não contra `localhost`. |
 
 ## 3. Cheque também o que o DoD não cobre
 
@@ -83,7 +82,7 @@ O DoD verificado é a primeira coisa que o revisor lê:
 
 - [x] `deno task test` — `health degrada sem SUPABASE_DB_URL` passa; verificado que falha sem o guard
 - [x] `curl https://…/functions/v1/health` → `200 {"status":"ok","database":"reachable"}`
-- [x] `e2e/round_01/03-card-confirmacao.png` — card com data explícita, atestado pelo dev
+- [x] `flutter test test/modules/onboarding_module/presentation/onboarding_page_test.dart -r compact` — cobre o card de confirmação com data explícita
 ```
 
 Linha que **não** passou não vira nota de rodapé: ou a etapa não fechou, ou o

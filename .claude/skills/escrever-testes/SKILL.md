@@ -1,7 +1,7 @@
 ---
 name: escrever-testes
-description: Escreve a bateria automatizada do ganza (unit + widget + golden + backend) — por último, após o E2E atestado e o segundo gate do CISO. Usada pelo QA na etapa final do fluxo, decomposta em uma frente por camada, cada uma com o seu bloco DoD.
-allowed-tools: Read, Write, Edit, Glob, Grep, Bash, mcp__dart__run_tests, mcp__dart__analyze_files
+description: Escreve a bateria automatizada do ganza (unit + widget + golden + backend) — por último, após o gate do CISO da fase. Usada pelo QA na etapa final do fluxo, decomposta em uma frente por camada, cada uma com o seu bloco DoD.
+allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 ---
 
 # Skill: escrever os testes automatizados

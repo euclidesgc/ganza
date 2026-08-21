@@ -3,7 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../../core/theme/theme.dart';
 import '../../../settings_routes.dart';
-import 'settings_section_tile.dart';
+import '../../widgets/settings_section_tile.dart';
 
 class SettingsSectionList extends StatelessWidget {
   const SettingsSectionList({super.key});

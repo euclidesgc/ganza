@@ -1,7 +1,7 @@
 ---
 name: criar-modulo
 description: Cria um módulo novo no app do ganza seguindo o gabarito de Clean Architecture do CLAUDE.md. Use ao iniciar qualquer módulo/feature nova no app Flutter.
-allowed-tools: Read, Write, Edit, Glob, Grep, Bash, mcp__dart__analyze_files
+allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 ---
 
 # Skill: criar um módulo novo

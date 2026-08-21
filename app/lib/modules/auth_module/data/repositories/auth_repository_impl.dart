@@ -129,6 +129,45 @@ class AuthRepositoryImpl implements AuthRepository {
     }
   }
 
+  @override
+  Future<Either<Failure, Unit>> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    final confirmation = await _confirmCurrentPassword(currentPassword);
+    if (confirmation.isLeft()) {
+      return confirmation;
+    }
+    try {
+      await _client.auth.updateUser(UserAttributes(password: newPassword));
+      return const Right(unit);
+    } on AuthException catch (error) {
+      return Left(_traduzir(error));
+    } catch (error) {
+      return Left(failureFromException(error));
+    }
+  }
+
+  Future<Either<Failure, Unit>> _confirmCurrentPassword(
+    String currentPassword,
+  ) async {
+    final email = currentUser?.email;
+    if (email == null) {
+      return const Left(AuthFailure());
+    }
+    try {
+      await _client.auth.signInWithPassword(
+        email: email,
+        password: currentPassword,
+      );
+      return const Right(unit);
+    } on AuthException catch (error) {
+      return Left(_traduzir(error));
+    } catch (error) {
+      return Left(failureFromException(error));
+    }
+  }
+
   /// Mapeia pelo `code` do GoTrue (https://supabase.com/docs/guides/auth/debugging/error-codes),
   /// nunca pela mensagem em inglês — só o código é estável entre versões.
   Failure _traduzir(AuthException error) {

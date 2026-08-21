@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:fpdart/fpdart.dart';
 import 'package:ganza/app_router.dart';
 import 'package:ganza/core/session/session.dart';
 import 'package:ganza/core/theme/app_theme.dart';
 import 'package:ganza/injection.dart';
 import 'package:ganza/modules/auth_module/auth_module.dart';
+import 'package:ganza/modules/settings_module/domain/domain.dart';
+import 'package:ganza/modules/settings_module/presentation/account/account_cubit.dart';
 import 'package:ganza/modules/settings_module/settings_module.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mocktail/mocktail.dart';
@@ -12,6 +15,10 @@ import 'package:mocktail/mocktail.dart';
 class _MockObserveCurrentUser extends Mock implements ObserveCurrentUser {}
 
 class _MockGetCurrentUser extends Mock implements GetCurrentUser {}
+
+class _MockGetUserProfile extends Mock implements GetUserProfile {}
+
+class _MockUpdateDisplayName extends Mock implements UpdateDisplayName {}
 
 void main() {
   setUp(() {
@@ -22,10 +29,28 @@ void main() {
       () => getCurrentUser(),
     ).thenReturn(const AuthenticatedUser(id: 'u1', email: 'e2e@ganza.local'));
 
+    final getUserProfile = _MockGetUserProfile();
+    final updateDisplayName = _MockUpdateDisplayName();
+    when(() => getUserProfile()).thenAnswer(
+      (_) async => const Right(
+        UserProfile(
+          id: 'u1',
+          email: 'e2e@ganza.local',
+          displayName: 'Pessoa Ganzá',
+          timezone: 'America/Sao_Paulo',
+        ),
+      ),
+    );
+
     getIt
       ..registerLazySingleton<ObserveCurrentUser>(() => observeCurrentUser)
       ..registerLazySingleton<GetCurrentUser>(() => getCurrentUser)
-      ..registerLazySingleton<PasswordRecoveryScope>(PasswordRecoveryScope.new);
+      ..registerLazySingleton<PasswordRecoveryScope>(PasswordRecoveryScope.new)
+      ..registerLazySingleton<GetUserProfile>(() => getUserProfile)
+      ..registerLazySingleton<UpdateDisplayName>(() => updateDisplayName)
+      ..registerFactory(
+        () => AccountCubit(getIt<GetUserProfile>(), getIt<UpdateDisplayName>()),
+      );
   });
 
   tearDown(getIt.reset);

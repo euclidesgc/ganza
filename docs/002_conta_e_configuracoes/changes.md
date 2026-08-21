@@ -7,6 +7,157 @@ estado final, sem preservar neles uma versão obsoleta do planejamento.
 
 ## Mudanças registradas
 
+### CHG-019 - O E2E sai de escopo, e o lote de fechamento perde a razão de existir
+
+- **Data:** 2026-08-20
+- **Fase/PR:** Fase 3 (PR 3b), no fechamento. Alcança as Fases 4, 5 e 6, ainda
+  não iniciadas, e o lote de fechamento (§9 do plano).
+- **Planejado originalmente:** a **D30** de `docs/decisions.md`, de 20/08/2026,
+  tirou as rodadas **novas** de E2E do caminho crítico de cada fase e as mandou
+  para um **lote de fechamento** (§9), com dono, arquivos e o bloco DoD já
+  escrito. As rodadas `round_03` a `round_06` continuariam existindo — apenas
+  depois da última fase de implementação —, e a §9 era gate: enquanto uma linha
+  dela estivesse aberta, a feature 002 não seria dada por entregue.
+- **Por que não foi possível prosseguir:** decisão do humano em 20/08/2026,
+  **E2E suspenso por completo — o projeto trabalha apenas com testes unitários e
+  de widget.** Isso sobrepõe a D30 na parte do lote: o que era **pendência
+  adiada** vira **escopo removido**. Manter a §9 como estava deixaria quinze
+  linhas de DoD que ninguém vai executar bloqueando a entrega da feature, e um
+  gate que ninguém roda deixa de ser gate e vira opinião.
+- **Alternativas consideradas:** (a) manter as rodadas na §9 marcadas como
+  opcionais — é o pior dos dois mundos: continuam pesando na leitura do plano e
+  não pesam mais no gate; (b) apagar a §9 em bloco — rápido, e perde toda
+  exigência cuja **única** prova era a rodada, em silêncio, que é exatamente o
+  modo de falha que a **D32** já pagou; (c) aplicar linha a linha a régua já
+  usada na T2.4 e na T5.6 — print redundante sai **seco**, com uma linha de
+  justificativa; exigência cuja prova única era a rodada **migra para teste de
+  widget** ou saída de comando; e o que não couber em nenhum dos dois é dito por
+  extenso como buraco aceito, nunca omitido.
+- **Decisão tomada:** (c), pelo `tech-lead`, com a decisão do humano registrada
+  como **D34** em `docs/decisions.md`. Saem do plano as nove tarefas de E2E —
+  **T1.16**, **T2.6**, **T2.7**, **T3.9**, **T3.10**, **T4.12**, **T4.13**,
+  **T5.7** e **T5.8** — e as onze linhas de print que a §9 guardava. A §9 é
+  reformulada: deixa de ser "o lote de rodadas adiadas" e passa a ser o lote das
+  exigências que perderam a prova, com quatro tarefas novas de dono declarado —
+  **TL.1** (abandono da recuperação), **TL.2** (cadeia do drawer até
+  transações), **TL.3** (troca de senha logado não desloga nem navega) e
+  **TL.4** (remoção física de `app/patrol_test/`, da dependência `patrol` em
+  `app/pubspec.yaml` e das menções restantes). **`app/patrol_test/` deixa de ser
+  mantido a partir de agora; a remoção é a TL.4 e não é deste PR** — enquanto o
+  diretório existir, ele ainda precisa formatar e analisar limpo, porque o
+  `.github/workflows/ci.yml` roda `dart format` e `flutter analyze` sobre a
+  pasta `app/` inteira.
+- **Resumo da resolução:** duas exigências ficam **sem prova automatizada**, e
+  estão escritas assim na §9: o **glifo do Remix Icon desenhado** (o print da
+  T2.1; sobra a conferência de codepoint contra o `remixicon.glyph.json` da tag
+  `v4.9.1`, que prova que o codepoint existe na fonte, não que ele desenha) e a
+  **integração real com a sandbox da Pluggy** (a T5.3 cobre o contrato da Edge
+  Function com o `fetch` stubado, não a sandbox no ar). Um efeito colateral
+  achado ao reconciliar: a **T4.14** escrevia a prova de isolamento em
+  `docs/002_conta_e_configuracoes/e2e/round_05/isolamento.md`, e o
+  `scripts/verify-gauntlet.sh` exige um `report.md` válido em **todo** diretório
+  sob `e2e/` — sem a T4.13 para gerá-lo, o guard passaria a falhar por um
+  diretório órfão. A prova mudou de endereço para
+  `docs/002_conta_e_configuracoes/provas/isolamento_credenciais_ia.md`, fora de
+  `e2e/`, que é onde ela sempre pertenceu: é `curl` e `psql`, nunca foi rodada
+  de emulador. `docs/002_conta_e_configuracoes/e2e/round_01/` e `round_02/`
+  continuam no repositório como registro histórico. Contagem da feature: **69 →
+  64** (menos nove tarefas de E2E, mais quatro do lote). Junto, e pelo mesmo
+  toque: toda linha de DoD das Fases 4, 5 e 6 passou a usar
+  `dart format --output=none --set-exit-if-changed`, porque sem `--output=none`
+  o comando **escreve** o arquivo ao medir — prova que muta a árvore que ela
+  deveria medir (achado do `supervisor-dod` em 20/08/2026).
+- **Reconciliação documental:** `docs/002_conta_e_configuracoes/03_plan.md`
+  (seção Gauntlet, Fase 3, Fase 4, Fase 5, Fase 6, §6, §7 nos riscos **X3** e
+  **X19**, §8 e §9), `docs/decisions.md` (**D30** revisada, **D34** e **D35**
+  novas) e `CHANGELOG.md`. O `01_prd.md` e o `02_specs.md` não descrevem
+  política de teste e não foram tocados.
+
+### CHG-018 - O DoD da T3.12 não pedia formato, e formatar cegava o gate que a tarefa criou
+
+- **Data:** 2026-08-20
+- **Fase/PR:** Fase 3 (PR 3b), no fechamento, com a T3.12 já marcada CUMPRIDO.
+- **Planejado originalmente:** o bloco DoD da **T3.12** cobrava que o guard
+  passasse a acusar rota nomeada nunca navegada, que o repositório atual saísse
+  `0`, que houvesse escape documentado, que a checagem **mordesse** e que
+  `bash -n scripts/gates_guard.sh` saísse `0`. Cinco linhas, todas sobre o
+  **script**.
+- **Por que não foi possível prosseguir:** a tarefa também mexe em **arquivo
+  Dart** — o escape mora na declaração da rota — e nenhuma linha exigia
+  `dart format`. O executor pôs o escape como comentário de fim de linha e os
+  dois gates viraram **mutuamente exclusivos**: sem formatar, o CI reprova;
+  formatando, o `dart format` quebra a declaração em duas linhas e o regex do
+  guard deixa de enxergá-la — cego exatamente na rota para a qual o escape foi
+  escrito.
+- **Alternativas consideradas:** (a) só mandar consertar o detector, tratando
+  como descuido do executor — deixa o critério errado de pé para a próxima tarefa
+  de gate; (b) acrescentar a linha de formato ao bloco **e** registrar a regra
+  geral, porque a tarefa tem **duas superfícies** (o script e o código que ele
+  varre) e o DoD só cobria uma.
+- **Decisão tomada:** (b), pelo `tech-lead`. O bloco da T3.12 ganha uma sexta
+  linha que exige `cd app && dart format --set-exit-if-changed lib` em `0`
+  **antes** das provas de mordida e de escape, com as saídas coladas nessa ordem
+  — provar no estado em que o executor deixou o arquivo não prova nada sobre o
+  CI. A regra geral virou a **D33** de `docs/decisions.md`, com a parte que
+  importa: **o escape se prende à declaração, não à linha física**, e detector
+  que casa só numa das formas é defeituoso.
+- **Resumo da resolução:** nenhuma tarefa nasceu; a feature segue com **69**. A
+  varredura dos outros blocos de gate achou **a mesma lacuna na T2.9** — o gate
+  do `Icons.` cru, já fechado —, cujo bloco também não pede `dart format` e cuja
+  prova de mordida edita um arquivo Dart sem formatá-lo. Ali o risco é menor
+  porque `Icons.add` não se quebra em duas linhas, **mas o escape `// gate4-ok` é
+  por linha física e tem a mesma fragilidade**: fica como dívida escrita na D33,
+  barata de conferir enquanto alguém tiver o script aberto. **Pergunta do
+  orquestrador respondida e registrada na D33:** fazer o guard falhar sobre
+  código fora de formato **não** teria pego este caso, porque no CI o repositório
+  está sempre formatado e era ali que o gate estava cego — ideia recusada com a
+  razão escrita, para não voltar.
+- **Reconciliação documental:** `docs/decisions.md` (**D33**) e
+  `docs/002_conta_e_configuracoes/03_plan.md` (sexta linha do bloco da T3.12).
+  `01_prd.md`, `02_specs.md` e `decisions.md` desta pasta não mudam.
+
+### CHG-017 - A troca de senha estava pronta e inalcançável, e é a terceira vez que a soma não entrega o fluxo
+
+- **Data:** 2026-08-20
+- **Fase/PR:** Fase 3 (PR 3b), achado pelo executor da T3.8.
+- **Planejado originalmente:** a **T3.7** faria a tela de troca de senha e a
+  **T3.8** registraria a rota `/configuracoes/conta/senha` fora do `ShellRoute`,
+  mais o DI. As duas cumpriram o que prometiam, com DoD aprovado.
+- **Por que não foi possível prosseguir:** **nenhum widget aciona a rota.** A tela
+  de Conta não tem link para trocar a senha, e a funcionalidade ficou navegável
+  por nome e inalcançável por quem usa o app. Nenhum DoD pegou porque o link não
+  era dito por nenhuma das duas tarefas — a T3.8 cobra a entrada de **Conta** na
+  home de Configurações, não a de senha dentro da tela de Conta.
+- **Alternativas consideradas:** (a) tratar como esquecimento e mandar consertar
+  sem registrar — deixa a classe do problema viva; (b) só acrescentar linha ao
+  DoD da Fase 3 — alguém teria de executá-la de todo modo, e linha de fase sem
+  tarefa dona é exatamente o defeito da **T2.4**; (c) criar a tarefa do link
+  **e** atacar a classe, com rede mecânica e rede por fase.
+- **Decisão tomada:** (c), pelo `tech-lead`. Nasce a **T3.11**
+  (`especialista-apresentacao`, no PR 3b): controle **"Trocar senha"** na tela de
+  Conta, navegando pela rota nomeada, provado por **teste de cadeia** em
+  `app/test/app_router_test.dart` que parte de `/`, abre o menu e toca até
+  `/configuracoes/conta/senha` — mais a reversão. Nasce a **T3.12**
+  (`especialista-infra`, no PR 3b, paralela à T3.11 porque só toca
+  `scripts/gates_guard.sh`): o guard passa a acusar rota nomeada declarada e
+  nunca navegada, com escape para rota alcançada só por `redirect`. **A classe do
+  problema virou a D32** de `docs/decisions.md`, com as duas redes e a condição
+  que a T2.4 ensinou: linha de DoD de fase precisa nomear em qual bloco de tarefa
+  a prova é escrita.
+- **Resumo da resolução:** a Fase 3 vai de 10 para **12** tarefas e leva **9** ao
+  PR 3b; a feature, de 67 para **69**. As Fases 4 e 5 ganharam a linha de
+  alcançabilidade **com dono**: a da Fase 4 é escrita pela **T4.11** (uma linha
+  nova no bloco) e a da Fase 5 pela **T5.6** (linha existente estendida, para o
+  bloco não passar de seis). A Fase 6 fica isenta por não entregar tela. **Se o
+  PR 3b ficar grande, a T3.12 é a que se move de fase sem perder nada** — ela
+  protege o futuro, não esta entrega.
+- **Reconciliação documental:** `docs/decisions.md` (**D32**);
+  `docs/002_conta_e_configuracoes/03_plan.md` — tarefas **T3.11** e **T3.12** com
+  bloco DoD, nota de dependência, linha de alcançabilidade no DoD das Fases 3, 4
+  e 5, linha nova no bloco da T4.11, linha estendida no da T5.6, contagem do DoD
+  da Fase 3, §8 Progresso e cabeçalho. `01_prd.md` e `02_specs.md` não mudam: o
+  fluxo prometido sempre foi este, o que faltava era o widget que o alcança.
+
 ### CHG-016 - O DoD da Fase 3 mandava a migration para o PR errado, e o número de tarefas quase foi corrigido para o lado errado
 
 - **Data:** 2026-08-20

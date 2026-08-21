@@ -1,5 +1,6 @@
 import 'package:go_router/go_router.dart';
 
+import 'presentation/change_password/change_password_page.dart';
 import 'presentation/login/login_page.dart';
 import 'presentation/password_recovery/password_recovery_code_page.dart';
 import 'presentation/password_recovery/password_recovery_request_page.dart';
@@ -17,6 +18,9 @@ abstract final class AuthRoutes {
 
   static const passwordRecoveryCodeName = 'passwordRecoveryCode';
   static const passwordRecoveryCodePath = '/recuperar-senha/codigo';
+
+  static const changePasswordName = 'configuracoes-conta-senha';
+  static const changePasswordPath = '/configuracoes/conta/senha';
 
   static GoRoute get route =>
       GoRoute(path: loginPath, name: loginName, builder: LoginPage.pageBuilder);
@@ -37,5 +41,11 @@ abstract final class AuthRoutes {
     path: passwordRecoveryCodePath,
     name: passwordRecoveryCodeName,
     builder: PasswordRecoveryCodePage.pageBuilder,
+  );
+
+  static GoRoute get changePasswordRoute => GoRoute(
+    path: changePasswordPath,
+    name: changePasswordName,
+    builder: ChangePasswordPage.pageBuilder,
   );
 }

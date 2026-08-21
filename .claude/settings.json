@@ -61,6 +61,15 @@
             "timeout": 10
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "ROOT=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0; [ -f \"$ROOT/.claude/RETOMADA.md\" ] && cat \"$ROOT/.claude/RETOMADA.md\"; exit 0",
+            "timeout": 10
+          }
+        ]
       }
     ],
     "SessionEnd": [

@@ -10,7 +10,7 @@ Objetivo: nada fica "na cabeça". A memória do que foi feito mora em arquivos v
 
 Na pasta da feature (`docs/NNN_<nome>/`):
 
-1. **final_report.md** — crie-o no fechamento da feature: roteiro cumprido, resultado de cada caso, links para os prints em `e2e/`. Responde "isso foi testado mesmo?".
+1. **final_report.md** — crie-o no fechamento da feature: roteiro cumprido, resultado de cada caso, referência à bateria automatizada (unit + widget) que prova cada um. Responde "isso foi testado mesmo?".
 2. **`decisions.md` / `changes.md`** — decisão local fica no primeiro; desvio
    pós-início fica no segundo, com planejamento original, impedimento,
    alternativas, decisão, resumo e lista da reconciliação.

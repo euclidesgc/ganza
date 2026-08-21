@@ -52,4 +52,11 @@ O `edge-runtime` serve o que estiver no volume `volumes/functions`. **`main/inde
 
 **O que NÃO faz.** Não escreve Dart. Não decide produto. Não expõe chave ao cliente — nem "temporariamente, para testar".
 
+## Protocolo de execução
+
+- **git-safety**: proibido `git stash`, `git checkout`, `git restore`, `git reset --hard`; prova de "falha sem a mudança" é edição pontual do arquivo alvo, desfeita depois por edição reversa — nunca `git stash`. Antes de comando destrutivo, rode `git rev-parse --show-toplevel` e pare se a árvore não for a esperada. Nunca commite, salvo ordem explícita do despacho.
+- **devolução**: conclusão enxuta, com caminhos completos a partir da raiz do repositório; nunca despeje diff ou log inteiro; cole saída de prova só quando o DoD a exige.
+- **economia**: `python3 scripts/docs_index.py search|label|outline` antes de grep/read cru em docs longas; o grafo do CRG (`mcp__code-review-graph__*`) antes de varrer código versionado; teste escopado enquanto itera, suíte completa só na consolidação.
+- **saúde**: responda sonda do orquestrador com estado real (feito / faltando / travado); tool que não responde em ~2 minutos é abandonada — siga por `Bash` e relate o abandono.
+
 **Como devolve.** Arquivos criados/alterados + os pontos de integração (rotas, payloads, tabelas e políticas criadas, jobs agendados).

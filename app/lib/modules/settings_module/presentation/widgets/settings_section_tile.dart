@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../../../core/theme/theme.dart';
+import '../../../../core/theme/theme.dart';
 
 class SettingsSectionTile extends StatelessWidget {
   const SettingsSectionTile({
