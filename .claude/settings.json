@@ -50,6 +50,26 @@
             "timeout": 30
           }
         ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "INPUT=$(cat); FILE=$(printf '%s' \"$INPUT\" | jq -r '.tool_input.file_path // empty' 2>/dev/null); [ -z \"$FILE\" ] && exit 0; case \"$FILE\" in *.dart) command -v dart >/dev/null 2>&1 && dart format \"$FILE\" >/dev/null 2>&1 ;; */supabase/functions/*.ts) command -v deno >/dev/null 2>&1 && deno fmt \"$FILE\" >/dev/null 2>&1 ;; esac; exit 0",
+            "timeout": 30
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "INPUT=$(cat); FILE=$(printf '%s' \"$INPUT\" | jq -r '.tool_input.file_path // empty' 2>/dev/null); case \"$FILE\" in *changes.md) ROOT=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0; [ -f \"$ROOT/scripts/verify-gauntlet.sh\" ] && bash \"$ROOT/scripts/verify-gauntlet.sh\" --changes \"$FILE\" >/dev/null ;; esac",
+            "timeout": 15
+          }
+        ]
       }
     ],
     "SessionStart": [
