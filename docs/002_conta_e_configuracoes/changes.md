@@ -7,6 +7,43 @@ estado final, sem preservar neles uma versão obsoleta do planejamento.
 
 ## Mudanças registradas
 
+### CHG-028 - A correção da CHG-027 provava o tipo do status por grep negativo e contava arquivos novos sem nomeá-los
+
+- **Data:** 2026-08-21
+- **Fase/PR:** Fase 5 (PR 5b). Alcança a primeira, a terceira e a quarta linha
+  do bloco DoD da **T5.4** em `03_plan.md`, corrigidas pela CHG-027 e ainda não
+  despachadas a executor nenhum.
+- **Planejado originalmente:** a CHG-027 provava que o status não é `String`
+  com `rtk proxy grep -n 'String .*status\|status.*String'` esperando nenhuma
+  linha; exigia "exatamente três arquivos novos de conexão bancária" em
+  `app/lib/modules/settings_module/domain/usecases/` sem dizer quais; e mandava
+  rodar o grep de imports "também sobre os três arquivos novos de `usecases/`",
+  que por isso não tinha argumentos.
+- **Por que não foi possível prosseguir:** o `auditor-de-criterios`, reauditando
+  o bloco corrigido, demonstrou os dois defeitos rodando. Escreveu um
+  `bank_connection.dart` sintético com `final String` e `status;` em linhas
+  separadas: o grep saiu `1`, sem nenhuma linha — exatamente o resultado que o
+  critério trata como aprovação. Prova negativa por grep não distingue o tipo
+  certo de uma declaração quebrada em duas linhas. E `usecases/` já tem seis
+  arquivos de IA e perfil: sem os nomes esperados, "exatamente três novos" não
+  é contável por quem chega depois sem saber quais eram os antigos.
+- **Alternativas consideradas:** (a) manter o grep negativo e confiar na leitura
+  em prosa que a mesma linha pede — deixa um comando quebrado citado como prova
+  executável, que é o que o `supervisor-dod` vai rodar; (b) contar por
+  `git diff --stat` contra uma base — introduz no critério uma referência de
+  commit que a tarefa não controla.
+- **Decisão:** trocar a prova de tipo por **positiva** —
+  `rtk proxy grep -nE 'BankConnectionStatus[[:space:]]+status'` devolvendo
+  exatamente uma linha —, nomear os três arquivos de use case
+  (`get_bank_connection.dart`, `start_bank_connection.dart`,
+  `disconnect_bank_connection.dart`) e nomear os seis arquivos de uma vez no
+  grep de imports, com o código de saída `0` fazendo parte do critério: o
+  auditor confirmou que o `rtk proxy` repassa o código real do `grep`, e que um
+  arquivo ausente entre os nomeados sai `2`.
+- **Resumo:** o bloco continua com cinco linhas e com as mesmas exigências da
+  CHG-027. O que mudou é que nenhuma delas passa mais sem o trabalho existir, e
+  nenhuma aprova uma implementação errada por acidente de formatação.
+
 ### CHG-027 - O bloco DoD da T5.4 dependia de arquivo entregue por outra frente, tinha uma linha verde por construção e um comando que não roda a partir da raiz
 
 - **Data:** 2026-08-21
