@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # Guard-script dos Gates de qualidade (rede de segurança automática do CI).
-# bash + grep puro, ZERO dependência Dart — cobre o que é mecanicamente
+# bash + grep + awk, ZERO dependência Dart — cobre o que é mecanicamente
 # detectável dos Gates 1 e 4, mais a checagem de rota nomeada órfã. Os
 # Gates 2 e 3 (tier de widget, arquivo gordo) são heurísticos demais para
 # grep confiável e ficam no gate de revisão.
@@ -19,16 +19,32 @@
 # próprio arquivo de rotas usa (`context.pushNamed(name)` dentro do mesmo
 # `_routes.dart`, sem qualificar a classe) — só para esse caso o
 # identificador nu conta, e só dentro do arquivo que o declara, para não
-# confundir `name` de uma rota com `name` de outra.
+# confundir `name` de uma rota com `name` de outra. Um awk junta a
+# declaração com a linha seguinte quando o `dart format` a quebra em
+# `static const fooName =` + `'valor';` por passar de 80 colunas — sem
+# isso o formatador apagaria a checagem sem tocar em nenhum escape.
 #
 # Sai 0 se limpo, 1 se achar violação. Plugado no .github/workflows/ci.yml.
 #
-# Escapes pontuais (com justificativa) por comentário na própria linha:
-#   // gate1-ok: <motivo>
-#   // gate4-ok: <motivo>
-#   // rota-sem-consumidor-ok: <motivo>   (só para rota alcançada apenas
-#     por redirect da guarda de rota, nunca por toque — ex.: a rota raiz,
-#     que só é atingida pelo initialLocation e pelo fallback do redirect)
+# Escapes pontuais (com justificativa):
+#   // gate1-ok: <motivo>                 — na própria linha da violação.
+#   // gate4-ok: <motivo>                 — na própria linha do literal
+#     OU em qualquer linha entre ela e o fim do statement (até 9 linhas
+#     à frente, parando na primeira com `;`): o `dart format` pode
+#     quebrar uma chamada longa em várias linhas e empurrar o comentário
+#     para a linha de fechamento (`);`), separado do literal acusado —
+#     as duas formas valem, gate4_escaped() cobre ambas.
+#   // rota-sem-consumidor-ok: <motivo>   — aceito em DUAS posições: em
+#     comentário de linha PRÓPRIA (até 3 linhas) ACIMA da declaração
+#     `static const ...Name = '...';`, ou ao final dela, na mesma linha
+#     (como os outros dois escapes). Prefira a linha própria acima: um
+#     `dart format` limpo (exigido pelo DoD) mantém a declaração curta e
+#     o escape longe do risco de a linha crescer e o comentário ser
+#     empurrado pelo wrap — mas a forma de fim de linha também é
+#     verificada, para não quebrar em silêncio quem já a usa. Só para
+#     rota alcançada apenas por redirect da guarda de rota, nunca por
+#     toque — ex.: a rota raiz, que só é atingida pelo initialLocation e
+#     pelo fallback do redirect.
 #
 # Isenções por caminho:
 #   - app/lib/core/theme/   é a FONTE dos tokens (Color(0x) vive aqui). A
@@ -60,6 +76,18 @@ emit() { # <GATE> <file:line> <trecho>
   fail=1
 }
 
+gate4_escaped() { # <file> <line-do-literal-acusado>
+  local f="$1" from="$2" cur cap i
+  cap=$((from + 9))
+  for ((i = from; i <= cap; i++)); do
+    cur="$(sed -n "${i}p" "$f")"
+    [ -z "$cur" ] && break
+    case "$cur" in *"// gate4-ok"*) return 0 ;; esac
+    case "$cur" in *";"*) break ;; esac
+  done
+  return 1
+}
+
 for f in "${FILES[@]}"; do
   # -------------------------------------------------------------------------
   # GATE 1 — nenhuma função/método que retorna Widget/List<Widget>.
@@ -81,11 +109,17 @@ for f in "${FILES[@]}"; do
   # fontSize: <num>, (Border)Radius.circular(<num>), EdgeInsets.*(<num>),
   # Icons.<nome> (ícone Material cru — token exigido é AppIcons.<nome>;
   # padrão ancorado (^|[^A-Za-z])Icons\. para não acusar AppIcons.*).
-  # Escape // gate4-ok libera a linha.
+  # Escape // gate4-ok libera o CONSTRUTO, não só a linha física: o
+  # `dart format` pode quebrar uma chamada longa em várias linhas e
+  # empurrar o comentário para a linha de fechamento (`);`), separado do
+  # literal acusado — gate4_escaped busca `// gate4-ok` da linha
+  # acusada até a primeira linha com `;` logo à frente (teto de 9
+  # linhas), então tanto `literal); // gate4-ok` quanto o comentário na
+  # linha do fechamento após o wrap continuam valendo.
   # -------------------------------------------------------------------------
   while IFS=$'\t' read -r line content; do
     [ -z "${line:-}" ] && continue
-    case "$content" in *"// gate4-ok"*) continue ;; esac
+    gate4_escaped "$f" "$line" && continue
     emit "GATE4" "$f:$line" "$(printf '%s' "$content" | sed 's/^[[:space:]]*//')"
   done < <(grep -nE \
              'Color\(0x|\bColors\.[a-zA-Z]|fontSize: ?-?[0-9]|circular\( ?-?[0-9]|EdgeInsets\.(all|fromLTRB)\( ?-?[0-9]|EdgeInsets\.(symmetric|only)\([^)]*: ?-?[0-9]|(^|[^A-Za-z])Icons\.' "$f" \
@@ -113,18 +147,50 @@ route_used() {
   return 1
 }
 
+# dart format quebra `static const fooName =` e o valor em duas linhas
+# quando a declaração passa de 80 colunas — o awk junta essas duas linhas
+# numa só antes do grep, senão o formatador cega a checagem sem tocar o
+# escape. O escape mora numa linha de comentário PRÓPRIA acima da
+# declaração (não ao final da linha) por isso: comentário de fim de linha
+# empurra a declaração para além de 80 colunas e vira alvo do wrap.
 for rf in "${ROUTE_FILES[@]}"; do
   class="$(grep -m1 -E 'class [A-Za-z0-9]+' "$rf" | sed -E 's/.*class ([A-Za-z0-9]+).*/\1/')"
 
-  while IFS=$'\t' read -r line content; do
-    [ -z "${line:-}" ] && continue
-    case "$content" in *"// rota-sem-consumidor-ok"*) continue ;; esac
-    ident="$(printf '%s' "$content" | sed -E 's/^[[:space:]]*static const ([A-Za-z0-9]+) = .*/\1/')"
-    if ! route_used "$class" "$ident" "$rf"; then
-      emit "ROTA" "$rf:$line" "$(printf '%s' "$content" | sed 's/^[[:space:]]*//')"
+  while IFS=$'\t' read -r startline joined; do
+    [ -z "${startline:-}" ] && continue
+    ident="$(printf '%s' "$joined" | sed -E 's/^[[:space:]]*static const ([A-Za-z0-9]+).*/\1/')"
+
+    lookback_from=$((startline - 3))
+    [ "$lookback_from" -lt 1 ] && lookback_from=1
+    lookback_to=$((startline - 1))
+    escaped=0
+    if [ "$lookback_to" -ge "$lookback_from" ] \
+      && sed -n "${lookback_from},${lookback_to}p" "$rf" | grep -q '// rota-sem-consumidor-ok'; then
+      escaped=1
     fi
-  done < <(grep -nE "^[[:space:]]*static const [A-Za-z0-9]*[Nn]ame = '[^']*';" "$rf" \
-             | sed -E 's/^([0-9]+):/\1\t/')
+    case "$joined" in *"// rota-sem-consumidor-ok"*) escaped=1 ;; esac
+    [ "$escaped" -eq 1 ] && continue
+
+    if ! route_used "$class" "$ident" "$rf"; then
+      emit "ROTA" "$rf:$startline" \
+        "$(printf '%s' "$joined" | sed -E 's/^[[:space:]]*//; s/[[:space:]]+/ /g')"
+    fi
+  done < <(awk '
+    pending {
+      print startline "\t" firstline " " $0
+      pending = 0
+      next
+    }
+    /^[[:space:]]*static const [A-Za-z0-9]*[Nn]ame[[:space:]]*=[[:space:]]*$/ {
+      pending = 1
+      startline = NR
+      firstline = $0
+      next
+    }
+    /^[[:space:]]*static const [A-Za-z0-9]*[Nn]ame[[:space:]]*=.*;/ {
+      print NR "\t" $0
+    }
+  ' "$rf")
 done
 
 echo ""
