@@ -7,6 +7,45 @@ estado final, sem preservar neles uma versão obsoleta do planejamento.
 
 ## Mudanças registradas
 
+### CHG-041 - O DoD da Fase 5 exigia CI verde antes de os PRs existirem, e os DoDs de tarefa formatavam um alvo menor que o do CI
+
+- **Data:** 2026-08-21
+- **Fase/PR:** Fase 5 (PR 5a e 5b). Alcança a última linha do **DoD da Fase 5** em
+  `03_plan.md` e dois arquivos de teste sob `app/test/modules/settings_module/`.
+- **Planejado originalmente:** o DoD da fase terminava com `Jobs "App", "Edge
+  Functions" e "Banco" verdes no CI dos dois PRs`. E os blocos DoD das tarefas
+  cobravam `cd app && dart format --output=none --set-exit-if-changed
+  lib/modules/settings_module` — só `lib`.
+- **Por que não foi possível prosseguir:** a linha do CI é **circular**: a skill
+  `fechar-etapa` é o que autoriza abrir o PR, então ela roda quando PR nenhum
+  existe e nenhum job pôde ter rodado. A Fase 4 já a removera pelo mesmo motivo,
+  e ela sobreviveu aqui por herança do gabarito. O segundo defeito apareceu na
+  própria execução deste gate: `dart format --output=none
+  --set-exit-if-changed .` — o alvo que o `.github/workflows/ci.yml` usa — saiu
+  **`1`**, apontando `test/modules/settings_module/data/repositories/capabilities_source_impl_test.dart`
+  e `test/modules/settings_module/presentation/settings_home_page_test.dart`.
+  Nenhum DoD de tarefa pegou isso porque todos formatavam `lib`, e os dois
+  arquivos são de **teste**. O gate de fase fez exatamente o trabalho que lhe
+  cabe: encontrar o que o nível de baixo não alcança.
+- **Alternativas consideradas:** (a) manter a linha do CI e marcá-la como
+  pendente no corpo do PR — deixa uma linha de DoD que nunca é verificável no
+  momento em que o gate roda, e DoD com item permanentemente em aberto ensina
+  que DoD se cumpre pela metade; (b) mandar cada DoD de tarefa formatar `app/`
+  inteiro — cada tarefa passaria a reprovar por arquivo de outra, que é pior.
+- **Decisão tomada:** a linha do CI sai do DoD e vira **ritual pós-abertura**,
+  escrito logo abaixo do bloco, com a razão da retirada; o que a substitui é a
+  cancela de máquina, rodada neste gate com o mesmo alvo do `ci.yml`. Os dois
+  arquivos foram formatados com `dart format`, e a suíte reconferida: 85 testes
+  verdes, `dart format` saindo `0`.
+- **Resumo da resolução:** o DoD da fase perdeu uma linha inverificável e
+  ganhou, na prática, a verificação que ela pretendia. Fica registrado para as
+  próximas fases: **o alvo do format no DoD de tarefa deve ser o mesmo do CI, ou
+  o gate de fase será sempre o primeiro a ver o problema** — que é tarde, ainda
+  que não tarde demais.
+- **Reconciliação documental:** `03_plan.md`, última linha do **DoD da Fase 5**,
+  que deixou de ser item de checklist e virou nota de ritual. PRD e specs
+  inalterados.
+
 ### CHG-040 - A correção da CHG-039 errou uma contagem e ancorou o teste de cadeia numa string que só existiria depois da tarefa
 
 - **Data:** 2026-08-21
@@ -27,13 +66,14 @@ estado final, sem preservar neles uma versão obsoleta do planejamento.
   engessa a redação da tela num documento de plano; (b) deixar a cadeia sem
   asserção de conteúdo — volta a passar por construção, que foi o defeito que a
   CHG-039 corrigiu.
-- **Decisão:** corrigir a contagem para **uma**, e ancorar a cadeia no que já
+- **Decisão tomada:** corrigir a contagem para **uma**, e ancorar a cadeia no que já
   existe e é conferível hoje — `find.byType(PlaceholderBody)` **não encontra
   nada** na tela final. Isso prova "deixou de ser placeholder" sem depender de
   string futura; que os quatro rótulos apareçam continua cobrado na segunda
   linha, no teste de widget dela, onde é o lugar certo.
-- **Resumo:** o bloco continua com seis linhas e a mesma exigência. Um número
+- **Resumo da resolução:** o bloco continua com seis linhas e a mesma exigência. Um número
   errado saiu e uma âncora impossível virou uma verificável.
+- **Reconciliação documental:** `03_plan.md`, bloco DoD da **T5.6**, quarta linha. PRD e specs inalterados.
 
 ### CHG-039 - Quatro linhas do DoD da T5.6 já passavam sem a tarefa, e duas rodavam vazio por falta de `cd app`
 
@@ -63,7 +103,7 @@ estado final, sem preservar neles uma versão obsoleta do planejamento.
   a lê — foi justamente o empacotamento de seis exigências que escondeu os dois
   "verde por construção" mais graves; (b) apagar as cláusulas que já passam —
   perderia invariantes que vale manter, como a conciliação fora do escopo.
-- **Decisão:** o escopo da tarefa passou a ser dito como é — **substituir o
+- **Decisão tomada:** o escopo da tarefa passou a ser dito como é — **substituir o
   placeholder**, não criar a rota. Os quatro estados foram escritos por extenso,
   com `bank_connection_status.dart` como procedência e a proibição explícita de
   um quinto. A cadeia de `app_router_test.dart` passou a exigir que a tela final
@@ -72,8 +112,9 @@ estado final, sem preservar neles uma versão obsoleta do planejamento.
   hoje devolve duas linhas). Cada comando ganhou o seu `cd app`. E o grep de
   conciliação ficou, **rotulado como invariante**, com a nota de que o sinal de
   trabalho está nas outras linhas.
-- **Resumo:** o bloco continua com seis linhas. Nenhuma exigência saiu; quatro
+- **Resumo da resolução:** o bloco continua com seis linhas. Nenhuma exigência saiu; quatro
   passaram a falhar antes da tarefa e duas passaram a rodar de verdade.
+- **Reconciliação documental:** `03_plan.md`, bloco DoD da **T5.6**, seis linhas reescritas, e o enunciado da tarefa, que passou a dizer **substituir o placeholder** em vez de criar a rota. PRD e specs inalterados.
 
 ### CHG-038 - A prova de ponta a ponta da T5.2 dependia de um arquivo de ambiente que não existe em worktree recém-criado
 
@@ -98,13 +139,14 @@ estado final, sem preservar neles uma versão obsoleta do planejamento.
   troca a identidade da chamada e deixa de exercer o caminho do usuário
   autenticado; (b) apontar o comando para o `.runtime.env` da árvore principal —
   acopla o worktree a um caminho fora dele, que pode não existir.
-- **Decisão:** escrever o bootstrap **na própria linha**:
+- **Decisão tomada:** escrever o bootstrap **na própria linha**:
   `bash scripts/local-supabase.sh up` neste worktree, antes de tudo, com a razão
   dita por extenso — o arquivo é ignorado, some em árvore nova, e a sua ausência
   produz `000`, um código que se confunde com falha de rede em vez de apontar o
   que está faltando.
-- **Resumo:** a exigência não mudou. O que mudou é que a linha agora descreve o
+- **Resumo da resolução:** a exigência não mudou. O que mudou é que a linha agora descreve o
   ambiente de que ela depende, em vez de presumi-lo.
+- **Reconciliação documental:** `03_plan.md`, bloco DoD da **T5.2**, terceira linha. PRD e specs inalterados.
 
 ### CHG-037 - A prova do `503` da T5.2 já era satisfeita pela T5.3, o `git diff` sem base aprovava por ausência e o `curl` expunha o segredo no argv
 
@@ -135,7 +177,7 @@ estado final, sem preservar neles uma versão obsoleta do planejamento.
   tarefa seguinte já faz melhor; (b) exigir `1 passed` na saída do `deno test` —
   conserta o filtro vazio, mas não conserta o fato de o teste pertencer a outra
   tarefa.
-- **Decisão:** trocar as três por **uma** prova de ponta a ponta que só esta
+- **Decisão tomada:** trocar as três por **uma** prova de ponta a ponta que só esta
   tarefa faz passar: recriar o serviço com `docker compose up -d functions` e
   chamar `POST /functions/v1/bank-connections` na stack local com o JWT de teste
   de `infra/local/.runtime.env`, exigindo `200` — sendo que **antes** da tarefa o
@@ -144,8 +186,9 @@ estado final, sem preservar neles uma versão obsoleta do planejamento.
   sucedida) e que o caminho de configuração ausente ficou para trás, sem
   expor segredo em argv nenhum. O `git diff` ganhou base fixa via `git
   merge-base HEAD origin/develop`.
-- **Resumo:** o bloco perdeu uma linha e ganhou poder. Nada do que se exigia
+- **Resumo da resolução:** o bloco perdeu uma linha e ganhou poder. Nada do que se exigia
   saiu: o `503` continua coberto — pelo teste da T5.3, onde ele pertence.
+- **Reconciliação documental:** `03_plan.md`, bloco DoD da **T5.2**, que passou de cinco para quatro linhas. PRD e specs inalterados — a exigência do `503` continua coberta pelo teste da T5.3.
 
 ### CHG-036 - Três linhas do DoD da T5.2 apontavam para um host que não existe, mandavam mutar ambiente compartilhado e pediam julgamento subjetivo
 
@@ -173,7 +216,7 @@ estado final, sem preservar neles uma versão obsoleta do planejamento.
   existe em teste; (b) instalar `curl` na imagem de functions só para satisfazer
   a linha — mudar a imagem para agradar a um critério é a cauda balançando o
   cachorro.
-- **Decisão:** a terceira linha virou **duas** provas separadas, porque são
+- **Decisão tomada:** a terceira linha virou **duas** provas separadas, porque são
   fatos distintos — `docker compose ... exec -T functions sh -c 'test -n
   "$PLUGGY_CLIENT_ID" && ...'` imprimindo `presentes` mostra que a variável
   chega ao serviço, e um `curl` do host, lendo `infra/local/.env`, com
@@ -184,9 +227,10 @@ estado final, sem preservar neles uma versão obsoleta do planejamento.
   linha 179 —, rodado por `deno test --filter '503'`, e passou a **proibir
   explicitamente** a mutação da stack. A quinta virou mecânica:
   `git diff --numstat -- docs/deploy/coolify.md` com `0` removidas.
-- **Resumo:** o bloco continua com cinco linhas. Nenhuma exigência caiu: a de
+- **Resumo da resolução:** o bloco continua com cinco linhas. Nenhuma exigência caiu: a de
   configuração válida ficou mais precisa, a do `503` ficou mais forte (teste no
   lugar de print manual) e a de não invalidar o documento ficou conferível.
+- **Reconciliação documental:** `03_plan.md`, bloco DoD da **T5.2**, terceira, quarta e quinta linhas. PRD e specs inalterados.
 
 ### CHG-035 - A varredura de segredo do DoD casava o próprio texto do critério e o arquivo de env ignorado, sendo insatisfazível dos dois jeitos
 
@@ -212,15 +256,16 @@ estado final, sem preservar neles uma versão obsoleta do planejamento.
   novo que cite a variável; (b) escrever o nome da variável quebrado no plano
   (`PLUGGY_CLIENT_` + `SECRET`) para o padrão não se achar — deixa a
   documentação ilegível para proteger um comando mal escolhido.
-- **Decisão:** trocar `grep -r` por **`git grep`**, que só enxerga arquivo
+- **Decisão tomada:** trocar `grep -r` por **`git grep`**, que só enxerga arquivo
   versionado — exatamente o que a linha sempre quis dizer, e que exclui o
   `.env` ignorado sem precisar nomeá-lo. E trocar a classe `[^$]` por
   `[A-Za-z0-9]`, que casa qualquer valor real e **não** casa o `[` do próprio
   texto do critério. Medido depois da troca: `git grep -niE
   'PLUGGY_CLIENT_SECRET=[A-Za-z0-9]' -- infra/ docs/ scripts/` sai `1`, sem
   nenhuma linha, com as credenciais já gravadas no `.env`.
-- **Resumo:** a exigência é a mesma e ficou mais forte — nenhum valor real em
+- **Resumo da resolução:** a exigência é a mesma e ficou mais forte — nenhum valor real em
   arquivo versionado. O que mudou é que agora ela pode ser satisfeita.
+- **Reconciliação documental:** `03_plan.md`, primeira linha do bloco DoD da **T5.2** e quinta linha do **DoD da Fase 5**. PRD e specs inalterados.
 
 ### CHG-034 - O DoD da T5.5 exigia zero menções a `pluggy` em `app/lib`, o que um comentário anterior à fase já torna insatisfazível, e o mesmo defeito estava no DoD da Fase 5
 
@@ -252,7 +297,7 @@ estado final, sem preservar neles uma versão obsoleta do planejamento.
   explica exatamente o invariante que o critério quer proteger, só para agradar
   a um padrão mal escolhido; (b) excluir o arquivo do grep com `grep -v` — o
   critério fica ilegível e some a informação de que a exceção é conhecida.
-- **Decisão:** o critério passa a exigir **exatamente uma** linha, nomeando qual
+- **Decisão tomada:** o critério passa a exigir **exatamente uma** linha, nomeando qual
   é e por que ela é legítima, mais a exigência de **nenhuma** ocorrência sob
   `app/lib/modules/settings_module/` — que é onde a tarefa escreve. A mesma
   correção foi aplicada à linha do DoD da Fase 5. O grep de `false` virou dois
@@ -260,9 +305,10 @@ estado final, sem preservar neles uma versão obsoleta do planejamento.
   vermelhos. O model e o seu teste ganharam caminho completo. O `catch (` ganhou
   a segunda metade que exige uma linha no arquivo novo. E o `flutter analyze`
   ganhou `cd app` próprio.
-- **Resumo:** o bloco continua com seis linhas e nenhuma exigência saiu. Quatro
+- **Resumo da resolução:** o bloco continua com seis linhas e nenhuma exigência saiu. Quatro
   delas passaram a falhar antes da tarefa, que é o que faltava; uma deixou de
   ser insatisfazível.
+- **Reconciliação documental:** `03_plan.md`, bloco DoD da **T5.5** (cinco linhas) e quarta linha do **DoD da Fase 5**. PRD e specs inalterados.
 
 ### CHG-033 - O grep de credencial do DoD da T5.3 induziu um rename de constante no código, e o nome resultante precisa de procedência
 
@@ -286,14 +332,15 @@ estado final, sem preservar neles uma versão obsoleta do planejamento.
   critério para `PLUGGY_CLIENT` em vez de `PLUGGY` — corrigiria a causa, mas a
   tarefa já está julgada e mexer no critério depois do veredito é pior
   precedente do que o nome.
-- **Decisão:** manter o nome `BANK_AGGREGATOR_API_URL` e registrar aqui a
+- **Decisão tomada:** manter o nome `BANK_AGGREGATOR_API_URL` e registrar aqui a
   procedência, para que ninguém o leia como abstração deliberada sobre o
   provedor — não é: a função fala só com a Pluggy. **Na próxima função que ler
   segredo de `Deno.env`, o critério deve mirar o identificador da credencial
   (`PLUGGY_CLIENT`), não o nome do provedor.**
-- **Resumo:** nenhuma exigência mudou e a T5.3 está `CUMPRIDO`. O que fica é o
+- **Resumo da resolução:** nenhuma exigência mudou e a T5.3 está `CUMPRIDO`. O que fica é o
   aprendizado de régua: grep por nome de provedor alcança identificador
   legítimo e empurra rename cosmético.
+- **Reconciliação documental:** Nenhum documento canônico mudou: o alcance é o identificador `BANK_AGGREGATOR_API_URL` em `supabase/functions/bank-connections/handler.ts`, e esta entrada existe para dar procedência ao nome. PRD, specs e plano seguem válidos.
 
 ### CHG-032 - A correção da CHG-030 provou ausência de `any` com um regex mais fraco que o lint já exigido, e conferiu o `deno.json` pelo arquivo em vez da chave
 
@@ -318,14 +365,15 @@ estado final, sem preservar neles uma versão obsoleta do planejamento.
   todas as formas (`Array<any>`, `Promise<any>`, `<any>x`) é reescrever mal o
   que o lint já faz bem; (b) conferir o `deno.json` com `grep -A` a partir da
   linha da task — frágil a formatação do JSON.
-- **Decisão:** apagar o grep de `any` e apoiar a exigência no `deno lint` que a
+- **Decisão tomada:** apagar o grep de `any` e apoiar a exigência no `deno lint` que a
   linha já cobra, deixando escrito **por que** ele basta e o que o grep perdia.
   Trocar o grep do `deno.json` pela leitura da chave: `python3 -c "import json;
   print(json.load(open('deno.json'))['tasks']['check'])"`, que só enxerga o
   valor da task `check` e é indiferente ao resto do arquivo.
-- **Resumo:** o bloco continua com cinco linhas. A exigência de não deixar `any`
+- **Resumo da resolução:** o bloco continua com cinco linhas. A exigência de não deixar `any`
   atravessar continua de pé, agora provada pela ferramenta que a pega de fato;
   a de tipar a função nova continua de pé, agora ancorada na chave certa.
+- **Reconciliação documental:** `03_plan.md`, bloco DoD da **T5.3**, quinta linha. PRD e specs inalterados.
 
 ### CHG-031 - A T5.3 foi antecipada à T5.2, invertendo a ordem das ondas, porque o bloqueio humano da Pluggy não a alcança
 
@@ -345,16 +393,17 @@ estado final, sem preservar neles uma versão obsoleta do planejamento.
   tudo desfaz esse fatiamento; (b) escrever a T5.3 com credencial de teste
   inventada — cria trabalho a refazer e um valor falso no repositório, que é
   exatamente o que já disparou incidente de GitGuardian nesta feature.
-- **Decisão:** antecipar a T5.3, mantendo a T5.2 pendurada. O
+- **Decisão tomada:** antecipar a T5.3, mantendo a T5.2 pendurada. O
   `auditor-de-criterios`, cego ao plano, foi perguntado diretamente se alguma
   linha do bloco DoD da T5.3 exige credencial real ou variável de ambiente
   configurada, e respondeu que **nenhuma** exige: o bloco verifica *como o
   código lê* a credencial (`Deno.env.get`, nunca tabela nem Vault) e simula a
   Pluggy fora do ar com o `fetch` stubado. A migration da T5.1, também citada
   como dependência, já está `CUMPRIDO` e na base desta branch.
-- **Resumo:** a ordem das ondas muda, o conteúdo das tarefas não. A T5.2 segue
+- **Resumo da resolução:** a ordem das ondas muda, o conteúdo das tarefas não. A T5.2 segue
   sendo pré-requisito de **rodar** a função contra a Pluggy de verdade — o que
   a fase cobra no seu próprio DoD, não no da T5.3.
+- **Reconciliação documental:** `03_plan.md`, tabela **Ondas de execução** da Fase 5 e a ordem de despacho. O conteúdo das tarefas não mudou, então PRD e specs seguem válidos sem emenda.
 
 ### CHG-030 - O DoD da T5.3 fechava em verde na árvore sem a tarefa, e duas cláusulas suas não diziam como se provam
 
@@ -379,7 +428,7 @@ estado final, sem preservar neles uma versão obsoleta do planejamento.
   frágil, qualquer teste de outra tarefa o satisfaz; (b) deixar como está e
   confiar no `supervisor-dod` para perceber — é precisamente o buraco que a
   auditoria prévia existe para tapar.
-- **Decisão:** a busca de credencial em tabela virou grep nomeado
+- **Decisão tomada:** a busca de credencial em tabela virou grep nomeado
   (`ai_user_credentials|ai_providers|vault|.rpc(`), com a razão escrita na
   linha; a ausência de `any` virou grep próprio; a inclusão no `deno.json` virou
   `rtk proxy grep -n 'bank-connections' supabase/functions/deno.json`; e o gate
@@ -389,8 +438,9 @@ estado final, sem preservar neles uma versão obsoleta do planejamento.
   teste que faltava — corpo inválido devolve `400` antes de qualquer chamada
   externa —, porque a cláusula já exigia validação na borda e não trazia
   nenhuma prova sua; é a mesma exigência, agora verificável.
-- **Resumo:** o bloco continua com cinco linhas. Nenhuma exigência saiu; uma
+- **Resumo da resolução:** o bloco continua com cinco linhas. Nenhuma exigência saiu; uma
   ganhou prova (`400`) e três ganharam comando.
+- **Reconciliação documental:** `03_plan.md`, bloco DoD da **T5.3**, segunda e quinta linhas. PRD e specs inalterados.
 
 ### CHG-029 - A linha da política no DoD da T5.1 media sob uma role cujo caminho de busca esconde o prefixo `auth.`
 
@@ -420,14 +470,15 @@ estado final, sem preservar neles uma versão obsoleta do planejamento.
   política nova com a da `0007` na mesma sessão, sem fixar texto — robusto ao
   `search_path`, mas troca um critério literal por um relativo, e a exigência
   deixa de ser legível sozinha.
-- **Decisão:** fixar o caminho de busca na conexão, com `-e
+- **Decisão tomada:** fixar o caminho de busca na conexão, com `-e
   PGOPTIONS=--search_path=public` no `docker compose exec`, mantendo o texto
   qualificado como critério. Medido: a saída sai numa linha só, sem o `SET` na
   frente, com código de saída `0`. A razão do `PGOPTIONS` ficou escrita na
   própria linha, para quem a executar não achar que é adorno.
-- **Resumo:** a exigência é a mesma — uma política de dono, na convenção do
+- **Resumo da resolução:** a exigência é a mesma — uma política de dono, na convenção do
   subselect que a `0005` estabeleceu. O que mudou é a role sob a qual ela é
   lida. Nenhum trabalho da T5.1 precisou mudar: a migration já estava correta.
+- **Reconciliação documental:** `03_plan.md`, bloco DoD da **T5.1**, segunda linha. PRD e specs inalterados; a migration da T5.1 não precisou mudar.
 
 ### CHG-028 - A correção da CHG-027 provava o tipo do status por grep negativo e contava arquivos novos sem nomeá-los
 
@@ -454,7 +505,7 @@ estado final, sem preservar neles uma versão obsoleta do planejamento.
   executável, que é o que o `supervisor-dod` vai rodar; (b) contar por
   `git diff --stat` contra uma base — introduz no critério uma referência de
   commit que a tarefa não controla.
-- **Decisão:** trocar a prova de tipo por **positiva** —
+- **Decisão tomada:** trocar a prova de tipo por **positiva** —
   `rtk proxy grep -nE 'BankConnectionStatus[[:space:]]+status'` devolvendo
   exatamente uma linha —, nomear os três arquivos de use case
   (`get_bank_connection.dart`, `start_bank_connection.dart`,
@@ -462,9 +513,10 @@ estado final, sem preservar neles uma versão obsoleta do planejamento.
   grep de imports, com o código de saída `0` fazendo parte do critério: o
   auditor confirmou que o `rtk proxy` repassa o código real do `grep`, e que um
   arquivo ausente entre os nomeados sai `2`.
-- **Resumo:** o bloco continua com cinco linhas e com as mesmas exigências da
+- **Resumo da resolução:** o bloco continua com cinco linhas e com as mesmas exigências da
   CHG-027. O que mudou é que nenhuma delas passa mais sem o trabalho existir, e
   nenhuma aprova uma implementação errada por acidente de formatação.
+- **Reconciliação documental:** `03_plan.md`, bloco DoD da **T5.4**, primeira, terceira e quarta linhas. PRD e specs inalterados.
 
 ### CHG-027 - O bloco DoD da T5.4 dependia de arquivo entregue por outra frente, tinha uma linha verde por construção e um comando que não roda a partir da raiz
 
@@ -493,18 +545,19 @@ estado final, sem preservar neles uma versão obsoleta do planejamento.
   os quatro valores são conhecidos e podem ser escritos por extenso; (b)
   devolver ao `tech-lead` — desnecessário, porque nenhuma correção muda **o
   que** se exige.
-- **Decisão:** corrigir a forma das cinco linhas no papel de orquestrador. Os
+- **Decisão tomada:** corrigir a forma das cinco linhas no papel de orquestrador. Os
   quatro estados passam a estar escritos por extenso no próprio critério, com a
   migration citada **depois**, como procedência, e dito explicitamente que ela
   não precisa existir nesta árvore. O arquivo do enum ganhou caminho completo. O
   grep de imports passa a nomear os arquivos novos, um a um, e a exigir que o
   comando devolva linha — arquivo ausente falha. Os dois comandos da última
   linha ganharam `cd app` próprio.
-- **Resumo:** o bloco continua com cinco linhas e com as mesmas exigências —
+- **Resumo da resolução:** o bloco continua com cinco linhas e com as mesmas exigências —
   entidade imutável, status como enum fechado de quatro valores, contrato com
   três operações em `Either<Failure, …>`, um use case por operação, domain sem
   dependência fora de equatable/fpdart/`core/error`, e formatação e análise
   verdes. Nada além do bloco DoD da T5.4 mudou.
+- **Reconciliação documental:** `03_plan.md`, bloco DoD da **T5.4**, cinco linhas reescritas. PRD e specs não descreviam essas provas e seguem válidos.
 
 ### CHG-026 - O bloco DoD da T5.1 não alcançava o banco do projeto, exigia da política uma string que o Postgres nunca devolve e contradizia a si mesmo no estado da tabela
 
@@ -531,7 +584,7 @@ estado final, sem preservar neles uma versão obsoleta do planejamento.
   executor já teria trabalhado, e é exatamente o que a auditoria prévia existe
   para evitar; (b) devolver ao `tech-lead` — desnecessário, porque nenhuma das
   três correções muda **o que** se exige, só **como** se mede.
-- **Decisão:** corrigir a forma das seis linhas no papel de orquestrador, sem
+- **Decisão tomada:** corrigir a forma das seis linhas no papel de orquestrador, sem
   afrouxar exigência nenhuma. A conexão passa a ser o wrapper que o próprio
   repositório usa (`docker compose -f infra/local/docker-compose.yml exec -T db
   psql -U supabase_admin -d postgres`), e a aplicação limpa passa a ser
@@ -542,10 +595,11 @@ estado final, sem preservar neles uma versão obsoleta do planejamento.
   a linha de isolamento diz de que estado parte. A última linha ganhou a
   instrução de que SQL de prova vai por arquivo redirecionado, nunca por
   heredoc.
-- **Resumo:** o bloco continua com seis linhas e com as mesmas seis exigências
+- **Resumo da resolução:** o bloco continua com seis linhas e com as mesmas seis exigências
   — migration aplica limpo, RLS ligada, política de dono, status fechado,
   identificador único, isolamento por usuário e cascade. Nada além do bloco DoD
   da T5.1 mudou; PRD e specs não descreviam essas linhas e seguem válidos.
+- **Reconciliação documental:** `03_plan.md`, bloco DoD da **T5.1**, seis linhas reescritas. PRD e specs não descreviam essas provas e seguem válidos.
 
 ### CHG-025 - A correção da CHG-024 restaurou a distinção de camada mas trocou a varredura total por um allowlist, reduzindo a cobertura do negativo
 

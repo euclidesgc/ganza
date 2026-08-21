@@ -73,9 +73,7 @@ void main() {
     final getBankConnection = _MockGetBankConnection();
     final startBankConnection = _MockStartBankConnection();
     final disconnectBankConnection = _MockDisconnectBankConnection();
-    when(
-      () => getBankConnection(),
-    ).thenAnswer((_) async => const Right(null));
+    when(() => getBankConnection()).thenAnswer((_) async => const Right(null));
 
     getIt
       ..registerLazySingleton<ObserveCurrentUser>(() => observeCurrentUser)

@@ -1483,7 +1483,7 @@ Consolidar as três frentes da onda 1 antes de abrir a onda 2.
 - [ ] `git grep -niE 'PLUGGY_CLIENT_SECRET=[A-Za-z0-9]'` não devolve nenhuma linha. `git grep` já restringe ao versionado, que é o que a linha sempre quis dizer — a variante `grep -r` alcançava `infra/local/.env`, ignorado pelo git e lugar legítimo do segredo, e a classe `[^$]` fazia o padrão casar o próprio texto deste critério.
 - [ ] `rtk proxy grep -rniE 'reconcil|concilia' app/lib/modules/settings_module/` não devolve nenhuma linha — a conciliação continua fora do escopo.
 - [ ] `CHANGELOG.md`, seção `Unreleased`, atualizado no mesmo PR.
-- [ ] Jobs "App", "Edge Functions" e "Banco" verdes no CI dos dois PRs.
+**Ritual pós-abertura, fora do DoD:** conferir os jobs "App", "Edge Functions" e "Banco" verdes no CI dos dois PRs. Não é linha de DoD porque este gate roda **antes** de os PRs existirem — exigi-la aqui é circular, e a Fase 4 já a tirou pelo mesmo motivo. O que substitui a exigência é a cancela de máquina rodada acima, que é exatamente o que o `ci.yml` executa.
 
 **O que esta fase não cobra mais, e o que ela ganhou no lugar:** a rodada
 `round_06` deixou de existir com a suspensão do E2E (**D34**; `changes.md`,

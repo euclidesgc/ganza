@@ -9,7 +9,10 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-http.Response _rowsResponse(http.Request request, List<Map<String, dynamic>> rows) {
+http.Response _rowsResponse(
+  http.Request request,
+  List<Map<String, dynamic>> rows,
+) {
   return http.Response(
     jsonEncode(rows),
     200,
