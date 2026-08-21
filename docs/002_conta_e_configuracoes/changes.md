@@ -7,6 +7,71 @@ estado final, sem preservar neles uma versão obsoleta do planejamento.
 
 ## Mudanças registradas
 
+### CHG-031 - A T5.3 foi antecipada à T5.2, invertendo a ordem das ondas, porque o bloqueio humano da Pluggy não a alcança
+
+- **Data:** 2026-08-21
+- **Fase/PR:** Fase 5 (PR 5b). Alcança a tabela **Ondas de execução** da Fase 5
+  em `03_plan.md`, que põe a **T5.3** na onda 2 dependendo de **T5.1** e
+  **T5.2**.
+- **Planejado originalmente:** "T5.3 — a Edge Function escreve na tabela que a
+  T5.1 cria e lê as variáveis que a T5.2 registra". A T5.2 depende da pendência
+  **P13**, humana: o par Client ID/Secret da Pluggy, que só o dono da conta pode
+  criar. Seguindo a ordem escrita, a fase inteira pararia aí.
+- **Por que não foi possível prosseguir:** a T5.2 continua bloqueada e não há
+  previsão. Parar a fase inteira por isso custaria também a onda 3 e a onda 4,
+  que não tocam a Pluggy.
+- **Alternativas consideradas:** (a) parar a fase até a pendência cair — o
+  fatiamento foi feito justamente para que o bloqueio custe o mínimo, e parar
+  tudo desfaz esse fatiamento; (b) escrever a T5.3 com credencial de teste
+  inventada — cria trabalho a refazer e um valor falso no repositório, que é
+  exatamente o que já disparou incidente de GitGuardian nesta feature.
+- **Decisão:** antecipar a T5.3, mantendo a T5.2 pendurada. O
+  `auditor-de-criterios`, cego ao plano, foi perguntado diretamente se alguma
+  linha do bloco DoD da T5.3 exige credencial real ou variável de ambiente
+  configurada, e respondeu que **nenhuma** exige: o bloco verifica *como o
+  código lê* a credencial (`Deno.env.get`, nunca tabela nem Vault) e simula a
+  Pluggy fora do ar com o `fetch` stubado. A migration da T5.1, também citada
+  como dependência, já está `CUMPRIDO` e na base desta branch.
+- **Resumo:** a ordem das ondas muda, o conteúdo das tarefas não. A T5.2 segue
+  sendo pré-requisito de **rodar** a função contra a Pluggy de verdade — o que
+  a fase cobra no seu próprio DoD, não no da T5.3.
+
+### CHG-030 - O DoD da T5.3 fechava em verde na árvore sem a tarefa, e duas cláusulas suas não diziam como se provam
+
+- **Data:** 2026-08-21
+- **Fase/PR:** Fase 5 (PR 5b). Alcança a segunda e a quinta linha do bloco DoD
+  da **T5.3** em `03_plan.md`, antes de a tarefa ser despachada.
+- **Planejado originalmente:** a segunda linha exigia que "nenhuma consulta a
+  tabela busca credencial de provedor", sem comando nem tabela nomeada; a quinta
+  exigia que "toda entrada do corpo é validada na borda antes de qualquer uso, e
+  nenhum `any` atravessa", também sem comando, e fechava com
+  `cd supabase/functions && deno fmt --check && deno lint && deno task check &&
+  deno task test` terminando em `0`.
+- **Por que não foi possível prosseguir:** o `auditor-de-criterios` rodou o
+  comando combinado na árvore atual, **sem nenhuma linha da tarefa feita**, e
+  ele fechou com código de saída `0` — `Checked 15 files`, `23 passed | 0
+  failed`. A task `check` do `supabase/functions/deno.json` lista oito arquivos
+  e nenhum é de `bank-connections`, e o `deno test` só descobre os `*_test.ts`
+  que já existem. A linha não distingue tarefa feita de tarefa não feita. As
+  outras duas cláusulas repetiam princípio do `CLAUDE.md` sem instanciar
+  comando, campo ou teste.
+- **Alternativas consideradas:** (a) exigir que o número de testes cresça — é
+  frágil, qualquer teste de outra tarefa o satisfaz; (b) deixar como está e
+  confiar no `supervisor-dod` para perceber — é precisamente o buraco que a
+  auditoria prévia existe para tapar.
+- **Decisão:** a busca de credencial em tabela virou grep nomeado
+  (`ai_user_credentials|ai_providers|vault|.rpc(`), com a razão escrita na
+  linha; a ausência de `any` virou grep próprio; a inclusão no `deno.json` virou
+  `rtk proxy grep -n 'bank-connections' supabase/functions/deno.json`; e o gate
+  passou a exigir que a **saída** do `deno task test` nomeie os casos de
+  `bank-connections/handler_test.ts`, com a nota de que o código de saída
+  sozinho já fecha em verde sem a tarefa. A validação de borda ganhou o caso de
+  teste que faltava — corpo inválido devolve `400` antes de qualquer chamada
+  externa —, porque a cláusula já exigia validação na borda e não trazia
+  nenhuma prova sua; é a mesma exigência, agora verificável.
+- **Resumo:** o bloco continua com cinco linhas. Nenhuma exigência saiu; uma
+  ganhou prova (`400`) e três ganharam comando.
+
 ### CHG-029 - A linha da política no DoD da T5.1 media sob uma role cujo caminho de busca esconde o prefixo `auth.`
 
 - **Data:** 2026-08-21
