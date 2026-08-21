@@ -7,6 +7,37 @@ estado final, sem preservar neles uma versão obsoleta do planejamento.
 
 ## Mudanças registradas
 
+### CHG-038 - A prova de ponta a ponta da T5.2 dependia de um arquivo de ambiente que não existe em worktree recém-criado
+
+- **Data:** 2026-08-21
+- **Fase/PR:** Fase 5 (PR 5b). Alcança a terceira linha do bloco DoD da **T5.2**
+  em `03_plan.md`, corrigida pela CHG-037 e ainda não despachada.
+- **Planejado originalmente:** a CHG-037 mandava recriar o serviço `functions` e
+  chamar `POST /functions/v1/bank-connections` lendo `$SUPABASE_URL` e
+  `$JWT_DONO` de `infra/local/.runtime.env`, esperando `200` — e afirmava que
+  antes da tarefa o mesmo comando devolve `503`.
+- **Por que não foi possível prosseguir:** o `auditor-de-criterios` rodou o
+  comando no worktree `gz-31` e obteve **`000`**, não `503`:
+  `infra/local/.runtime.env` **não existe ali**. O arquivo é ignorado pelo git
+  (`.gitignore:38`) e nasce só quando `scripts/local-supabase.sh up` roda a
+  função `write_runtime_files` — na árvore principal ele existe, num worktree
+  recém-criado não. Sem ele, `$SUPABASE_URL` e `$JWT_DONO` ficam vazios e o
+  `curl` falha antes de alcançar a função. A premissa da prova era falsa, e um
+  trabalho **correto** — Pluggy configurada, contêiner recriado — reprovaria
+  assim mesmo.
+- **Alternativas consideradas:** (a) usar a `ANON_KEY` versionada em
+  `infra/local/docker-compose.yml` em vez do JWT de dono — evita o arquivo, mas
+  troca a identidade da chamada e deixa de exercer o caminho do usuário
+  autenticado; (b) apontar o comando para o `.runtime.env` da árvore principal —
+  acopla o worktree a um caminho fora dele, que pode não existir.
+- **Decisão:** escrever o bootstrap **na própria linha**:
+  `bash scripts/local-supabase.sh up` neste worktree, antes de tudo, com a razão
+  dita por extenso — o arquivo é ignorado, some em árvore nova, e a sua ausência
+  produz `000`, um código que se confunde com falha de rede em vez de apontar o
+  que está faltando.
+- **Resumo:** a exigência não mudou. O que mudou é que a linha agora descreve o
+  ambiente de que ela depende, em vez de presumi-lo.
+
 ### CHG-037 - A prova do `503` da T5.2 já era satisfeita pela T5.3, o `git diff` sem base aprovava por ausência e o `curl` expunha o segredo no argv
 
 - **Data:** 2026-08-21
