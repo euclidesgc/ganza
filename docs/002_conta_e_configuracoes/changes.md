@@ -7,6 +7,64 @@ estado final, sem preservar neles uma versão obsoleta do planejamento.
 
 ## Mudanças registradas
 
+### CHG-021 - O gate de IA protegia um destino que não era rota, e sem a rota a prova do gate não podia ser escrita
+
+- **Data:** 2026-08-21
+- **Fase/PR:** Fase 4 (PR 4b), onda 6. Alcança a tarefa **T4.11**, o risco **X9**
+  e a tabela de rotas do plano, e a §6 das specs.
+- **Planejado originalmente:** `/chat` ficaria **fora** do conjunto de rotas
+  registradas nesta feature. A tabela de rotas da §3 do `03_plan.md` o listava
+  como "feature seguinte do roadmap", com a coluna de fase vazia, e a §6 das
+  specs não o citava entre as rotas novas. A **T4.11** aplicaria o gate nos três
+  pontos — `redirect`, `refreshListenable` e o item do menu — sobre um caminho
+  que o `redirect` desviava mas que nenhum `GoRoute` atendia.
+- **Por que não foi possível prosseguir:** ao reescrever o bloco DoD da T4.11
+  pela régua do `supervisor-dod`, a linha do item de menu só deixa de ser verde
+  por construção se cobrar o que a tarefa **acrescenta** — o item refletindo o
+  estado real. E o estado real, pelo critério **A8** do `01_prd.md`, é o item
+  **alcançável logo depois** de a chave ser salva. Com `/chat` sem rota, item
+  aceso leva à tela de erro do go_router: exatamente a alternativa "deixar ativo
+  e falhar depois" que o §4 do PRD rejeita por escrito. E há um problema pior que
+  o conflito de produto: **a prova central da tarefa fica inescrevível.** O teste
+  das três transições precisa navegar para `/chat` para asserir que o `redirect`
+  desvia, que depois deixa passar sem navegação manual e que volta a desviar ao
+  apagar a credencial — sem destino registrado, não há o que observar.
+- **Alternativas consideradas:** (a) **registrar `/chat` com tela mínima nesta
+  fase**, reusando o corpo de placeholder que o repositório já tem; (b) **manter
+  o item sempre desabilitado**, trocando apenas o motivo de "chegando em breve"
+  para "configure a IA" — honesto hoje, mas exige emendar o **A8** e o §4 do PRD
+  e deixa o gate sem destino observável; (c) **deixar o buraco** até a feature
+  003, aceitando que o item aceso leve à tela de erro.
+- **Decisão tomada:** (a), pelo orquestrador, sobre recomendação do `tech-lead`,
+  registrada como **FD-033** em [`decisions.md`](decisions.md). Duas razões:
+  custa uma rota e uma página, menos que emendar PRD e specs; e sem a rota o gate
+  não é provável. A rota entra na **T4.11**, que já mexe em
+  `app/lib/app_router.dart` e é do mesmo tecido — **nenhuma tarefa nova**, e a
+  contagem da Fase 4 segue em **13**.
+- **Resumo da resolução:** nasce `app/lib/modules/chat_module/` com barrel,
+  `chat_routes.dart` e uma página mínima; `app/lib/app_router.dart` registra
+  `ChatRoutes.route` **dentro do `ShellRoute`**, como destino de topo que mantém
+  o menu. O corpo de placeholder que era interno do `settings_module` sobe para
+  `app/lib/core/widgets/feedback/placeholder_body.dart`, porque passa a servir
+  dois módulos — é a regra de tier do `CLAUDE.md`, não preferência. A tela desta
+  fase é **placeholder**: a feature 003 a substitui **sem tocar router nem
+  gate**.
+- **Reconciliação documental:**
+  - `docs/002_conta_e_configuracoes/03_plan.md` — §3: a linha `/chat` da tabela
+    de rotas deixa de dizer "feature seguinte do roadmap" e passa a declarar onde
+    a rota mora, a fase **4** e que fica dentro do `ShellRoute`. §5, Fase 4: a
+    linha da **T4.11** cobra a rota junto, e o bloco DoD prova a rota pela
+    própria transição liberada — o teste encontra a página de chat, o que só
+    acontece se a rota existir; a prosa da fase deixa de afirmar que o destino
+    "ainda não tem tela". §7: a célula **X9** reescrita.
+  - `docs/002_conta_e_configuracoes/02_specs.md` — §6.1: `/chat` entra na lista
+    de rotas novas, com a razão. §6.2: a frase do destino protegido passa a
+    descrever também o estado aceso.
+  - `docs/002_conta_e_configuracoes/01_prd.md` — **não muda.** O **A8** continua
+    verdadeiro e passa a ser satisfazível de verdade, e "não há chat ainda"
+    continua verdadeiro, porque tela mínima não é chat.
+  - `docs/002_conta_e_configuracoes/decisions.md` — nasce a **FD-033**.
+
 ### CHG-020 - A premissa da chave-mestra do Vault era inferência, e a medição a inverteu
 
 - **Data:** 2026-08-21

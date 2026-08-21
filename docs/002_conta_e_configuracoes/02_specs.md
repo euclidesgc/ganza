@@ -34,7 +34,7 @@ Levantado no repositório, não presumido. É contra isto que o plano fatia.
 | `app/lib/core/widgets/widgets.dart` | exporta só `brand/brand.dart` e `pulse/pulse.dart` | menu lateral e campo de segredo entram como tiers novos, com barrel próprio |
 | `app/lib/core/theme/app_theme.dart` | sem `DrawerThemeData`, `ListTileThemeData`, `SwitchThemeData` | sem tematizar, o menu vem com elevação e *surface tint* do M3, contra "material humilde" |
 | `app/lib/core/theme/app_icons.dart` | cinco glifos Remix vendorizados (decisão **D22**) | a navegação e as configurações precisam de mais de dez tokens novos |
-| `app/lib/modules/` | `areas_module`, `auth_module`, `transactions_module` | `settings_module` é módulo novo, pelo gabarito da skill `criar-modulo` |
+| `app/lib/modules/` | `areas_module`, `auth_module`, `transactions_module` | `settings_module` é módulo novo, pelo gabarito da skill `criar-modulo`; `chat_module` nasce **mínimo** na Fase 4 — só barrel, rota e página de placeholder, sem `domain`/`data` até a feature 003 (**FD-033**) |
 | `app/patrol_test/` | `lista_transacoes_test.dart` e `registro_transacao_test.dart` navegam por `find.byTooltip('Ver transações')` | ao mover a ação da `AppBar` para o menu, os dois quebram — e nem `flutter test` nem `flutter analyze` cobrem `patrol_test/` |
 | `supabase/migrations/` | `0001`…`0005`; `public.profiles` tem `id`, `timezone`, `locale`, `settings jsonb`, carimbos, RLS de dono | nome de exibição é coluna nova; o cofre já está habilitado desde a `0001` |
 | `supabase/functions/` | `main`, `health`, `transactions` | `ai-credentials` e `bank-connections` são funções novas |
@@ -186,7 +186,7 @@ A casca é um `ShellRoute` restrito aos **destinos de topo**, com o menu no `Sca
 
 **Armadilha que o guard não pega:** `Scaffold` com `drawer:` injeta um `DrawerButton` com glifo do Material, e `scripts/gates_guard.sh` **não tem checagem de ícone nenhuma** — medido em 20/08/2026, o Gate 4 dele cobre `Color(0x`, `Colors.<nome>`, `fontSize`, `circular(` e `EdgeInsets`, e nada de ícone. Cada página de topo declara `leading:` com token de `app/lib/core/theme/app_icons.dart`. É gate, não recomendação: a prova é `rtk proxy grep -rnE '(^|[^A-Za-z])Icons\.' app/lib` vazio — **com a âncora**, porque sem ela o padrão casa `Icons.` dentro de `AppIcons.` e acusa as 13 linhas legítimas que o repositório já tem. A checagem entra no guard pela tarefa **T2.9** do [`03_plan.md`](03_plan.md).
 
-Rotas novas: `/configuracoes`, `/configuracoes/conta`, `/configuracoes/ia`, `/configuracoes/banco` no `settings_module`, e `/configuracoes/conta/senha` **dentro do `auth_module`** — a tela de troca de senha precisa de use case interno do auth, e ampliar a exceção documentada do barrel para caber mais um símbolo custaria mais que declarar a rota do lado certo. O `settings_module` navega pelo **nome** da rota, que já é público. Todas com constante de `path` e de `name`, nenhuma com `extra:`.
+Rotas novas: `/configuracoes`, `/configuracoes/conta`, `/configuracoes/ia`, `/configuracoes/banco` no `settings_module`, `/configuracoes/conta/senha` **dentro do `auth_module`** — a tela de troca de senha precisa de use case interno do auth, e ampliar a exceção documentada do barrel para caber mais um símbolo custaria mais que declarar a rota do lado certo —, e `/chat` num `chat_module` novo, com **tela mínima**: o gate precisa de destino registrado para ser provável, e sem ele o item aceso do menu cairia na tela de erro do go_router, que é a alternativa que o §4 do PRD rejeita (**FD-033** de [`decisions.md`](decisions.md)); a feature 003 substitui essa tela **sem tocar router nem gate**. O `settings_module` navega pelo **nome** da rota, que já é público. Todas com constante de `path` e de `name`, nenhuma com `extra:`.
 
 ### 6.2 Os três pontos de aplicação do gate, e só três
 
@@ -198,7 +198,7 @@ Rotas novas: `/configuracoes`, `/configuracoes/conta`, `/configuracoes/ia`, `/co
 
 **Anti-padrão proibido por escrito: `if (aiConfigured)` no corpo de página.** Tela alcançável é tela funcional; quem barra é o router. A prova é por grep: as únicas árvores que mencionam a capacidade são `app/lib/core/session/`, `app/lib/core/widgets/navigation/` e `app/lib/app_router.dart`.
 
-O destino protegido hoje é o item de chat do menu, que existe apagado desde a casca. Item desabilitado anuncia o motivo por `Semantics`, senão o leitor de tela lê um item morto.
+O destino protegido é o item de chat do menu, apagado desde a casca: com a IA não configurada ele continua apagado e com o motivo visível; assim que a chave é salva, acende e leva a `/chat`, que esta fase registra com tela mínima. Item desabilitado anuncia o motivo por `Semantics`, senão o leitor de tela lê um item morto.
 
 ### 6.3 O terceiro estado da guarda
 
