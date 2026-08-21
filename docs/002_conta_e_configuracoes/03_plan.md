@@ -1172,7 +1172,7 @@ duas migrations são do mesmo agente em fila — `0008` depende de `0007` existi
   - `supabase/functions/deno.json` inclui `main/env.ts` na task `check`, e `cd supabase/functions && deno fmt --check && deno lint && deno task check && deno task test` termina com código de saída `0`.
   - `docs/decisions.md` marca como resolvida a decisão que registra a `service_role` injetada no ambiente de todo worker — a **D19** —, com data e o arquivo de referência; a linha original permanece no arquivo, marcada: `rtk proxy grep -n 'D19' docs/decisions.md` devolve tanto a linha original quanto a resolução.
 
-- [ ] **T4.6** `[paralela · frente B · worktree]` — Criar a capacidade do usuário em `app/lib/core/session/`: valor imutável, contrato de fonte e o cubit que router e drawer compartilham; registrar no `app/lib/injection.dart`. · camada **core** · `especialista-infra`
+- [x] **T4.6** `[paralela · frente B · worktree]` — Criar a capacidade do usuário em `app/lib/core/session/`: valor imutável, contrato de fonte e o cubit que router e drawer compartilham; registrar no `app/lib/injection.dart`. · camada **core** · `especialista-infra` · **DoD: CUMPRIDO**
 
   **DoD da tarefa**
   - `app/lib/core/session/user_capabilities.dart` declara uma classe imutável que estende `Equatable`, com dois booleanos — IA configurada e banco conectado —, e `app/lib/core/session/capabilities_source.dart` declara um `abstract interface class` com um método que devolve `Future<Either<Failure, UserCapabilities>>`.
