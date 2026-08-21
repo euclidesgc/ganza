@@ -21,6 +21,7 @@ services:
       retries: 30
     volumes:
       - db-data:/var/lib/postgresql/data
+      - supabase-db-config:/etc/postgresql-custom
 
   auth:
     image: supabase/gotrue:v2.186.0
@@ -148,5 +149,6 @@ services:
 
 volumes:
   db-data:
+  supabase-db-config:
   deno-cache:
   storage-data:
