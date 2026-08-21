@@ -7,6 +7,46 @@ estado final, sem preservar neles uma versão obsoleta do planejamento.
 
 ## Mudanças registradas
 
+### CHG-039 - Quatro linhas do DoD da T5.6 já passavam sem a tarefa, e duas rodavam vazio por falta de `cd app`
+
+- **Data:** 2026-08-21
+- **Fase/PR:** Fase 5 (PR 5b). Alcança o bloco DoD da **T5.6** em `03_plan.md`,
+  inteiro, antes de a tarefa ser despachada.
+- **Planejado originalmente:** o bloco pedia o cubit com estado `sealed`, os
+  "quatro estados de conexão" sem nomeá-los, o grep de conciliação, e uma última
+  linha que empilhava seis exigências: declarar a rota `/configuracoes/banco`
+  fora do `ShellRoute`, `dart format`, `flutter analyze`, `flutter test -r
+  compact`, `gates_guard.sh` e um teste de cadeia partindo de `/`.
+- **Por que não foi possível prosseguir:** o `auditor-de-criterios` mediu tudo e
+  achou **quatro** critérios que já passam hoje, sem a tarefa existir. A rota
+  `/configuracoes/banco` **já está declarada** em `settings_routes.dart`, com
+  `parentNavigatorKey: rootNavigatorKey` e sem `extra:`, de commit anterior; o
+  item "Banco" já existe em `settings_section_list.dart` e a página
+  `settings_bank_page.dart` já existe como **placeholder** — de modo que o teste
+  de cadeia passaria sem o cubit e sem os estados desta tarefa. O grep de
+  `reconcil|concilia` devolve zero hoje, por ausência de trabalho. E os dois
+  comandos sem `cd app` próprio são piores que inúteis: `flutter analyze` da raiz
+  analisa o diretório do worktree, completa em 2 ms com "No issues found" e
+  **sempre** sai `0`; `flutter test -r compact` da raiz falha com
+  `Test directory "test" not found` e **nunca** sai `0`, para nenhuma
+  implementação. A linha dos quatro estados, além disso, não os nomeava, o que
+  deixava espaço para um quinto estado colidir com a **FD-034**.
+- **Alternativas consideradas:** (a) manter a linha composta e confiar em quem
+  a lê — foi justamente o empacotamento de seis exigências que escondeu os dois
+  "verde por construção" mais graves; (b) apagar as cláusulas que já passam —
+  perderia invariantes que vale manter, como a conciliação fora do escopo.
+- **Decisão:** o escopo da tarefa passou a ser dito como é — **substituir o
+  placeholder**, não criar a rota. Os quatro estados foram escritos por extenso,
+  com `bank_connection_status.dart` como procedência e a proibição explícita de
+  um quinto. A cadeia de `app_router_test.dart` passou a exigir que a tela final
+  mostre **um dos quatro rótulos**, e não o texto do placeholder — sem isso ela
+  já passava. A página ganhou prova de que deixou de ser placeholder (grep que
+  hoje devolve duas linhas). Cada comando ganhou o seu `cd app`. E o grep de
+  conciliação ficou, **rotulado como invariante**, com a nota de que o sinal de
+  trabalho está nas outras linhas.
+- **Resumo:** o bloco continua com seis linhas. Nenhuma exigência saiu; quatro
+  passaram a falhar antes da tarefa e duas passaram a rodar de verdade.
+
 ### CHG-038 - A prova de ponta a ponta da T5.2 dependia de um arquivo de ambiente que não existe em worktree recém-criado
 
 - **Data:** 2026-08-21
