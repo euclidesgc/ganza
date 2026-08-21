@@ -7,6 +7,40 @@ estado final, sem preservar neles uma versão obsoleta do planejamento.
 
 ## Mudanças registradas
 
+### CHG-035 - A varredura de segredo do DoD casava o próprio texto do critério e o arquivo de env ignorado, sendo insatisfazível dos dois jeitos
+
+- **Data:** 2026-08-21
+- **Fase/PR:** Fase 5 (PR 5b). Alcança a primeira linha do bloco DoD da **T5.2**
+  e a quinta linha do **DoD da Fase 5**, ambas em `03_plan.md`.
+- **Planejado originalmente:** as duas linhas mandavam rodar
+  `rtk proxy grep -rniE 'PLUGGY_CLIENT_SECRET=[^$]'` — sobre `infra/ docs/
+  scripts/` na T5.2, e sobre a raiz inteira no DoD da fase — e exigiam nenhuma
+  linha de saída.
+- **Por que não foi possível prosseguir:** o par Client ID/Secret da Pluggy
+  chegou (a pendência **P13** caiu) e foi gravado em `infra/local/.env`, com
+  permissão `600`, que é ignorado pelo git desde `.gitignore:2`. Rodado o
+  comando como escrito, ele devolve **três** linhas: o `.env` — que é o lugar
+  correto do segredo e não deveria ser alcançado por uma varredura de
+  repositório —, e **duas linhas do próprio `03_plan.md`**, porque o texto do
+  critério contém a string `PLUGGY_CLIENT_SECRET=[^$]` e o `[` que vem depois do
+  `=` satisfaz `[^$]`. O critério casava a si mesmo: mesmo com zero segredo no
+  repositório, ele jamais devolveria saída vazia. Era insatisfazível por duas
+  razões independentes.
+- **Alternativas consideradas:** (a) excluir `03_plan.md` e `.env` do grep com
+  `--exclude` — trata o sintoma, e a lista de exclusões cresce a cada arquivo
+  novo que cite a variável; (b) escrever o nome da variável quebrado no plano
+  (`PLUGGY_CLIENT_` + `SECRET`) para o padrão não se achar — deixa a
+  documentação ilegível para proteger um comando mal escolhido.
+- **Decisão:** trocar `grep -r` por **`git grep`**, que só enxerga arquivo
+  versionado — exatamente o que a linha sempre quis dizer, e que exclui o
+  `.env` ignorado sem precisar nomeá-lo. E trocar a classe `[^$]` por
+  `[A-Za-z0-9]`, que casa qualquer valor real e **não** casa o `[` do próprio
+  texto do critério. Medido depois da troca: `git grep -niE
+  'PLUGGY_CLIENT_SECRET=[A-Za-z0-9]' -- infra/ docs/ scripts/` sai `1`, sem
+  nenhuma linha, com as credenciais já gravadas no `.env`.
+- **Resumo:** a exigência é a mesma e ficou mais forte — nenhum valor real em
+  arquivo versionado. O que mudou é que agora ela pode ser satisfeita.
+
 ### CHG-034 - O DoD da T5.5 exigia zero menções a `pluggy` em `app/lib`, o que um comentário anterior à fase já torna insatisfazível, e o mesmo defeito estava no DoD da Fase 5
 
 - **Data:** 2026-08-21
