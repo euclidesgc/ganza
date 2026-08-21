@@ -9,7 +9,7 @@ fase se sustentar sozinha.**
 
 Estado: **Fases 1 e 2 mergeadas em `develop`** (PRs **#26** e **#27**, mais o
 **#28** com o ajuste de harness que limpa worktrees de agente) · seis fases
-fatiadas em **64 tarefas**, mais o lote de fechamento da §9 · **Fase 3 em
+fatiadas em **65 tarefas**, mais o lote de fechamento da §9 · **Fase 3 em
 andamento**: o **PR 3a** levou a migration `0006_adicionar_nome_no_perfil.sql` e
 o **PR 3b** leva a T3.2 a T3.8, a T3.11 e a T3.12. **O E2E foi suspenso por
 completo em 20/08/2026** (**D34** de [`../decisions.md`](../decisions.md);
@@ -154,10 +154,12 @@ fatiamento foi feito para que o bloqueio custe o mínimo. **P9 a P13 são os
 rótulos definitivos dos cinco bloqueios**; quem encontrar `B1` a `B5` em texto
 anterior está lendo a numeração provisória dos rascunhos, na mesma ordem.
 
-**Duas delas já caíram.** Em 20/08/2026 a **P10** foi decidida e a **P9**,
+**Três delas já caíram.** Em 20/08/2026 a **P10** foi decidida e a **P9**,
 resolvida — ver a **FD-022** de [`decisions.md`](decisions.md) e o `CHG-001` de
-[`changes.md`](changes.md). Continuam abertas **P11**, **P12** e **P13**, e
-nenhuma delas bloqueia a Fase 1.
+[`changes.md`](changes.md). Em 21/08/2026 a **P12** foi **fechada por medição, e
+não por autorização**: o que ela pedia ao humano já estava feito no servidor
+(**FD-032**; [`changes.md`](changes.md), `CHG-020`). Continuam abertas **P11** e
+**P13**, e nenhuma delas bloqueia a Fase 1 nem a Fase 4.
 
 **P9 — App Password do Gmail e as cinco variáveis de SMTP. Resolvida em
 20/08/2026.** O provedor já estava decidido (**D26**) e o que faltava era humano:
@@ -204,17 +206,34 @@ login" do escopo. O que restava de incômodo virou a **T1.12**, que preenche de
 volta só o e-mail. A pendência segue aberta apenas quanto ao **destino das duas
 branches** — nada mais depende dela.
 
-**P12 — a chave-mestra do Vault em produção.** O `supabase_vault` cifra com a
-chave-mestra do `pgsodium`, que mora em `/etc/postgresql-custom/pgsodium_root.key`
-— na camada gravável do contêiner, não no volume. `infra/local/docker-compose.yml`
-monta apenas `db-data:/var/lib/postgresql/data`, e a stack de produção nasceu do
-mesmo desenho. **Se o contêiner do Postgres for recriado, todo segredo do Vault
-vira ciphertext permanentemente indecifrável** — as linhas de `vault.secrets`
-sobrevivem no volume e nenhuma delas volta a abrir. A T4.3 mede e escreve o
-achado; **montar a chave em volume muda estado de um serviço da VPS compartilhada
-e depende de autorização do humano.** O que isto bloqueia: **a primeira chave
-real de IA salva em produção**, e só isso — a stack local é descartável e a Fase
-4 inteira se desenvolve e se prova contra ela.
+**P12 — a chave-mestra do Vault em produção. Fechada em 21/08/2026, sem nada a
+autorizar.** O que esta pendência dizia até 20/08/2026: o `supabase_vault` cifra
+com a chave-mestra do `pgsodium`, que vive em
+`/etc/postgresql-custom/pgsodium_root.key`; **ela estaria na camada gravável do
+contêiner**, e recriar o Postgres tornaria todo segredo do Vault ciphertext
+permanentemente indecifrável — montar a chave em volume mudaria estado de um
+serviço da VPS compartilhada e portanto **dependia de autorização do humano**. O
+que isso bloqueava: a primeira chave real de IA salva em produção.
+
+**A premissa era inferência, não medição, e a medição a inverteu.** Ela saiu da
+leitura de `infra/local/docker-compose.yml` — que monta só
+`db-data:/var/lib/postgresql/data` — mais a suposição, nunca conferida, de que a
+stack de produção nascera do mesmo desenho. A **T4.3** mediu no servidor em
+21/08/2026, com comandos **só de leitura**: a chave está dentro do volume nomeado
+`lqsjrqqs6r8rnggbvwpi4nuf_supabase-db-config`, montado em `/etc/postgresql-custom`,
+e **recriar o contêiner `supabase-db` não a destrói**. Saídas coladas em
+`docs/deploy/coolify.md`, seção "Chave-mestra do Vault (`pgsodium`)"; decisão em
+[`decisions.md`](decisions.md), **FD-032**.
+
+**Por que fecha em vez de virar outra pendência:** não sobrou pedido ao humano.
+Não há remendo de compose a aplicar em produção — o volume que faltaria já existe
+—, e a única mudança que restou é no repositório, em
+`infra/local/docker-compose.yml`, que não toca servidor nenhum: virou a tarefa
+**T4.15**, não pendência. **O que se deve não fazer** — remover o volume
+`lqsjrqqs6r8rnggbvwpi4nuf_supabase-db-config` — já estava vetado pela regra geral
+de não executar ação destrutiva na VPS compartilhada sem ordem do humano, e
+restrição permanente de operação não é pendência aberta. As duas condições que
+reabrem o bloqueio estão escritas no risco **X16**.
 
 **P13 — conta e credenciais da Pluggy, e a decisão comercial que vem junto.** A
 Pluggy usa um par Client ID/Secret **do projeto** (a *Application*), não do
@@ -1254,6 +1273,19 @@ rodada de emulador. O que mudou nela foi o endereço da evidência, que saiu de
 que fechava a rodada, um diretório sob `e2e/` sem `report.md` faria
 `scripts/verify-gauntlet.sh` falhar (`changes.md`, CHG-019).
 
+- [ ] **T4.15** `[paralela · frente E · worktree]` — Alinhar `infra/local/docker-compose.yml` ao desenho medido em produção: servir `/etc/postgresql-custom` por volume nomeado, em vez de deixar a chave-mestra do `pgsodium` na camada gravável do contêiner. **Nenhum comando desta tarefa muda estado — não se sobe, recria nem reseta a stack local, que é compartilhada, e a VPS não é tocada.** · camada **infra** · `especialista-infra`
+
+  **DoD da tarefa**
+  - No serviço `db` de `infra/local/docker-compose.yml`, `/etc/postgresql-custom` é servido por um volume nomeado `supabase-db-config` declarado também no bloco `volumes:` do topo do mesmo arquivo, e o volume de dados não é substituído, é acompanhado: `rtk proxy grep -c 'supabase-db-config:/etc/postgresql-custom' infra/local/docker-compose.yml` imprime `1`, `rtk proxy grep -c 'supabase-db-config' infra/local/docker-compose.yml` imprime `2` — o mount e a declaração — e `rtk proxy grep -c 'db-data:/var/lib/postgresql/data' infra/local/docker-compose.yml` imprime `1`.
+  - O arquivo continua sendo compose válido e o alvo montado é o diretório onde a chave-mestra vive: da raiz do repositório, `docker compose -f infra/local/docker-compose.yml config --quiet; echo $?` imprime `0`, e `docker compose -f infra/local/docker-compose.yml config` mostra, sob o serviço `db`, `source: supabase-db-config` com `target: /etc/postgresql-custom`. O subcomando `config` apenas renderiza o arquivo, não sobe nada.
+  - Nenhuma frase vizinha ficou falsa: reler cada ocorrência de `pgsodium`, `postgresql-custom`, `supabase-db-config` e `db-data` em `docs/deploy/coolify.md` e corrigir, no mesmo commit, toda frase que ainda descreva a stack local como divergente da de produção nesse ponto ou que anuncie essa mudança como pendente — hoje o arquivo afirma que "o remendo que falta é o inverso: replicar esse volume em `infra/local/docker-compose.yml`", e essa frase deixa de ser verdadeira.
+
+**A T4.15 é consequência da T4.3, não repetição dela.** A T4.3 mediu produção e
+descobriu que a chave-mestra já está em volume; o desalinhado é o repositório, e
+consertá-lo custa uma linha de compose e nenhuma autorização, porque não há
+servidor no caminho. Ela fica na **onda 5** por causa da stack local
+compartilhada, não por causa de arquivo — ver a tabela de ondas.
+
 **Ondas de execução**
 
 | Onda | Tarefas | Por quê |
@@ -1262,21 +1294,21 @@ que fechava a rodada, um diretório sob `e2e/` sem `report.md` faria
 | 2 | **T4.2** | a `0008` monta a ponte do Vault sobre as tabelas que a `0007` cria |
 | 3 | **T4.4** | a Edge Function chama as funções `security definer` da T4.2 e escreve na tabela da T4.1; edita `supabase/functions/deno.json`, que a T4.5 já liberou na onda 1 |
 | 4 | **T4.9** e **T4.14** `[paralelas]` | a camada `data` implementa o contrato da T4.8 e chama a função da T4.4; a prova de isolamento precisa da mesma função no ar e escreve só em `docs/002_conta_e_configuracoes/provas/`. Arquivos disjuntos, nenhuma lê o resultado da outra |
-| 5 | **T4.10** | a tela consome os use cases da T4.9 e o `SecretField` da T4.7 |
+| 5 | **T4.10** e **T4.15** `[paralelas]` | a tela consome os use cases da T4.9 e o `SecretField` da T4.7; a T4.15 mexe só em `infra/local/docker-compose.yml`. Arquivos disjuntos — e, mais que isso, **é a primeira onda em que nenhuma outra tarefa usa a stack local**: T4.2 e T4.14 provam contra ela, e mexer no compose durante essas provas as invalidaria. Worktree próprio para cada uma |
 | 6 | **T4.11** | o gating depende da tela da T4.10 e da capacidade da T4.6 |
 
 Consolidar as seis frentes da onda 1 antes de abrir a onda 2.
 
 **DoD da Fase 4**
 
-- [ ] As doze tarefas da fase com o campo `DoD:` marcado CUMPRIDO, em negrito, na própria linha — as duas migrations, **T4.1 e T4.2**, vão no **PR 4a**, e **T4.3 a T4.11 mais a T4.14** no **PR 4b**. `rtk proxy grep -cE '^- \[x\] \*\*T4\.[0-9]+\*\*.*\*\*DoD: CUMPRIDO\*\*' docs/002_conta_e_configuracoes/03_plan.md` imprime `12`, e `rtk proxy grep -cE '^- \[.\] \*\*T4\.[0-9]+\*\*.*\*\*DoD: NÃO CUMPRIDO\*\*' docs/002_conta_e_configuracoes/03_plan.md` imprime `0`. O número cobre a fase inteira, com o PR 4a já mergeado no momento da verificação — mesma regra da Fase 3. O padrão ancora na fase e traz os asteriscos: sem os asteriscos a contagem inclui as próprias linhas de critério que citam o campo, e sem a âncora ela cresce a cada fase seguinte que marcar uma tarefa — nos dois casos o número nunca fecha.
+- [ ] As treze tarefas da fase com o campo `DoD:` marcado CUMPRIDO, em negrito, na própria linha — as duas migrations, **T4.1 e T4.2**, vão no **PR 4a**, e **T4.3 a T4.11 mais T4.14 e T4.15** no **PR 4b**. `rtk proxy grep -cE '^- \[x\] \*\*T4\.[0-9]+\*\*.*\*\*DoD: CUMPRIDO\*\*' docs/002_conta_e_configuracoes/03_plan.md` imprime `13`, e `rtk proxy grep -cE '^- \[.\] \*\*T4\.[0-9]+\*\*.*\*\*DoD: NÃO CUMPRIDO\*\*' docs/002_conta_e_configuracoes/03_plan.md` imprime `0`. O número cobre a fase inteira, com o PR 4a já mergeado no momento da verificação — mesma regra da Fase 3. O padrão ancora na fase e traz os asteriscos: sem os asteriscos a contagem inclui as próprias linhas de critério que citam o campo, e sem a âncora ela cresce a cada fase seguinte que marcar uma tarefa — nos dois casos o número nunca fecha.
 - [ ] **O que a fase entrega é alcançável a partir da tela inicial, por toques** — teste de cadeia em `app/test/app_router_test.dart` que parte de `/`, abre o menu, toca em Configurações e toca em IA, terminando em `/configuracoes/ia` com a IA já configurada; escrito pela **T4.11**. Não basta a rota existir nem o gate desviar (**D32**).
 - [ ] `cd app && dart format --output=none --set-exit-if-changed .`, `flutter analyze` e `flutter test -r compact` verdes; `cd supabase/functions && deno fmt --check && deno lint && deno task check && deno task test` verde; da raiz, `bash scripts/gates_guard.sh; echo $?` imprime `0`. O alvo do format é a pasta `app/` inteira, que é o que `.github/workflows/ci.yml` roda, e `--output=none` é o que faz a linha **medir** em vez de escrever.
 - [ ] `rtk proxy grep -rnE '(^|[^A-Za-z])(AIza[A-Za-z0-9_-]{20,}|sk-[A-Za-z0-9]{16,})' app/lib` não devolve nenhuma linha — nenhuma chave de terceiro, nem placeholder com forma de chave, entrou no binário. **O padrão casa o literal, não o identificador:** `apiKey` sozinho reprovaria o token `AppIcons.apiKey` de `app/lib/core/theme/app_icons.dart` (o ícone de chave, nomeado pela função, como o Gate 4 manda) e o comentário sobre o cabeçalho `apikey` em `app/lib/modules/transactions_module/data/repositories/transactions_repository_impl.dart` — duas linhas legítimas que hoje existem.
 - [ ] `rtk proxy grep -rln 'aiConfigured' app/lib` devolve **os três** caminhos `app/lib/core/session/`, `app/lib/core/widgets/navigation/` e `app/lib/app_router.dart` — e nenhum outro. O "nenhum outro" sozinho passaria com saída vazia; é a presença dos três que prova que o gate existe, e a ausência do resto que prova que ele mora no router e não no corpo de página.
 - [ ] A prova de isolamento entre dois usuários **e** a prova de RLS no banco estão em `docs/002_conta_e_configuracoes/provas/isolamento_credenciais_ia.md`, com comandos e saídas literais, **reproduzidas pelo QA independentemente do executor da fase** (tarefa **T4.14**). Esta linha é invariante bloqueante do gauntlet e se prova por saída de comando: **não é adiável** e não sai do gate do PR (**D30**).
 - [ ] `CLAUDE.md` reconciliado no mesmo PR: a invariante 4 passa a distinguir **credencial do projeto** (proibida no cliente, sem exceção) de **credencial do usuário** (entra pelo app, vive cifrada no servidor e nunca retorna ao cliente) — decisão **D24**.
-- [ ] `docs/002_conta_e_configuracoes/decisions.md` registra o achado da chave-mestra do Vault e a consequência: **nenhuma chave real de IA é salva em produção enquanto a pendência P12 não fechar.**
+- [ ] `docs/002_conta_e_configuracoes/decisions.md` registra o achado da chave-mestra do Vault, com data e com os comandos de leitura e suas saídas colados: em produção ela **já está no volume nomeado** `lqsjrqqs6r8rnggbvwpi4nuf_supabase-db-config` e recriar o contêiner `supabase-db` **não** a destrói; a mesma entrada nomeia as duas condições que reabririam a restrição de não salvar chave real — remover esse volume, ou um redeploy do Coolify que não o preserve. `rtk proxy grep -c '^| FD-032 |' docs/002_conta_e_configuracoes/decisions.md` imprime `1`. **Esta fase não tem mais linha exigindo "nenhuma chave real de IA em produção":** o bloqueio caiu com a medição e nenhum outro motivo o sustenta (**FD-032**; `changes.md`, CHG-020).
 - [ ] `docs/decisions.md` com a **D19** marcada como resolvida.
 - [ ] `CHANGELOG.md`, seção `Unreleased`, atualizado no mesmo PR.
 - [ ] Jobs "App", "Edge Functions" e "Banco" verdes no CI dos dois PRs.
@@ -1730,14 +1762,19 @@ por extenso em vez de deixá-lo implícito.
 ## 7. Riscos e dependências que o DoD do roadmap não cobre
 
 **Dois riscos desta feature não são de código, e por isso escapam de todo gate
-automático.** O primeiro é a **chave-mestra do Vault fora de volume** (X5): ela
-mora em `/etc/postgresql-custom/pgsodium_root.key`, na camada gravável do
-contêiner, e `infra/local/docker-compose.yml` monta só
-`db-data:/var/lib/postgresql/data`. **Recriar o contêiner `supabase-db` torna
-todo segredo do Vault permanentemente indecifrável** — nenhum teste acusa, porque
-o schema continua íntegro e só o conteúdo deixa de abrir. Verificar isso no
-Coolify é tarefa de `especialista-infra` (**T4.3**) e precisa acontecer **antes da
-primeira chave real**. O segundo é o **`scripts/local-supabase.sh up` que só
+automático.** O primeiro **mudou de polaridade em 21/08/2026, medido** (X5): a
+chave-mestra do Vault, em `/etc/postgresql-custom/pgsodium_root.key`, **já está em
+volume nomeado no Postgres de produção**, e recriar o contêiner `supabase-db`
+**não** a destrói (**T4.3**, com as saídas coladas em `docs/deploy/coolify.md`;
+decisão **FD-032**). Até então este parágrafo afirmava o contrário, por inferência
+a partir de `infra/local/docker-compose.yml` — que monta só
+`db-data:/var/lib/postgresql/data` — e da suposição de que produção teria o mesmo
+desenho. **O que sobrou de risco é a divergência entre as duas stacks**: na local
+o modo de falha existe de verdade, e enquanto ela divergir a próxima medição feita
+ali volta a ser lida como verdade sobre produção. Alinhá-la é a **T4.15**, mudança
+só no repositório. **Nenhum teste acusaria esse tipo de perda**, porque o schema
+continuaria íntegro e só o conteúdo deixaria de abrir — é por isso que a prova
+aqui é saída de comando de leitura no servidor, e não suíte. O segundo é o **`scripts/local-supabase.sh up` que só
 aplica migrations quando `public.transactions` não existe** (X10): com o volume já
 inicializado, migration nova fica de fora em silêncio e a prova de RLS roda contra
 o schema velho, passando pelo motivo errado — por isso toda tarefa de migration
@@ -1751,7 +1788,7 @@ legitimamente precisa da chave coexiste com as que não precisam (X7).
 | X2 | **O `Scaffold` com `drawer:` reintroduz o glifo do Material** pelo `DrawerButton` que ele injeta, e **nada no CI pega isso**: medido em 20/08/2026, `scripts/gates_guard.sh` **não tem checagem de ícone nenhuma** — `rtk proxy grep -n 'Icons' scripts/gates_guard.sh` não devolve nada, e o Gate 4 do script cobre `Color(0x`, `Colors.<nome>`, `fontSize`, `circular(` e `EdgeInsets`, mais nada. **A linha anterior desta célula dizia que o guard "procura o literal `Icons.`", e era falsa** — risco mitigado no papel por mecanismo inexistente. | Fase 2, e toda feature depois dela | Duas camadas, uma por fase e outra permanente: **hoje**, a linha de DoD da **T2.5** (`leading:` explícito com token de `AppIcons`) e a do DoD da Fase 2, ambas com `rtk proxy grep -rnE '(^|[^A-Za-z])Icons\.' app/lib` vazio — o padrão é ancorado porque sem a âncora ele casa `Icons.` dentro de `AppIcons.` e reprova as 13 linhas legítimas do repositório; **a partir da T2.9**, a checagem entra no próprio `scripts/gates_guard.sh`, que é o que faz a proteção valer nas features seguintes sem depender de alguém repetir a linha no DoD. |
 | ~~X3~~ | ~~**`flutter test` não cobre `app/patrol_test/`** e `flutter analyze` não pega string que deixou de casar, então a troca de navegação deixa o CI verde e o emulador vermelho.~~ **Extinto em 20/08/2026 pela D34** (`changes.md`, CHG-019). | ~~Fase 2, e daí até o lote de fechamento~~ | **O risco morreu com o objeto que o produzia:** o E2E foi suspenso por completo, os roteiros herdados da feature 001 deixaram de ser mantidos e `app/patrol_test/` é removido pela **TL.4** (§9). Não há mais roteiro vermelho invisível ao CI porque não há mais roteiro. **O que a extinção custou está na §9, dito por extenso:** a navegação pelo drawer até transações passou a ser provada por teste de widget (**TL.2**), e a integração real com a sandbox da Pluggy ficou **sem prova automatizada**. |
 | X4 | **A recuperação por OTP não cobre o clique no link do e-mail.** O GoTrue manda o link junto do código; quem clicar cai no navegador e não volta para o app. | Fase 1 | Limitação **conhecida e aceita**: o texto do e-mail e a tela de recuperação instruem a digitar o código. O deep link PKCE fica registrado em `docs/002_conta_e_configuracoes/decisions.md` como o passo seguinte, com o custo já levantado (source set de flavor + `GOTRUE_URI_ALLOW_LIST`). |
-| X5 | **A chave-mestra do Vault não está em volume.** Ela mora em `/etc/postgresql-custom/pgsodium_root.key`, na camada gravável do contêiner; `infra/local/docker-compose.yml` monta só `db-data:/var/lib/postgresql/data`. Recriar o contêiner do Postgres transforma todo segredo do Vault em ciphertext permanentemente indecifrável. | Fase 4 | Pendência **P12** mais a tarefa **T4.3**, que mede em produção, reproduz o modo de falha na stack local e deixa o trecho de compose pronto. Linha do DoD da fase: nenhuma chave real em produção antes de P12 fechar. |
+| X5 | **A stack local diverge da de produção quanto à chave-mestra do Vault, e a divergência já produziu uma conclusão errada.** Em produção a chave mora em `/etc/postgresql-custom/pgsodium_root.key` **dentro do volume nomeado** `lqsjrqqs6r8rnggbvwpi4nuf_supabase-db-config`, medido em 21/08/2026 com comandos de leitura (**FD-032**; saídas coladas em `docs/deploy/coolify.md`). Em `infra/local/docker-compose.yml` o serviço `db` monta só `db-data:/var/lib/postgresql/data`, e **ali** recriar o contêiner de fato torna todo segredo do Vault indecifrável. **A versão anterior desta célula dizia que produção estava no mesmo estado da local, e era falsa:** ninguém tinha medido — a afirmação saiu da leitura do compose local mais a suposição de que a produção nascera do mesmo desenho. Enquanto os dois desenhos divergirem, a próxima medição feita na stack local volta a ser lida como verdade sobre produção. | Fase 4, e toda medição de Vault depois dela | **T4.15** replica `supabase-db-config:/etc/postgresql-custom` em `infra/local/docker-compose.yml` — mudança só no repositório, sem tocar a VPS e sem autorização a pedir. A medição de produção já está feita e colada (**T4.3**), e a regra que fica é: sobre produção cita-se a medição, nunca o compose local. |
 | X6 | **Exclusão de conta deixaria segredo órfão no Vault.** `public.ai_user_credentials` some por `on delete cascade`, mas `vault.secrets` não — o Vault não aceita FK para `auth.users`, e um segredo órfão é cifrado e eterno. | Fase 4 | Gatilho `before delete` em `public.ai_user_credentials`, na **T4.2**, que apaga o segredo junto. Resolvido por construção, com o DoD provando o caso pelo `delete` da própria conta e pela remoção temporária do gatilho. |
 | X7 | **A `service_role` é injetada no ambiente de todo worker** (decisão **D19** de `docs/decisions.md`). A Fase 4 traz a primeira função que legitimamente precisa dela, e a chave que fura RLS fica acessível também às que não precisam. | Fase 4 | **T4.5** escopa `envVars` por função em `supabase/functions/main/index.ts`, com teste sobre um módulo puro, e marca a D19 como resolvida. |
 | ~~X8~~ | ~~**A troca de e-mail sem prova de posse tranca o usuário para fora.** Com `GOTRUE_MAILER_AUTOCONFIRM: 'true'` e sem SMTP, `updateUser(email:)` aplica o endereço novo na hora, e a recuperação — único caminho de volta — vai para o endereço errado.~~ **Risco extinto em 20/08/2026** (`CHG-001`): a **FD-022** desligou a confirmação automática e o SMTP passou a existir, então o GoTrue só aplica o endereço novo depois de confirmado — o modo de falha não tem mais como ocorrer. A linha fica riscada, e não removida, porque a **FD-014** a cita. | Fase 3 | Nada a tratar. A troca de e-mail continua fora da feature, agora **por escopo**: nenhuma fase a entrega, e reabri-la é chamada do humano (**FD-014**). |
@@ -1764,7 +1801,7 @@ legitimamente precisa da chave coexiste com as que não precisam (X7).
 | X15 | **Provedor com saída estruturada não é controle de segurança.** `responseSchema` e `responseMimeType: 'application/json'` do provedor reduzem saída malformada; não impedem uma proposta bem-formada e hostil. | Toda chamada de IA | Tratado: a validação que decide é `parseProposals` (**T6.4**), do nosso lado da borda. Usar o recurso do provedor é economia de retentativa, e nunca substitui a validação — quem descrever a chamada ao provedor escreve isso junto. |
 | X17 | **O cadastro tem dois desfechos que o servidor não distingue, e uma janela curta que parece defeito.** Medido em 20/08/2026: repetir o cadastro do mesmo endereço fora da janela devolve `200` com `identities` preenchido e sem `error_code` — igual ao cadastro novo, sem `user_already_exists`; e duas tentativas seguidas batem em `over_email_send_rate_limit`, com cerca de 60 segundos de janela. Uma tela escrita para o caminho antigo mostraria "erro" onde houve sucesso, ou silêncio onde houve limite. | Fase 1 | **FD-024** e `02_specs.md` §7.1: mensagem única para endereço novo e repetido — não distinguir é o comportamento desejado, e construir a distinção seria um oráculo de enumeração de contas. Linha de DoD da **T1.7** para os dois desfechos com textos distintos entre si, e linha de DoD da **T1.10** proibindo repetir cadastro dentro da janela. A tradução de `user_already_exists` fica no código como caso morto documentado. |
 | X18 | **Abandonar a recuperação depois do código aceito deixa a sessão válida e a senha antiga valendo, sem aviso.** O `verifyOTP` do GoTrue autentica a sessão e o `supabase_flutter` a persiste em disco, enquanto o escopo de recuperação é memória. Com a saída da **T1.15** o caminho desenhado encerra a sessão, mas **matar o app** na etapa de nova senha continua deixando a pessoa dentro do app na abertura seguinte. | Fase 1, e reavaliar na Fase 5 | **Aceito por escrito** (`changes.md`, CHG-009, e `docs/002_conta_e_configuracoes/decisions.md`): quem digitou os seis dígitos já provou posse do e-mail, que é o mesmo fator com que o GoTrue autentica. Fechar o resíduo exige persistir o escopo em disco, o que troca um estado raro por risco de trancar a pessoa numa tela sem saída. **Condição que reabre:** a Fase 5 põe conta bancária atrás dessa sessão — o CISO reavalia antes do PR 5b. |
-| X16 | **Chave real de IA em produção antes de a chave-mestra do Vault estar em volume** seria segredo cifrado com material que some no primeiro `docker compose up --force-recreate`. | Fase 4, e depois dela | Linha do DoD da Fase 4 e entrada em `docs/002_conta_e_configuracoes/decisions.md`: **nenhuma chave real é salva em produção enquanto P12 não fechar**. Desenvolvimento e prova acontecem inteiros na stack local descartável. |
+| X16 | **Chave real de IA salva em produção.** O bloqueio que esta linha carregava — o segredo seria cifrado com material que some no primeiro `docker compose up --force-recreate` — **caiu em 21/08/2026 por medição** (**FD-032**): a chave-mestra já está em volume nomeado e recriar o contêiner `supabase-db` não a destrói. **Nenhum outro motivo sustenta a restrição**, e foi conferido um a um: a fase inteira ainda se desenvolve contra a stack local, mas isso é sequência de trabalho e não proibição; a ausência de backup (**D4**) não a segura, porque o pior caso de perder o volume é cada pessoa salvar a chave de novo — chave de IA se reobtém no provedor, ao contrário de dado financeiro; e o resto da defesa do segredo (RLS, dois passos, `service_role` escopada) não depende de onde a chave-mestra mora. | Fase 4, e depois dela | **A restrição "nenhuma chave real de IA em produção" deixa de existir** e sai do DoD da Fase 4. Ficam **duas condições que a reabrem**, ambas não testadas porque testá-las mudaria estado de serviço compartilhado: remover o volume `lqsjrqqs6r8rnggbvwpi4nuf_supabase-db-config` (`docker compose down -v` ou `docker volume rm`, já vetados sem ordem do humano) e um redeploy do Coolify que recrie a stack sem preservá-lo. Se qualquer uma ocorrer, os segredos existentes param de abrir: a tela de IA cai no estado de falha do cubit da **T4.10** e o caminho de volta é salvar a chave outra vez — nunca uma tela travada. |
 | X19 | **Confirmar a senha atual cria uma sessão nova e deixa a anterior viva no servidor.** A troca de senha logada usa `signInWithPassword` para conferir a credencial; o SDK substitui a sessão local por outra e o refresh token anterior **não é revogado** — o cliente apenas o esquece. Sobra uma janela com dois refresh tokens válidos para o mesmo usuário. **O modo de falha de navegação foi medido e não existe** (**FD-031**): o evento chega pelo stream assíncrono e não reentra no build. | Fase 3, e reavaliar na **Fase 5** | **Aceito por escrito** (**FD-031**), com duas amarras: a linha do DoD da Fase 3 que proíbe `onAuthStateChangeSync` em `app/lib`, e a **TL.3** da §9 — teste de widget que assere que trocar a senha logado não desloga, não navega e não pisca a tela. **A segunda amarra mudou de natureza em 20/08/2026** (`changes.md`, CHG-019): era cena de emulador, virou teste de widget que roda no CI, e nisso ficou mais forte, não mais fraca. **Condição que reabre:** a Fase 5 põe conta bancária atrás desta sessão; o CISO reavalia a janela de token antes do PR 5b, e é aí que uma confirmação sem criação de sessão volta à mesa. |
 
 ---
@@ -1779,12 +1816,13 @@ tarefa sem esse veredito **não** é marcada, mesmo que o código pareça pronto
 - [x] **Fase 1** — Auth completo: medir a sessão, cadastrar e recuperar senha · PR 1 (16 tarefas, todas no PR 1; a T1.16 saiu com a suspensão do E2E, §9) · PR **#26** mergeado
 - [x] **Fase 2** — Drawer e a casca das Configurações · PR 2 (7 tarefas, todas no PR 2, com a T2.8 do CHG-014 e a T2.9 do CHG-015; T2.6 e T2.7 saíram com a suspensão do E2E, §9) · PR **#27** mergeado
 - [-] **Fase 3** — Perfil do usuário · PR 3a + PR 3b (10 tarefas — 1 no PR 3a e 9 no PR 3b; T3.9 e T3.10 saíram com a suspensão do E2E, §9)
-- [ ] **Fase 4** — Configuração de IA e o gating · PR 4a + PR 4b (12 tarefas — 2 no PR 4a e 10 no PR 4b; T4.12 e T4.13 saíram com a suspensão do E2E, §9; a T4.14 nasceu ao partir a prova de isolamento da execução do E2E e **fica**, porque é `curl` e `psql`)
+- [ ] **Fase 4** — Configuração de IA e o gating · PR 4a + PR 4b (13 tarefas — 2 no PR 4a e 11 no PR 4b; T4.12 e T4.13 saíram com a suspensão do E2E, §9; a T4.14 nasceu ao partir a prova de isolamento da execução do E2E e **fica**, porque é `curl` e `psql`; a T4.15 nasceu da inversão do risco X5, `changes.md`, CHG-020)
 - [ ] **Fase 5** — Integração bancária · PR 5a + PR 5b (6 tarefas — 1 no PR 5a e 5 no PR 5b; T5.7 e T5.8 saíram com a suspensão do E2E, §9)
 - [ ] **Fase 6** — Defesa do pipeline de IA · PR 6 (9 tarefas)
 - [ ] **Lote de fechamento** — §9 (4 tarefas: TL.1 a TL.4), depois da Fase 6
 
-São **64 tarefas** na feature, contra as 69 de antes da **D34**: nove tarefas de
+São **65 tarefas** na feature, contra as 69 de antes da **D34** e as 64 de antes
+da **CHG-020**: nove tarefas de
 E2E saíram e quatro do lote entraram (`changes.md`, CHG-019).
 
 ---

@@ -7,6 +7,110 @@ estado final, sem preservar neles uma versão obsoleta do planejamento.
 
 ## Mudanças registradas
 
+### CHG-020 - A premissa da chave-mestra do Vault era inferência, e a medição a inverteu
+
+- **Data:** 2026-08-21
+- **Fase/PR:** Fase 4 (PR 4b), depois da onda 1. Alcança a pendência **P12**, os
+  riscos **X5** e **X16** do plano, o **X4** e o bloqueio **B4** das specs, e a
+  linha do DoD da Fase 4 que citava a consequência.
+- **Planejado originalmente:** o plano afirmava que a chave-mestra do `pgsodium`
+  — com a qual o `supabase_vault` cifra todo segredo — vivia em
+  `/etc/postgresql-custom/pgsodium_root.key` **na camada gravável do contêiner**,
+  também em produção, e que recriar o Postgres tornaria todo segredo do Vault
+  ciphertext permanentemente indecifrável. Daí saíam três coisas: a pendência
+  humana **P12** ("montar a chave em volume muda estado de serviço da VPS
+  compartilhada e depende de autorização do humano"), os riscos **X5** e **X16**,
+  e uma linha no **DoD da Fase 4** exigindo que `decisions.md` registrasse a
+  consequência **"nenhuma chave real de IA é salva em produção enquanto a P12 não
+  fechar"**. O `01_prd.md` repetia a mesma consequência como restrição de produto,
+  e o `02_specs.md` a repetia como bloqueio **B4** e risco **X4**.
+- **Por que não foi possível prosseguir:** a premissa **nunca foi medida**. Ela
+  saiu da leitura de `infra/local/docker-compose.yml`, que monta só
+  `db-data:/var/lib/postgresql/data`, mais a suposição não verificada de que "a
+  stack de produção nasceu do mesmo desenho". A **T4.3** foi ao servidor em
+  21/08/2026, com comandos **só de leitura**, e mediu o contrário: a chave está
+  dentro do volume nomeado `lqsjrqqs6r8rnggbvwpi4nuf_supabase-db-config`, montado
+  em `/etc/postgresql-custom`, e **recriar o contêiner `supabase-db` não a
+  destrói**. Executor e supervisor conferiram de forma independente, cada um na
+  VPS. As saídas de `ls -l` e de `docker inspect` estão coladas em
+  `docs/deploy/coolify.md`, seção "Chave-mestra do Vault (`pgsodium`) — recriar
+  `supabase-db` não a destrói"; a decisão está em
+  [`decisions.md`](decisions.md), **FD-032**. Com isso, três documentos passaram a
+  afirmar por escrito um fato falso, e uma pendência humana passou a pedir
+  autorização para um trabalho já feito.
+- **Alternativas consideradas:** (a) **manter a restrição "nenhuma chave real em
+  produção" por precaução**, trocando de justificativa — recusada: restrição sem
+  motivo escrito é superstição operacional, e a próxima pessoa a lê como se
+  ainda houvesse um risco medido por trás; se nenhum motivo a sustenta, ela sai,
+  e o que fica no lugar são as **condições que a reabrem**, nomeadas; (b)
+  **converter a P12 em outra pendência humana**, agora sobre "não remover o
+  volume" — recusada: isso já está coberto pela regra geral de não executar ação
+  destrutiva na VPS compartilhada sem ordem do humano, e restrição permanente de
+  operação não é pendência aberta, é regra; (c) **riscar X5 e X16 e seguir** —
+  recusada: apagaria a procedência, e a procedência é o que impede a mesma
+  inferência de ser refeita; (d) **reescrever X5/X16/P12 preservando o que se
+  supunha, o que foi medido e quando, fechar a P12 e transformar o resíduo real
+  numa tarefa** — escolhida.
+- **Decisão tomada:** (d), pelo `tech-lead`, com o fato medido registrado como
+  **FD-032** pela T4.3. A **P12 fecha em 21/08/2026 por medição, não por
+  autorização** — não sobrou pedido ao humano, porque o volume que faltaria já
+  existe e a única mudança restante é no repositório. A restrição **"nenhuma
+  chave real de IA é salva em produção" deixa de valer** e sai do DoD da Fase 4:
+  conferiu-se motivo por motivo e nenhum outro a sustenta — a fase seguir se
+  provando contra a stack local é sequência de trabalho, não proibição; e a
+  ausência de backup (**D4**) não a segura, porque o pior caso de perder o volume
+  é cada pessoa salvar a chave de novo, já que chave de IA se reobtém no
+  provedor, ao contrário de dado financeiro.
+- **Resumo da resolução:** **X5 muda de sujeito, não some** — deixa de ser "a
+  chave-mestra não está em volume" e passa a ser "**a stack local diverge da de
+  produção**", que é o que sobrou de verdadeiro: em
+  `infra/local/docker-compose.yml` o modo de falha existe de fato, e enquanto os
+  dois desenhos divergirem a próxima medição feita ali volta a ser lida como
+  verdade sobre produção. **X16 registra a queda do bloqueio** e guarda as **duas
+  condições que o reabrem**, ambas não testadas porque testá-las mudaria estado
+  de serviço compartilhado: remover o volume
+  `lqsjrqqs6r8rnggbvwpi4nuf_supabase-db-config` (`docker compose down -v` ou
+  `docker volume rm`) e um redeploy do Coolify que recrie a stack sem preservá-lo.
+  Se qualquer uma ocorrer, os segredos existentes param de abrir e a tela de IA
+  cai no estado de falha do cubit da **T4.10**, com o caminho de volta sendo
+  salvar a chave outra vez. **O remendo agora é o inverso do que o plano previa**
+  — nada a aplicar em produção, e sim replicar
+  `supabase-db-config:/etc/postgresql-custom` na stack local: virou a tarefa
+  **T4.15**, mudança só no repositório, sem tocar a VPS e sem autorização a pedir.
+  Ela fica na **onda 5** porque **T4.2** e **T4.14** provam contra a stack local e
+  mexer no compose durante essas provas as invalidaria — a restrição é a stack
+  compartilhada, não o arquivo. **Esta entrada não implementa a T4.15.**
+  **O bloco de DoD da T4.3 fica como está**, com o veredito `CUMPRIDO`
+  preservado: as suas linhas são condicionais ("enquanto a chave não estiver em
+  volume…", "se a chave não estiver em volume…") e continuam verdadeiras como
+  condicionais; reescrever bloco já julgado seria reescrever o registro.
+- **Reconciliação documental:**
+  - `docs/002_conta_e_configuracoes/03_plan.md` — §1: **P12** reescrita e
+    **fechada**, com o que se supunha, o que foi medido e quando; a linha "duas
+    delas já caíram" vira "três". §5, Fase 4: nasce a tarefa **T4.15** com bloco
+    DoD, a tabela de **Ondas de execução** ganha a T4.15 na onda 5 marcada
+    `[paralela]`, a linha do DoD da fase que citava a consequência antiga é
+    reescrita para o que a **FD-032** de fato registra, e a contagem da fase vai
+    de **12 para 13** tarefas (na linha do DoD, na §8 e no total da feature, que
+    vai de 64 para 65). §7: a prosa de abertura e as células **X5** e **X16**
+    reescritas.
+  - `docs/002_conta_e_configuracoes/02_specs.md` — §10: **B4** marcada resolvida
+    por medição. §11: **X4** reescrito como divergência entre stacks.
+  - `docs/002_conta_e_configuracoes/01_prd.md` — §11: o item da chave-mestra
+    reescrito, com a restrição de produto removida e a procedência preservada.
+    **Arquivo de fatia do `product-manager`, editado aqui por pedido explícito do
+    orquestrador** por conter afirmação factual que ficou falsa.
+  - `docs/002_conta_e_configuracoes/decisions.md` — a **FD-018** ("nenhuma chave
+    real de IA é salva em produção enquanto a chave-mestra do cofre não estiver em
+    volume") estava viva na tabela de decisões vigentes afirmando a premissa
+    invertida, e nenhum documento a marcava: fica **riscada e revogada pela
+    FD-032**, preservada em vez de removida porque o plano e esta entrada a citam
+    como a premissa que caiu. A **FD-032**, escrita pela T4.3, não é alterada.
+  - `docs/deploy/coolify.md` — a seção da chave-mestra, escrita pela T4.3, não é
+    alterada por esta entrada; ela é a fonte da medição. A frase dela que anuncia
+    o remendo local como pendente sai quando a **T4.15** for executada, e isso é
+    linha do DoD da T4.15.
+
 ### CHG-019 - O E2E sai de escopo, e o lote de fechamento perde a razão de existir
 
 - **Data:** 2026-08-20
