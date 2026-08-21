@@ -7,6 +7,47 @@ estado final, sem preservar neles uma versão obsoleta do planejamento.
 
 ## Mudanças registradas
 
+### CHG-037 - A prova do `503` da T5.2 já era satisfeita pela T5.3, o `git diff` sem base aprovava por ausência e o `curl` expunha o segredo no argv
+
+- **Data:** 2026-08-21
+- **Fase/PR:** Fase 5 (PR 5b). Alcança o bloco DoD da **T5.2** em `03_plan.md`,
+  que passa de cinco para quatro linhas, antes de a tarefa ser despachada.
+- **Planejado originalmente:** depois da CHG-036, a T5.2 provaria o `503` por
+  `deno test --filter '503'`, a validade do par por um `curl` de autenticação
+  contra `api.pluggy.ai` lendo `infra/local/.env`, e a não-reescrita de
+  `docs/deploy/coolify.md` por `git diff --numstat` sem referência.
+- **Por que não foi possível prosseguir:** o `auditor-de-criterios` mediu os
+  três e derrubou os três. O `deno test --filter '503'` **já passa hoje**, sem
+  nenhuma parte desta tarefa: o caso nasceu no commit `fec9d93`, da **T5.3**, e
+  simula a ausência das variáveis dentro do próprio teste, sem tocar em
+  `docker-compose.yml` — e, pior, `--filter` que não casa nada também sai `ok`
+  com código `0`, então nem sequer distingue "rodou e passou" de "não achou
+  nada". O `git diff --numstat` sem referência sai **vazio** hoje e volta a sair
+  vazio para sempre depois do commit do executor, de modo que o
+  `supervisor-dod`, que chega depois, aprovaria por ausência de diff. E o `curl`
+  de autenticação, embora não imprimisse o corpo, expandia `$PLUGGY_CLIENT_SECRET`
+  no **argv** do processo, visível em `ps aux` para qualquer usuário da máquina
+  enquanto a chamada durasse — um canal de vazamento que a linha não fechava.
+  O auditor apontou ainda que a prova de presença da variável no contêiner
+  falharia para um trabalho **correto**, porque o Docker injeta `environment:`
+  só na criação e a linha não mandava recriar o serviço.
+- **Alternativas consideradas:** (a) mandar o corpo do `curl` por stdin para
+  tirar o segredo do argv — resolve o vazamento, mas mantém uma prova que a
+  tarefa seguinte já faz melhor; (b) exigir `1 passed` na saída do `deno test` —
+  conserta o filtro vazio, mas não conserta o fato de o teste pertencer a outra
+  tarefa.
+- **Decisão:** trocar as três por **uma** prova de ponta a ponta que só esta
+  tarefa faz passar: recriar o serviço com `docker compose up -d functions` e
+  chamar `POST /functions/v1/bank-connections` na stack local com o JWT de teste
+  de `infra/local/.runtime.env`, exigindo `200` — sendo que **antes** da tarefa o
+  mesmo comando devolve `503`. Ela prova de uma vez que a variável chegou ao
+  contêiner, que o par é válido na Pluggy (não há `200` sem autenticação bem
+  sucedida) e que o caminho de configuração ausente ficou para trás, sem
+  expor segredo em argv nenhum. O `git diff` ganhou base fixa via `git
+  merge-base HEAD origin/develop`.
+- **Resumo:** o bloco perdeu uma linha e ganhou poder. Nada do que se exigia
+  saiu: o `503` continua coberto — pelo teste da T5.3, onde ele pertence.
+
 ### CHG-036 - Três linhas do DoD da T5.2 apontavam para um host que não existe, mandavam mutar ambiente compartilhado e pediam julgamento subjetivo
 
 - **Data:** 2026-08-21
