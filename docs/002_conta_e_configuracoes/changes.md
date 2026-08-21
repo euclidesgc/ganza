@@ -7,6 +7,43 @@ estado final, sem preservar neles uma versão obsoleta do planejamento.
 
 ## Mudanças registradas
 
+### CHG-029 - A linha da política no DoD da T5.1 media sob uma role cujo caminho de busca esconde o prefixo `auth.`
+
+- **Data:** 2026-08-21
+- **Fase/PR:** Fase 5 (PR 5a). Alcança a segunda linha do bloco DoD da **T5.1**
+  em `03_plan.md`, corrigida pela CHG-026, com a tarefa já executada e antes de
+  o `supervisor-dod` julgá-la.
+- **Planejado originalmente:** a CHG-026 mandou consultar `pg_policies` com
+  `docker compose -f infra/local/docker-compose.yml exec -T db psql -U
+  supabase_admin -d postgres -tAc "select qual, with_check ..."` e exigiu a
+  saída `(user_id = ( SELECT auth.uid() AS uid))` nas duas colunas.
+- **Por que não foi possível prosseguir:** o executor da T5.1 rodou a linha e
+  reportou que a saída real, sob `-U supabase_admin`, é `(user_id = ( SELECT
+  uid() AS uid))` — **sem** o prefixo `auth.`. Medido de novo aqui e confirmado:
+  essa role traz `auth` no `search_path` padrão da imagem
+  `supabase/postgres:15.8.1.085`, e o Postgres decompila a expressão sem
+  qualificar o esquema. A mesma consulta contra `ai_user_credentials`, cuja
+  política está correta desde a `0007`, devolve exatamente o mesmo texto sem
+  prefixo. Ou seja: a linha reprovaria uma implementação certa. O texto exigido
+  pela CHG-026 veio da medição do `auditor-de-criterios`, que conectou como
+  `postgres` pela porta `54322` — role diferente, `search_path` diferente,
+  saída diferente. Misturar a role de uma medição com o comando de outra foi o
+  defeito.
+- **Alternativas consideradas:** (a) `set search_path to public` num `-c`
+  antes do select — funciona, mas o `psql` imprime `SET` como primeira linha e
+  a exigência "devolve exatamente uma linha" passa a ser falsa; (b) comparar a
+  política nova com a da `0007` na mesma sessão, sem fixar texto — robusto ao
+  `search_path`, mas troca um critério literal por um relativo, e a exigência
+  deixa de ser legível sozinha.
+- **Decisão:** fixar o caminho de busca na conexão, com `-e
+  PGOPTIONS=--search_path=public` no `docker compose exec`, mantendo o texto
+  qualificado como critério. Medido: a saída sai numa linha só, sem o `SET` na
+  frente, com código de saída `0`. A razão do `PGOPTIONS` ficou escrita na
+  própria linha, para quem a executar não achar que é adorno.
+- **Resumo:** a exigência é a mesma — uma política de dono, na convenção do
+  subselect que a `0005` estabeleceu. O que mudou é a role sob a qual ela é
+  lida. Nenhum trabalho da T5.1 precisou mudar: a migration já estava correta.
+
 ### CHG-028 - A correção da CHG-027 provava o tipo do status por grep negativo e contava arquivos novos sem nomeá-los
 
 - **Data:** 2026-08-21
