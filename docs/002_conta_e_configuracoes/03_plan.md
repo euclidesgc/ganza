@@ -1496,7 +1496,20 @@ stubado, e isso não é a mesma coisa que a sandbox respondendo — a §9 regist
 buraco em vez de deixá-lo implícito.
 
 ---
-### Fase 6 — Defesa do pipeline de IA · PR 6
+### Fase 6 — Defesa do pipeline de IA · PR 6a (migrations) + PR 6b
+
+> **Esta fase passa no critério de corte por família de prova, e é o contraste
+> exato da Fase 5.** São nove tarefas em **duas** famílias: migration/SQL
+> (**T6.1** e **T6.2**) e Edge Function/Deno (**T6.3** a **T6.8**), mais uma de
+> documentação (**T6.9**). Seis tarefas seguidas na mesma família significa que
+> o gabarito de critério da primeira serve às cinco seguintes — o oposto da
+> Fase 5, que teve seis famílias em seis tarefas e custou 2,67 correções de DoD
+> por tarefa contra 0,69 da Fase 1. **Espere custo baixo de critério aqui, e
+> desconfie se não for esse o caso.**
+>
+> **As migrations vão em PR próprio** (6a), como nas Fases 4 e 5: é família
+> distinta, o job "Banco" do CI só roda nelas, e separar mantém cada PR dentro
+> de uma família só. O restante vai no 6b, empilhado.
 
 Branch: `feature/GZ-32-defesa-pipeline-ia` (de `develop`; o número da issue se
 confirma ao abrir).
