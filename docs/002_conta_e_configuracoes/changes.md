@@ -7,6 +7,72 @@ estado final, sem preservar neles uma versão obsoleta do planejamento.
 
 ## Mudanças registradas
 
+### CHG-025 - A correção da CHG-024 restaurou a distinção de camada mas trocou a varredura total por um allowlist, reduzindo a cobertura do negativo
+
+- **Data:** 2026-08-21
+- **Fase/PR:** Fase 4 (PR 4b). Alcança a primeira linha do bloco DoD da
+  **T4.11** (corrigida pela CHG-023) e a quarta linha do **DoD da Fase 4**
+  (corrigida pela CHG-024), ambas em `03_plan.md`; e a linha "Jobs … verdes no
+  CI dos dois PRs" do mesmo DoD da Fase 4.
+- **Planejado originalmente:** a CHG-023 e a CHG-024 corrigiram o defeito de
+  camada — um grep de `app/lib` inteiro que não distinguia o identificador
+  usado como condição de gate do identificador usado como parâmetro nomeado na
+  construção da entidade — restringindo a varredura negativa a duas listas
+  fechadas de diretórios: `app/lib/modules/*/presentation` e
+  `app/lib/app_shell.dart` na T4.11, e o mesmo padrão herdado na Fase 4.
+- **Por que não foi possível prosseguir:** o `qa`, julgando de forma
+  independente a pedido do orquestrador, mostrou que restringir por allowlist
+  de diretórios não é o mesmo que "varredura total menos o arquivo conhecido".
+  O padrão `app/lib/modules/*/presentation` exclui a família `*/presentation`
+  **inteira**, não o arquivo `capabilities_source_impl.dart` que motivou a
+  exclusão, e deixa fora do escopo negativo todo o resto de `app/lib/core/`
+  (`core/widgets/forms/`, `core/widgets/feedback/`, `core/network/`,
+  `core/theme/`, …), `domain/` e `data/` de qualquer módulo que não seja o
+  `settings_module`, e arquivos soltos em `app/lib/` como `bootstrap.dart` e
+  `injection.dart`. Um segundo gate, uma cópia esquecida ou um atalho
+  `if (aiConfigured)` em qualquer um desses lugares passaria pelas duas linhas
+  sem ser detectado. O `fechar-etapa` de hoje não denuncia isso porque os
+  únicos quatro arquivos que usam o identificador na árvore atual são os três
+  do gate mais o `capabilities_source_impl.dart` — mas quem garante essa
+  ausência é o estado da árvore, não a linha.
+- **Alternativas consideradas:** (a) manter o allowlist de diretórios e aceitar
+  a lacuna como risco conhecido — descartada porque a régua do `CLAUDE.md`
+  para DoD de fase e de tarefa é prova executável do que a linha promete, não
+  do que hoje é verdade por acaso; (b) expandir o allowlist para cobrir todo
+  subdiretório plausível de `core/` — descartada porque a lista cresceria a
+  cada pasta nova e nunca fecharia, o mesmo defeito de contagem sem âncora que
+  a **D21** já pagou; (c) voltar à varredura total de `app/lib`, excluindo só o
+  arquivo conhecido por um `grep -v` de caminho exato, com o resultado
+  comparado a uma lista fixa e completa dos arquivos esperados.
+- **Decisão tomada:** (c) — endosso do orquestrador ao endurecimento sugerido
+  pelo `qa`. **A exigência não mudou em nenhum dos dois níveis:** gate fora do
+  router, do item de menu e da declaração do campo no domínio continua
+  reprovando — só a medição voltou a cobrir `app/lib` inteiro, o que é
+  **endurecimento**, não afrouxamento. Junto, a linha "Jobs … verdes no CI dos
+  dois PRs" saiu da lista de DoD da Fase 4 e virou nota de ritual logo abaixo
+  dela: o `fechar-etapa` roda **antes** de os PRs existirem, então exigir CI
+  verde nos PRs no próprio gate que autoriza abri-los era dependência circular
+  embutida no ritual, não pendência de timing — a exigência de CI verde
+  continua de pé pela regra geral de CI-como-cancela do `CLAUDE.md`, só relida
+  no passo do ritual em que alguém de fato a confere a tempo de agir.
+- **Resumo da resolução:** as duas linhas passam a rodar
+  `rtk proxy grep -rln 'aiConfigured' app/lib | grep -v
+  '^app/lib/modules/settings_module/data/repositories/capabilities_source_impl.dart$'
+  | sort`, cujo resultado hoje é exatamente `app/lib/app_router.dart`,
+  `app/lib/core/session/user_capabilities.dart` e
+  `app/lib/core/widgets/navigation/chat_drawer_item.dart` — verificado
+  rodando. Qualquer arquivo novo em qualquer lugar de `app/lib` que use o
+  identificador volta a reprovar a linha, cobertura que a CHG-024 tinha
+  deixado de garantir.
+- **Reconciliação documental:** `03_plan.md`, primeira linha do bloco DoD da
+  **T4.11** e quarta linha do **DoD da Fase 4**, que ficam coerentes com esta
+  entrada e **superam, neste ponto, a CHG-023 e a CHG-024** — as duas
+  continuam válidas quanto ao diagnóstico (grep de camada única não distingue
+  gate de construção de entidade), mas a forma de correção que propuseram
+  (allowlist de diretórios) foi substituída pela varredura total com exclusão
+  pontual. A linha de CI dos dois PRs sai do DoD da Fase 4 e vira nota de
+  ritual no mesmo arquivo. Nada em `01_prd.md` ou `02_specs.md` muda.
+
 ### CHG-024 - O DoD da Fase 4 tinha o mesmo defeito de camada que a CHG-023 corrigiu na T4.11, um nível acima
 
 - **Data:** 2026-08-21
