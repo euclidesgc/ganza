@@ -4,6 +4,7 @@ import 'package:fpdart/fpdart.dart';
 import 'package:ganza/app_router.dart';
 import 'package:ganza/core/session/session.dart';
 import 'package:ganza/core/theme/app_theme.dart';
+import 'package:ganza/core/widgets/widgets.dart';
 import 'package:ganza/injection.dart';
 import 'package:ganza/modules/areas_module/areas_module.dart';
 import 'package:ganza/modules/areas_module/domain/domain.dart';
@@ -14,11 +15,12 @@ import 'package:ganza/modules/auth_module/domain/usecases/change_password.dart';
 import 'package:ganza/modules/auth_module/presentation/change_password/change_password_cubit.dart';
 import 'package:ganza/modules/auth_module/presentation/change_password/change_password_page.dart';
 import 'package:ganza/core/error/failure.dart';
-import 'package:ganza/core/widgets/forms/secret_field.dart';
 import 'package:ganza/modules/settings_module/domain/domain.dart';
 import 'package:ganza/modules/settings_module/presentation/account/account_cubit.dart';
 import 'package:ganza/modules/settings_module/presentation/ai/ai_settings_cubit.dart';
 import 'package:ganza/modules/settings_module/presentation/ai/settings_ai_page.dart';
+import 'package:ganza/modules/settings_module/presentation/bank/bank_settings_cubit.dart';
+import 'package:ganza/modules/settings_module/presentation/bank/settings_bank_page.dart';
 import 'package:ganza/modules/settings_module/settings_module.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mocktail/mocktail.dart';
@@ -40,6 +42,13 @@ class _MockGetAiProviderKinds extends Mock implements GetAiProviderKinds {}
 class _MockGetAiCredential extends Mock implements GetAiCredential {}
 
 class _MockSaveAiCredential extends Mock implements SaveAiCredential {}
+
+class _MockGetBankConnection extends Mock implements GetBankConnection {}
+
+class _MockStartBankConnection extends Mock implements StartBankConnection {}
+
+class _MockDisconnectBankConnection extends Mock
+    implements DisconnectBankConnection {}
 
 class _FakeCapabilitiesSource implements CapabilitiesSource {
   _FakeCapabilitiesSource({required this.aiConfigured});
@@ -89,6 +98,11 @@ void main() {
     when(() => getProviderKinds()).thenAnswer((_) async => const Right([]));
     when(() => getCredential()).thenAnswer((_) async => const Right(null));
 
+    final getBankConnection = _MockGetBankConnection();
+    final startBankConnection = _MockStartBankConnection();
+    final disconnectBankConnection = _MockDisconnectBankConnection();
+    when(() => getBankConnection()).thenAnswer((_) async => const Right(null));
+
     getIt
       ..registerLazySingleton<ObserveCurrentUser>(() => observeCurrentUser)
       ..registerLazySingleton<GetCurrentUser>(() => getCurrentUser)
@@ -115,6 +129,18 @@ void main() {
           getIt<GetAiProviderKinds>(),
           getIt<GetAiCredential>(),
           getIt<SaveAiCredential>(),
+        ),
+      )
+      ..registerLazySingleton<GetBankConnection>(() => getBankConnection)
+      ..registerLazySingleton<StartBankConnection>(() => startBankConnection)
+      ..registerLazySingleton<DisconnectBankConnection>(
+        () => disconnectBankConnection,
+      )
+      ..registerFactory(
+        () => BankSettingsCubit(
+          getIt<GetBankConnection>(),
+          getIt<StartBankConnection>(),
+          getIt<DisconnectBankConnection>(),
         ),
       );
   });
@@ -241,4 +267,32 @@ void main() {
       SettingsRoutes.aiFullPath,
     );
   });
+
+  testWidgets(
+    'a partir da tela inicial, drawer > Configurações > Banco chega a '
+    '/configuracoes/banco sem o placeholder',
+    (tester) async {
+      final router = createRouter();
+      await tester.pumpWidget(envolver(router));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byTooltip('Abrir menu'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Configurações'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Banco'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(SettingsBankPage), findsOneWidget);
+      expect(find.byType(PlaceholderBody), findsNothing);
+      expect(
+        GoRouterState.of(
+          tester.element(find.byType(SettingsBankPage)),
+        ).uri.toString(),
+        '${SettingsRoutes.path}/${SettingsRoutes.bankPath}',
+      );
+    },
+  );
 }
