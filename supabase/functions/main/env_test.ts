@@ -7,6 +7,8 @@ const fonte = {
   SUPABASE_SERVICE_ROLE_KEY: 'service-role-fake',
   SUPABASE_DB_URL: 'postgres://fake',
   SUPABASE_JWT_SECRET: 'jwt-fake',
+  PLUGGY_CLIENT_ID: 'pluggy-client-id-fake',
+  PLUGGY_CLIENT_SECRET: 'pluggy-client-secret-fake',
 };
 
 function chaves(nome: string): string[] {
@@ -23,4 +25,20 @@ Deno.test('health não recebe SUPABASE_SERVICE_ROLE_KEY', () => {
 
 Deno.test('ai-credentials recebe SUPABASE_SERVICE_ROLE_KEY', () => {
   assertEquals(chaves('ai-credentials').includes('SUPABASE_SERVICE_ROLE_KEY'), true);
+});
+
+Deno.test('bank-connections não recebe SUPABASE_SERVICE_ROLE_KEY', () => {
+  assertEquals(chaves('bank-connections').includes('SUPABASE_SERVICE_ROLE_KEY'), false);
+});
+
+Deno.test('bank-connections recebe PLUGGY_CLIENT_ID e PLUGGY_CLIENT_SECRET', () => {
+  const chavesDaFuncao = chaves('bank-connections');
+  assertEquals(chavesDaFuncao.includes('PLUGGY_CLIENT_ID'), true);
+  assertEquals(chavesDaFuncao.includes('PLUGGY_CLIENT_SECRET'), true);
+});
+
+Deno.test('transactions não recebe credenciais da Pluggy', () => {
+  const chavesDaFuncao = chaves('transactions');
+  assertEquals(chavesDaFuncao.includes('PLUGGY_CLIENT_ID'), false);
+  assertEquals(chavesDaFuncao.includes('PLUGGY_CLIENT_SECRET'), false);
 });
