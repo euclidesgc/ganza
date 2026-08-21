@@ -1231,7 +1231,7 @@ fila entre si: as duas mexem em `supabase/functions/deno.json`.
 
 Consolidar as três frentes antes de seguir.
 
-- [ ] **T4.9** — Implementar `app/lib/modules/settings_module/data/` para a credencial: models validados por zard, implementação do repositório e a fonte concreta de capacidades que o core declarou. · camada **data** · `especialista-dados`
+- [x] **T4.9** — Implementar `app/lib/modules/settings_module/data/` para a credencial: models validados por zard, implementação do repositório e a fonte concreta de capacidades que o core declarou. · camada **data** · `especialista-dados` · **DoD: CUMPRIDO**
 
   **DoD da tarefa**
   - A leitura do catálogo e da credencial do usuário passa pelo `SupabaseClient` — é dado do usuário sob RLS — e a **gravação e a remoção da chave passam pela Edge Function** `ai-credentials`, nunca pelo PostgREST: `rtk proxy grep -c "from('ai_provider_kinds')" app/lib/modules/settings_module/data/repositories/ai_credential_repository_impl.dart` e `rtk proxy grep -c "from('ai_user_credentials')" app/lib/modules/settings_module/data/repositories/ai_credential_repository_impl.dart` imprimem `1` ou mais cada, `rtk proxy grep -c "'ai-credentials'" app/lib/modules/settings_module/data/repositories/ai_credential_repository_impl.dart` imprime `1` ou mais, e `rtk proxy grep -cE '\.(insert|update|upsert|delete|rpc)\(' app/lib/modules/settings_module/data/repositories/ai_credential_repository_impl.dart` imprime `0`.
