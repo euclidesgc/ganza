@@ -1277,7 +1277,7 @@ rodada de emulador. O que mudou nela foi o endereço da evidência, que saiu de
 que fechava a rodada, um diretório sob `e2e/` sem `report.md` faria
 `scripts/verify-gauntlet.sh` falhar (`changes.md`, CHG-019).
 
-- [ ] **T4.15** `[paralela · frente E · worktree]` — Alinhar `infra/local/docker-compose.yml` ao desenho medido em produção: servir `/etc/postgresql-custom` por volume nomeado, em vez de deixar a chave-mestra do `pgsodium` na camada gravável do contêiner. **Nenhum comando desta tarefa muda estado — não se sobe, recria nem reseta a stack local, que é compartilhada, e a VPS não é tocada.** · camada **infra** · `especialista-infra`
+- [x] **T4.15** `[paralela · frente E · worktree]` — Alinhar `infra/local/docker-compose.yml` ao desenho medido em produção: servir `/etc/postgresql-custom` por volume nomeado, em vez de deixar a chave-mestra do `pgsodium` na camada gravável do contêiner. **Nenhum comando desta tarefa muda estado — não se sobe, recria nem reseta a stack local, que é compartilhada, e a VPS não é tocada.** · camada **infra** · `especialista-infra` · **DoD: CUMPRIDO**
 
   **DoD da tarefa**
   - No serviço `db` de `infra/local/docker-compose.yml`, `/etc/postgresql-custom` é servido por um volume nomeado `supabase-db-config` declarado também no bloco `volumes:` do topo do mesmo arquivo, e o volume de dados não é substituído, é acompanhado: `rtk proxy grep -c 'supabase-db-config:/etc/postgresql-custom' infra/local/docker-compose.yml` imprime `1`, `rtk proxy grep -c 'supabase-db-config' infra/local/docker-compose.yml` imprime `2` — o mount e a declaração — e `rtk proxy grep -c 'db-data:/var/lib/postgresql/data' infra/local/docker-compose.yml` imprime `1`.
