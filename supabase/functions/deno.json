@@ -15,7 +15,7 @@
     }
   },
   "tasks": {
-    "check": "deno check main/index.ts health/index.ts health/handler.ts transactions/index.ts transactions/handler.ts",
+    "check": "deno check main/index.ts main/env.ts health/index.ts health/handler.ts transactions/index.ts transactions/handler.ts",
     "test": "deno test --allow-env --allow-net"
   }
 }
