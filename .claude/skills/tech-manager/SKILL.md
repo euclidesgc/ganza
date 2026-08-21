@@ -54,6 +54,12 @@ resolver aqui do que descobrir o mesmo defeito depois, como `DOD INVÁLIDO` do
 Em tarefas paralelas, use worktrees apenas quando os arquivos forem disjuntos e
 consolide antes da revisão. O executor nunca aprova o próprio trabalho.
 
+**Ao fim de cada onda, atualize o checkpoint** (`.claude/RETOMADA.md`, skill
+`checkpoint`): item em curso, onda concluída, primeira ação da próxima. É o
+que o `SessionStart` injeta em toda sessão nova — inclusive a que um `/clear`
+abre —, então ele precisa estar correto **antes** de a onda seguinte começar,
+não só no fechamento da feature.
+
 Retomar um agente com o contexto já carregado custa de três a cinco vezes menos
 que abrir um novo. Devolva a correção ao mesmo executor, continuando o agente
 que fez a tarefa; agente novo para consertar trabalho alheio paga o contexto
@@ -163,5 +169,6 @@ comandos do DoD da fase — é ele que autoriza o PR.
 
 Somente com todas as provas `pass`: PR para `develop` → CI verde → merge. HML
 recebe apenas o merge em `develop`. Ao fechar, atualize o status do roadmap e
-entregue o prompt de retomada com o próximo id e seus cinco documentos
-canônicos.
+rode a skill `checkpoint` com o próximo item — não há mais prompt para colar à
+mão; o `.claude/RETOMADA.md` resultante é o que a sessão seguinte recebe
+sozinha, via `SessionStart`.
