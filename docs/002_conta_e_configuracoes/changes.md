@@ -7,6 +7,38 @@ estado final, sem preservar neles uma versão obsoleta do planejamento.
 
 ## Mudanças registradas
 
+### CHG-032 - A correção da CHG-030 provou ausência de `any` com um regex mais fraco que o lint já exigido, e conferiu o `deno.json` pelo arquivo em vez da chave
+
+- **Data:** 2026-08-21
+- **Fase/PR:** Fase 5 (PR 5b). Alcança a quinta linha do bloco DoD da **T5.3**
+  em `03_plan.md`, corrigida pela CHG-030 e ainda não despachada.
+- **Planejado originalmente:** a CHG-030 provava "nenhum `any` atravessa" com
+  `rtk proxy grep -nE ':[[:space:]]*any|as any'` esperando nenhuma linha, e a
+  inclusão na task `check` com `rtk proxy grep -n 'bank-connections'
+  supabase/functions/deno.json`.
+- **Por que não foi possível prosseguir:** o `auditor-de-criterios` quebrou as
+  duas rodando. Contra um arquivo sintético com seis usos de `any`, o grep pegou
+  quatro e **perdeu dois** — `Record<string, any>` e o cast `<any>x`, nenhum dos
+  quais tem `:` ou `as` imediatamente antes. E `deno lint`, que a **mesma linha**
+  já exigia, pega os seis: a regra `no-explicit-any` está ativa pelas
+  `tags: ["recommended"]` do `supabase/functions/deno.json`. Ou seja, o critério
+  reinventava, pior, uma checagem que já tinha. O grep no `deno.json` casou com
+  um arquivo sintético em que a task `check` continuava **sem** os arquivos
+  novos e uma task irrelevante mencionava as strings — passaria um `deno.json`
+  corrigido de fachada, com `deno check` nunca tipando a função nova.
+- **Alternativas consideradas:** (a) endurecer o regex de `any` — perseguir
+  todas as formas (`Array<any>`, `Promise<any>`, `<any>x`) é reescrever mal o
+  que o lint já faz bem; (b) conferir o `deno.json` com `grep -A` a partir da
+  linha da task — frágil a formatação do JSON.
+- **Decisão:** apagar o grep de `any` e apoiar a exigência no `deno lint` que a
+  linha já cobra, deixando escrito **por que** ele basta e o que o grep perdia.
+  Trocar o grep do `deno.json` pela leitura da chave: `python3 -c "import json;
+  print(json.load(open('deno.json'))['tasks']['check'])"`, que só enxerga o
+  valor da task `check` e é indiferente ao resto do arquivo.
+- **Resumo:** o bloco continua com cinco linhas. A exigência de não deixar `any`
+  atravessar continua de pé, agora provada pela ferramenta que a pega de fato;
+  a de tipar a função nova continua de pé, agora ancorada na chave certa.
+
 ### CHG-031 - A T5.3 foi antecipada à T5.2, invertendo a ordem das ondas, porque o bloqueio humano da Pluggy não a alcança
 
 - **Data:** 2026-08-21
