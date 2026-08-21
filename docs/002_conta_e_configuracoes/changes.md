@@ -7,6 +7,37 @@ estado final, sem preservar neles uma versão obsoleta do planejamento.
 
 ## Mudanças registradas
 
+### CHG-033 - O grep de credencial do DoD da T5.3 induziu um rename de constante no código, e o nome resultante precisa de procedência
+
+- **Data:** 2026-08-21
+- **Fase/PR:** Fase 5 (PR 5b). Alcança
+  `supabase/functions/bank-connections/handler.ts`, linha da constante de URL da
+  API do agregador.
+- **Planejado originalmente:** a segunda linha do bloco DoD da **T5.3** exige que
+  `rtk proxy grep -n 'PLUGGY' supabase/functions/bank-connections/handler.ts`
+  mostre **apenas** leituras de `Deno.env.get`. A intenção é que a credencial do
+  projeto não venha de tabela, de Vault nem de literal no código.
+- **Por que não foi possível prosseguir:** o grep é sensível a caixa e a
+  constante da URL nasceu como `PLUGGY_API_URL` — que não é credencial nenhuma,
+  é endereço público. Para satisfazer o critério, o executor a renomeou para
+  `BANK_AGGREGATOR_API_URL`. O código passou, mas por um motivo que não é o do
+  critério: o que se queria proibir era **origem de segredo**, não a palavra.
+- **Alternativas consideradas:** (a) mandar reverter o nome e afrouxar o grep
+  para ignorar a linha da URL — custa uma rodada de executor e mais uma de
+  supervisor por um ganho estético, e o valor literal `'https://api.pluggy.ai'`
+  segue na mesma linha, então nada ficou obscuro para quem lê; (b) reescrever o
+  critério para `PLUGGY_CLIENT` em vez de `PLUGGY` — corrigiria a causa, mas a
+  tarefa já está julgada e mexer no critério depois do veredito é pior
+  precedente do que o nome.
+- **Decisão:** manter o nome `BANK_AGGREGATOR_API_URL` e registrar aqui a
+  procedência, para que ninguém o leia como abstração deliberada sobre o
+  provedor — não é: a função fala só com a Pluggy. **Na próxima função que ler
+  segredo de `Deno.env`, o critério deve mirar o identificador da credencial
+  (`PLUGGY_CLIENT`), não o nome do provedor.**
+- **Resumo:** nenhuma exigência mudou e a T5.3 está `CUMPRIDO`. O que fica é o
+  aprendizado de régua: grep por nome de provedor alcança identificador
+  legítimo e empurra rename cosmético.
+
 ### CHG-032 - A correção da CHG-030 provou ausência de `any` com um regex mais fraco que o lint já exigido, e conferiu o `deno.json` pelo arquivo em vez da chave
 
 - **Data:** 2026-08-21

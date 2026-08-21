@@ -1420,7 +1420,7 @@ e o DoD cobra que nada de conciliação vazou para o módulo.
   - Sem as variáveis, a Edge Function responde `503` com mensagem de configuração ausente, e não `500` nem exceção. A prova fica **colada**, para ser conferida só lendo: `docs/002_conta_e_configuracoes/provas/t5_2_falha_sem_a_mudanca.md` traz como as variáveis foram retiradas, a chamada feita e o código e o corpo que voltaram, com a data e a configuração restaurada depois.
   - Nenhuma frase vizinha de `docs/deploy/coolify.md` ficou falsa: reler a lista de variáveis do arquivo inteira e conferir que a seção nova não contradiz nenhuma linha existente.
 
-- [ ] **T5.3** — Criar a Edge Function `supabase/functions/bank-connections/` com `index.ts` de borda, `handler.ts` testável e `handler_test.ts`: emitir token de conexão, persistir o item que a Pluggy devolve, ler status e desconectar. · camada **backend** · `especialista-backend`
+- [x] **T5.3** — Criar a Edge Function `supabase/functions/bank-connections/` com `index.ts` de borda, `handler.ts` testável e `handler_test.ts`: emitir token de conexão, persistir o item que a Pluggy devolve, ler status e desconectar. · camada **backend** · `especialista-backend` · **DoD: CUMPRIDO**
 
   **DoD da tarefa**
   - `supabase/functions/bank-connections/index.ts` contém `Deno.serve(handler)` e nada mais; o comportamento inteiro mora em `supabase/functions/bank-connections/handler.ts`, exportado e testável sem subir servidor.
