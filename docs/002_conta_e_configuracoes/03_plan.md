@@ -1120,7 +1120,7 @@ e não tem por que ir para o gerenciador do sistema.
 
 **Tarefas**
 
-- [ ] **T4.1** — Criar `supabase/migrations/0007_criar_credenciais_de_ia.sql`: catálogo global `public.ai_provider_kinds`, tabela por usuário `public.ai_user_credentials`, RLS e políticas, e a semente do catálogo. · camada **migration** · `especialista-backend`
+- [x] **T4.1** — Criar `supabase/migrations/0007_criar_credenciais_de_ia.sql`: catálogo global `public.ai_provider_kinds`, tabela por usuário `public.ai_user_credentials`, RLS e políticas, e a semente do catálogo. · camada **migration** · `especialista-backend` · **DoD: CUMPRIDO**
 
   **DoD da tarefa**
   - Num Postgres vazio em que as migrations anteriores já aplicaram na ordem, `psql -v ON_ERROR_STOP=1 -f supabase/migrations/0007_criar_credenciais_de_ia.sql; echo $?` imprime `0`.
