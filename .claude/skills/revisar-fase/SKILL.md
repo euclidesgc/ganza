@@ -1,7 +1,7 @@
 ---
 name: revisar-fase
 description: Valida uma fase implementada contra o 03_plan.md e as regras do ganza. Usada pelo QA ao fim de cada fase, antes do resumo de PR ao dev.
-allowed-tools: Read, Glob, Grep, Bash, mcp__code-review-graph__detect_changes_tool, mcp__code-review-graph__get_review_context_tool, mcp__dart__analyze_files, mcp__dart__run_tests
+allowed-tools: Read, Glob, Grep, Bash, mcp__code-review-graph__detect_changes_tool, mcp__code-review-graph__get_review_context_tool
 ---
 
 # Skill: revisar uma fase

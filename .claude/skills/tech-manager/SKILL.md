@@ -17,14 +17,19 @@ existente usa a pasta `docs/NNN_descricao/`. Nunca inicie por uma fase solta.
    `docs/_templates/feature/`.
 3. O plano define fase, arquivos, dependências, referência, rubrica binária,
    invariantes, provas, três rodadas máximas e 45 minutos por fase.
-4. O DoD tem três níveis. O do plano é a rubrica do gauntlet. O da fase
+4. O `03_plan.md` de cada fase traz também uma seção **Ondas de execução**: as
+   tarefas agrupadas por dependência real em ondas numeradas, cada tarefa
+   marcada `[paralela]` quando o arquivo que toca é disjunto das demais da
+   mesma onda. Siga essa seção para decidir o que despachar junto — não
+   descubra paralelismo ad hoc no meio da fase.
+5. O DoD tem três níveis. O do plano é a rubrica do gauntlet. O da fase
    autoriza o PR e é verificado pela skill `fechar-etapa`. O da tarefa é o
    bloco que acompanha cada tarefa e é a única coisa que o supervisor lê.
-5. Régua do bloco de tarefa: apague todos os parênteses de referência e cada
+6. Régua do bloco de tarefa: apague todos os parênteses de referência e cada
    linha ainda tem de se sustentar; todo caminho é completo a partir da raiz do
    repositório; cada linha diz como se prova; o critério é observável já ao fim
    da tarefa, não ao fim da fase; três a seis linhas.
-6. O humano aprova o PRD antes da implementação e qualquer mudança de escopo.
+7. O humano aprova o PRD antes da implementação e qualquer mudança de escopo.
    Decisão específica fica em `decisions.md`; decisão transversal fica em
    `docs/decisions.md`.
 
@@ -37,6 +42,14 @@ despachada: se o plano não trouxer um, escreva-o pela régua antes de despachar
 O `03_plan.md` de `docs/001_cadastro_manual/`, em voo, não tem bloco em nenhuma
 das suas 28 tarefas; escreva o da tarefa que vai sair agora, sem retrofit do
 plano inteiro.
+
+Antes de despachar, lance o `auditor-de-criterios` sobre o bloco — ele executa
+cada linha contra a árvore atual, cego ao plano, e devolve `DESPACHÁVEL` ou
+`DEVOLVER AO TECH-LEAD` com as linhas defeituosas. Só despache com
+`DESPACHÁVEL`. `DEVOLVER AO TECH-LEAD` não é achado seu para corrigir: volta ao
+`tech-lead`, porque a linha exige saber o que o plano pretendia — mais barato
+resolver aqui do que descobrir o mesmo defeito depois, como `DOD INVÁLIDO` do
+`supervisor-dod`, com o executor já tendo trabalhado.
 
 Em tarefas paralelas, use worktrees apenas quando os arquivos forem disjuntos e
 consolide antes da revisão. O executor nunca aprova o próprio trabalho.
@@ -72,6 +85,15 @@ A supervisão não é o gargalo. Em trinta lançamentos medidos, dezesseis
 supervisores custaram cerca de três minutos de mediana cada, menos que os dois
 maiores executores somados (25,8 e 24,8 minutos). O gargalo é o tamanho da
 tarefa entregue de uma vez a um executor.
+
+**Sonde o agente que passar de dez minutos sem devolver.** A sonda é uma
+pergunta objetiva de estado — feito / faltando / travado —, não uma cobrança;
+agente parado não avisa sozinho que está parado. Cada despacho carrega também
+um timebox: estourou, sonde e decida na hora — seguir (deu sinal de progresso
+real), dividir a tarefa em pedaço menor (o escopo era grande demais para um
+despacho só), ou abortar e escalar. O teto de três rodadas e 45 minutos
+continua sendo da **fase inteira**; o timebox do despacho é o que evita
+descobrir o estouro só quando esse teto maior já bateu.
 
 O veredito volta a você, nunca direto ao executor, e são três em precedência:
 `NÃO CUMPRIDO` acima de `DOD INVÁLIDO`, acima de `CUMPRIDO`. `NÃO CUMPRIDO`
@@ -115,37 +137,31 @@ Não altere a rubrica para facilitar aprovação.
 ## Fechamento
 
 A decomposição por frente disjunta vale também aqui: a etapa final não é um
-agente só empilhando teste, documentação e validação em fila. As três skills que
-cobrem o fechamento — `instrumentar-e2e`, `escrever-testes` e
-`manter-docs-vivas` — **já se decompõem por dentro**, e o número de despachos sai
-delas, não da contagem de skills: `escrever-testes` abre uma frente por camada de
-teste, `manter-docs-vivas` separa a pasta da feature da raiz, e `instrumentar-e2e`
-separa escrever o driver de rodá-lo. Abra a skill antes de despachar e conte as
-frentes que ela nomeia — **cada frente é uma tarefa com o seu bloco DoD**,
-executada pelo `qa`: um despacho por frente, nunca um despacho por skill. As
-frentes disjuntas saem em paralelo, dentro de uma mesma skill e entre
-`escrever-testes` e `manter-docs-vivas`, com worktree próprio porque escrevem ao
-mesmo tempo. Despachar o `qa` várias vezes não contraria a granularidade dele:
-por fase é o que ele **revisa**, não o que ele executa.
+agente só empilhando teste e documentação em fila. As duas skills que cobrem o
+fechamento — `escrever-testes` e `manter-docs-vivas` — **já se decompõem por
+dentro**, e o número de despachos sai delas, não da contagem de skills:
+`escrever-testes` abre uma frente por camada de teste (use cases, cubits,
+widget, golden, backend), `manter-docs-vivas` separa a pasta da feature da
+raiz. Abra a skill antes de despachar e conte as frentes que ela nomeia —
+**cada frente é uma tarefa com o seu bloco DoD**, executada pelo `qa`: um
+despacho por frente, nunca um despacho por skill. As frentes disjuntas saem em
+paralelo, dentro de uma mesma skill e entre `escrever-testes` e
+`manter-docs-vivas`, com worktree próprio porque escrevem ao mesmo tempo.
+Despachar o `qa` várias vezes não contraria a granularidade dele: por fase é o
+que ele **revisa**, não o que ele executa.
 
 `revisar-fase` e `fechar-etapa` não são frentes: são **gates de fase**, vêm
 depois porque leem o resultado das outras, e não passam pelo `supervisor-dod` —
 `fechar-etapa` exige que toda tarefa da fase já esteja `CUMPRIDO` e não pode ser
 uma dessas tarefas.
 
-Instrumentar o E2E e executá-lo são naturezas diferentes: escrever o driver é
-trabalho de código, rodar contra o ambiente é espera de parede. São sempre duas
-tarefas, cada uma com o seu bloco DoD, e cada rodada seguinte é uma tarefa de
-execução nova. Mas quem escreve o driver é quem melhor o depura quando a rodada
-falha: a decisão da fase é só se as duas vão para o mesmo agente, retomado, ou
-para dois — e a razão vai no `03_plan.md`, junto da tarefa.
-
-O E2E de comportamento visível roda somente na stack local por
-`scripts/e2e-local.sh NNN`; cada rodada atualiza `e2e/round_NN/report.md`. O
-gate `fechar-etapa` roda `scripts/verify-gauntlet.sh` e os comandos do DoD da
-fase — é ele que autoriza o PR.
+O escopo automatizado do ganza é **unit + widget** — E2E está suspenso por
+decisão do humano (20/08/2026). Comportamento visível ao usuário prova por
+teste de widget da cadeia visível, escrito na frente correspondente de
+`escrever-testes`. O gate `fechar-etapa` roda `scripts/verify-gauntlet.sh` e os
+comandos do DoD da fase — é ele que autoriza o PR.
 
 Somente com todas as provas `pass`: PR para `develop` → CI verde → merge. HML
-recebe apenas o merge em `develop` e não é alvo de E2E com escrita. Ao fechar,
-atualize o status do roadmap e entregue o prompt de retomada com o próximo id
-e seus cinco documentos canônicos.
+recebe apenas o merge em `develop`. Ao fechar, atualize o status do roadmap e
+entregue o prompt de retomada com o próximo id e seus cinco documentos
+canônicos.

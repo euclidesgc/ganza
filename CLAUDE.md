@@ -10,7 +10,7 @@ O nome no repositório, no `applicationId`, nos pacotes e na URL é **`ganza`, s
 - `supabase/functions/` — **Edge Functions em Deno**. Toda a lógica de servidor: `ingest`, `sync-finance`, `finance-math`, `notify`, `calendar`. **Dona exclusiva de toda chave de terceiro** (Gemini, Pluggy, Google, FCM). `main/index.ts` roteia `/functions/v1/<nome>`; publicar é `scripts/deploy-functions.sh`.
 - `supabase/migrations/` — SQL versionado. Schema, RLS, `pg_cron`.
 - `infra/coolify/` — compose e variáveis de ambiente da stack self-hosted.
-- `docs/NNN_<nome>/` — documentação de uma feature do roadmap: `01_prd.md`, `02_specs.md`, `03_plan.md`, `decisions.md`, `changes.md` e `e2e/round_NN/report.md`. **`NNN`** é a numeração de três dígitos do roadmap (`001`, `002`, …). Decisões técnicas globais vivem em `docs/decisions.md`; decisões da feature vivem na própria pasta.
+- `docs/NNN_<nome>/` — documentação de uma feature do roadmap: `01_prd.md`, `02_specs.md`, `03_plan.md`, `decisions.md`, `changes.md`. **`NNN`** é a numeração de três dígitos do roadmap (`001`, `002`, …). Decisões técnicas globais vivem em `docs/decisions.md`; decisões da feature vivem na própria pasta.
 
 **Um app, sem packages.** O produto é um app só — módulo mora em `app/lib/modules/<nome>_module/`, não em pacote separado. Extrair para `packages/` só quando um segundo consumidor existir de verdade; cerimônia de monorepo sem segundo consumidor é custo sem retorno.
 
@@ -53,7 +53,7 @@ Regras do `docs/plano.md` que viram gate de código:
 - Erros imprevistos: `runZonedGuarded` + `FlutterError.onError` + `PlatformDispatcher.onError` + `AppBlocObserver` no `bootstrap.dart`.
 - Flavors: `main_dev.dart`/`main_prod.dart` → `bootstrap(AppConfig)`; config via `--dart-define-from-file=config/<env>.json`; **segredo nunca em dart-define**.
 - **Zero build_runner** (nada de freezed, json_serializable, injectable, mockito, go_router_builder).
-- Testes: `test/` espelha `lib/`; `mocktail` (`MockX extends Mock implements X`) + `bloc_test`; a bateria automatizada é escrita **por último**, após o E2E atestado.
+- Testes: `test/` espelha `lib/`; `mocktail` (`MockX extends Mock implements X`) + `bloc_test`; a bateria automatizada é escrita **por último**, após o gate do CISO da fase.
 - Acessibilidade: cor nunca é o único sinal de informação; controles com `Semantics`/tooltip; alvos de toque grandes (o app se usa com uma mão).
 - Arquivos `snake_case`, classes `PascalCase`, **uma classe/widget por arquivo**; código em inglês, UI e docs em pt-BR. Única exceção: o estado `sealed` do cubit mora no mesmo arquivo do cubit via `part of`.
 - **Zero comentário — o código se explica por nomes.** Vale para Dart, TypeScript e SQL. **Não escreva** comentário que diga o que a linha faz, que repita o nome do identificador logo abaixo, cabeçalho decorativo de seção, nem nota de autoria/histórico ("antes era X", "adicionado na F2") — para isso existe o git. Legibilidade se conquista **extraindo** variável/função/widget com nome descritivo. **Única exceção:** o **porquê** que o código não tem como mostrar — decisão de arquitetura, workaround de bug externo, restrição de plataforma ou invariante não óbvia; e aí o comentário explica a **razão**, nunca a mecânica. Ao editar arquivo já comentado, limpe o que não passa nesse teste.
@@ -84,7 +84,9 @@ Os tokens saem da identidade do `docs/plano.md` §11 — paleta de couro/palha/o
 
 ## Método de trabalho (time de IA)
 
-O usuário invoca **`/tech-manager <pedido>`** (skill em `.claude/skills/tech-manager/`, que roda na própria conversa e orquestra os agentes de `.claude/agents/`; não é sub-agente) — o fluxo completo mora lá. Regras que valem sempre: 1 fase = 1 PR; **só então** testes automatizados, depois do E2E atestado; desvio do plano exige registro prévio em `changes.md` e reconciliação de PRD, specs e plano.
+O usuário invoca **`/tech-manager <pedido>`** (skill em `.claude/skills/tech-manager/`, que roda na própria conversa e orquestra os agentes de `.claude/agents/`; não é sub-agente) — o fluxo completo mora lá. Regras que valem sempre: 1 fase = 1 PR; **só então** testes automatizados, depois do gate do CISO da fase; desvio do plano exige registro prévio em `changes.md` e reconciliação de PRD, specs e plano.
+
+**O ciclo de uma tarefa, do critério ao veredito:** o `tech-lead` **escreve** o bloco DoD pela régua; o `auditor-de-criterios` **executa** cada linha contra a árvore atual, cego ao plano, e só libera `DESPACHÁVEL`; o `tech-manager` despacha ao executor; o `supervisor-dod` **julga** o resultado, também cego ao plano. Escrever, auditar e julgar são três papéis, três agentes — nenhum se sobrepõe ao outro.
 
 ### O time e o que cada um alcança
 
@@ -94,8 +96,9 @@ Cada agente declara suas `tools` no frontmatter. **A restrição é a regra de f
 |---|---|---|---|
 | `product-manager` | opus | `01_prd.md` | **sem `Bash` e sem grafo** — não roda comando nem varre código |
 | `tech-lead` | opus | `02_specs.md`, `03_plan.md`, `decisions.md`, `changes.md`, fatiamento | **único com `Agent`** (delega varredura) + grafo completo |
-| `qa` | opus | validação de fase, E2E, testes, docs | `Skill` (encadeia as próprias skills) + `run_tests` |
-| `supervisor-dod` | opus | veredito do DoD de uma tarefa | **sem `Write`/`Edit`** (só lê e roda) e **cego ao plano por desenho** — recebe só o bloco DoD e um ponteiro para o trabalho, porque quem lê o plano confere intenção no lugar de critério |
+| `auditor-de-criterios` | sonnet | executa cada linha de um bloco DoD de tarefa antes do despacho | **sem `Write`/`Edit`, cego ao plano** (como o `supervisor-dod`) — audita a forma do critério, não conserta |
+| `qa` | sonnet | validação de fase, provas independentes, bateria unit+widget, docs | `Skill` (encadeia as próprias skills); testes por `Bash` (`flutter test`, `deno test`) |
+| `supervisor-dod` | sonnet | veredito do DoD de uma tarefa | **sem `Write`/`Edit`** (só lê e roda) e **cego ao plano por desenho** — recebe só o bloco DoD e um ponteiro para o trabalho, porque quem lê o plano confere intenção no lugar de critério |
 | `ciso` | sonnet | segurança e privacidade | **sem `Write`/`Edit`** — cancela não conserta o que revisa |
 | `critico-integrador` | sonnet | integração entre fatias consolidadas | **sem `Write`/`Edit`** — só devolve `pass` ou `fail` fundamentado |
 | `especialista-dominio` | sonnet | entidades, contratos, use cases | fatia fechada: sem `Agent`, sem web |
@@ -113,7 +116,7 @@ Toda skill declara `allowed-tools` e **todas são auto-invocáveis pelo modelo**
 | `tech-manager` | sim | orquestra o gauntlet a partir de um item numerado do roadmap. |
 | `criar-modulo` · `criar-migration` | sim | gabarito de módulo Flutter e de migration com RLS |
 | `fechar-etapa` | sim | **verifica o DoD da fase rodando, antes de abrir PR — é o gate de avanço** |
-| `revisar-fase` · `instrumentar-e2e` · `escrever-testes` · `manter-docs-vivas` | sim | o ciclo do QA |
+| `revisar-fase` · `escrever-testes` · `manter-docs-vivas` | sim | o ciclo do QA |
 | `iniciar-feature` · `iniciar-bugfix` · `iniciar-hotfix` · `empilhar-prs` · `publicar-release` | sim | GitFlow por situação (a decisão de *começar* hotfix/release continua humana — está no corpo da skill) |
 | `subir-supabase` | sim | a stack self-hosted enxuta, com a razão de cada serviço que fica de fora |
 
@@ -133,9 +136,8 @@ Toda skill declara `allowed-tools` e **todas são auto-invocáveis pelo modelo**
 
 | Tipo | Como se prova |
 |---|---|
-| **Teste automatizado** | O teste existe, passa, **e falha sem a mudança**. Teste que nunca foi visto falhar não prova nada — verifique revertendo. |
-| **Saída de comando** | O comando e a saída esperada, literais: `curl .../health` devolve `200` com `{"status":"ok"}`. Quem lê reproduz sem perguntar nada. |
-| **Evidência de E2E** | `patrol test` na stack local, com PNG e log em `docs/NNN_<nome>/e2e/round_NN/`; o `report.md` traz os rótulos que `scripts/verify-gauntlet.sh` cobra e ao menos um PNG referenciado. |
+| **Teste automatizado** | O teste existe, passa, **e falha sem a mudança**. Teste que nunca foi visto falhar não prova nada — verifique revertendo. Inclui o teste de widget que prova comportamento visível — o escopo automatizado do ganza é unit + widget. |
+| **Saída de comando** | O comando e a saída esperada, literais, e **só de leitura**: `curl .../health` devolve `200` com `{"status":"ok"}`. Quem lê reproduz sem perguntar nada. Se o comando tiver variante somente-leitura (`--output=none`, `--dry-run`), a linha exige essa variante — comando que reescreve a árvore ao medir não é prova, é mutação. |
 
 **Escreva o DoD no nível do que o trabalho promete, não do que é fácil medir.** Esta sessão custou três deploys quebrados porque o "pronto" do backend era *"os testes passam"* — e o que importava era *"o `/health` responde 200 no domínio"*. CI verde com serviço fora do ar é DoD mal escrito, não azar.
 
@@ -145,7 +147,7 @@ Toda skill declara `allowed-tools` e **todas são auto-invocáveis pelo modelo**
 
 **O veredito volta sempre ao orquestrador, nunca direto ao executor.** `NÃO CUMPRIDO` ele devolve ao executor. `DOD INVÁLIDO` tem **três saídas**, e a escolha é dele: (1) **corrigir a forma do critério sozinho** — ambíguo, contagem errada, referência que não resolve, caminho não completo a partir da raiz, bloco fora das três a seis linhas; (2) **acionar o `tech-lead`** quando reescrever o critério exige saber o que o plano pretendia — aí a correção não é de forma, é de conteúdo; (3) **levar ao humano** quando muda a **exigência** — sempre. **Afrouxar o DoD para a tarefa passar é proibido.** O veredito é registrado pelo orquestrador na própria linha da tarefa no `03_plan.md` da feature, e a tarefa só é marcada `[x]` com `CUMPRIDO`.
 
-**O E2E entra no DoD da fase que entrega comportamento visível ao usuário**, e é atestado pelo dev humano: o QA instrumenta o driver e o executa — naturezas diferentes, que podem virar tarefas distintas —, quem gera os prints é sempre a máquina, o humano confere e atesta, e a evidência fica na rodada. O roteiro exercita o que a fase **promete**, não o caminho feliz — se ela corrige uma falha silenciosa, prova que cada modo de falha produz estado **visualmente distinto**.
+**A fase que entrega comportamento visível ao usuário prova por teste de widget da cadeia visível.** O ganza não roda E2E — escopo suspenso por decisão do humano (20/08/2026); o automatizado é unit + widget. O teste exercita o que a fase **promete**, não o caminho feliz — se ela corrige uma falha silenciosa, prova que cada modo de falha produz estado **visualmente distinto** (um caso por estado do `sealed`, via `whenListen`/`BlocProvider.value`).
 
 **No PR, o DoD vai no corpo, com o resultado de cada linha.** É o que o revisor lê primeiro.
 
@@ -183,7 +185,7 @@ Exceção honesta: correção de uma linha óbvia, apontada por erro de CI, não
 
 **Paralelize implementação genuinamente independente.** Quando o trabalho se divide em partes que tocam arquivos disjuntos e não dependem do resultado uma da outra, dispare um agente por parte em vez de um agente fazendo tudo em fila. **Isole cada agente** (worktree próprio) quando eles vão escrever ao mesmo tempo. Consolide e **só então** rode a suíte completa na branch integrada. O que tem dependência real continua sequencial — não force paralelismo onde uma tarefa precisa do resultado da anterior.
 
-**A regra vale igualmente para as fases finais** — bateria automatizada, documentação, validação/E2E —, e é justamente ali que ela some: a fase de fechamento do `docs/001_cadastro_manual/03_plan.md` não tem uma única marca `[paralela]`, enquanto fases de implementação da mesma feature decompõem em frentes. Ali existe uma distinção real: **instrumentar** (escrever o driver do E2E — trabalho de código) e **executar** (rodar contra o ambiente — espera de parede) são naturezas diferentes, mas quem escreve o driver é quem melhor o depura quando a rodada falha. Se viram duas tarefas do mesmo agente ou dois agentes é **escolha a ser escrita com a razão**, não cerimônia obrigatória.
+**A regra vale igualmente para as fases finais** — bateria automatizada e documentação —, e é justamente ali que ela costuma ser esquecida: a fase de fechamento do `docs/001_cadastro_manual/03_plan.md` não tem uma única marca `[paralela]`, enquanto fases de implementação da mesma feature decompõem em frentes. `escrever-testes` nomeia as frentes por camada (use cases, cubits, widget, golden, backend) e `manter-docs-vivas` separa a pasta da feature da raiz — cada frente é uma tarefa disjunta, despachável em paralelo. O escopo automatizado do ganza é unit + widget; E2E está suspenso por decisão do humano (20/08/2026).
 
 **Duas escritas na mesma working directory se atropelam.** Com um agente rodando sem isolamento na pasta principal, não edite nada ali enquanto ele estiver ativo — nem mudança "sem relação" com o que ele faz. Ou espere, ou isole a sua também.
 
@@ -209,7 +211,7 @@ Custo de token é regra, não preferência. Três ferramentas estão ativas nest
 - **Não reler** arquivo recém-editado (o harness rastreia o estado) nem redescrever o que já foi estabelecido.
 - **Respostas diretas**: sem tabela decorativa nem recapitulação longa; o que muda a decisão do humano, e só.
 - **Sessão nova a cada entrega.** Ao fechar um item do roadmap, **recomende ao humano iniciar uma sessão nova** — o roadmap e as docs vivas dão a continuidade, e o histórico acumulado (caro por reenvio) zera. Nunca no meio de uma tarefa. Junto, **entregue um "prompt de retomada" pronto para colar** em bloco de código: o próximo item do roadmap, os ponteiros vivos (`docs/NNN_<nome>/`) e a **primeira ação concreta**.
-  - **O prompt aponta, não recita.** É *self-contained* no sentido de não depender do histórico da conversa — **não** no de repetir o que já está no repo. Decisão travada mora no `03_plan.md`; estado de fase, no `roadmap.md`; regra de processo, aqui ou no `GITFLOW.md`; evidência, em `e2e/`. Prompt de setenta linhas é sintoma: **o que ele carregava deveria ter virado texto no repo.**
+  - **O prompt aponta, não recita.** É *self-contained* no sentido de não depender do histórico da conversa — **não** no de repetir o que já está no repo. Decisão travada mora no `03_plan.md`; estado de fase, no `roadmap.md`; regra de processo, aqui ou no `GITFLOW.md`; evidência de prova, no corpo do PR, junto do DoD verificado. Prompt de setenta linhas é sintoma: **o que ele carregava deveria ter virado texto no repo.**
 
 ## Git, branches e releases (GitFlow)
 
