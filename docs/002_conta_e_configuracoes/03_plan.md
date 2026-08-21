@@ -1163,7 +1163,7 @@ duas migrations são do mesmo agente em fila — `0008` depende de `0007` existi
   - Nem a chave em claro nem o `secret_ref` aparecem em resposta ou em log: o corpo de sucesso do salvamento traz só provedor, modelo e os quatro últimos caracteres, e nenhuma linha de `console.` do arquivo inclui a variável da chave.
   - `supabase/functions/deno.json` inclui os dois arquivos novos na task `check`, e `cd supabase/functions && deno fmt --check && deno lint && deno task check && deno task test` termina com código de saída `0`.
 
-- [ ] **T4.5** — Escopar `envVars` por função em `supabase/functions/main/index.ts`, extraindo o mapeamento para um módulo puro e testável, de modo que `SUPABASE_SERVICE_ROLE_KEY` só chegue a quem precisa dela. · camada **backend** · `especialista-backend`
+- [x] **T4.5** — Escopar `envVars` por função em `supabase/functions/main/index.ts`, extraindo o mapeamento para um módulo puro e testável, de modo que `SUPABASE_SERVICE_ROLE_KEY` só chegue a quem precisa dela. · camada **backend** · `especialista-backend` · **DoD: CUMPRIDO**
 
   **DoD da tarefa**
   - `supabase/functions/main/env.ts` exporta uma função pura que devolve as variáveis de ambiente de uma função pelo nome, e `supabase/functions/main/index.ts` a usa no lugar da lista literal que hoje monta o mesmo `envVars` para qualquer função despachada.
