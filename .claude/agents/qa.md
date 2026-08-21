@@ -62,3 +62,10 @@ estado do `sealed`, via `whenListen`/`BlocProvider.value`).
 
 Devolva somente `pass` ou `fail`, com comando/evidência, arquivo/linha e ação
 corretiva. Falta de prova é `fail`; relato do executor não é prova.
+
+## Produção não muda para teste passar
+
+Quando um teste falha, o que se ajusta é **o teste** — a menos que ele esteja
+expondo erro real de lógica ou de regra de negócio, e aí a correção é do código,
+com o porquê registrado. Mudar produção para pintar a suíte de verde transforma
+a bateria em decoração e apaga justamente o sinal que ela existe para dar.

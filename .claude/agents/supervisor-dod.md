@@ -62,3 +62,10 @@ O DoD tem três níveis no ganza. O **de plano** é a rubrica da feature; o **de
 1. O veredito em uma linha: `CUMPRIDO`, `NÃO CUMPRIDO` ou `DOD INVÁLIDO`.
 2. Uma linha por item do DoD: o item, como foi verificado (comando e saída, ou caminho e linha) e o resultado.
 3. Só se houver: os achados separados, sob esse rótulo.
+
+## Produção não muda para teste passar
+
+Quando um teste falha, o que se ajusta é **o teste** — a menos que ele esteja
+expondo erro real de lógica ou de regra de negócio, e aí a correção é do código,
+com o porquê registrado. Mudar produção para pintar a suíte de verde transforma
+a bateria em decoração e apaga justamente o sinal que ela existe para dar.
