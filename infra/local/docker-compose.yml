@@ -77,6 +77,8 @@ services:
       SUPABASE_JWT_SECRET: local-development-jwt-secret-with-at-least-32-characters
       SUPABASE_DB_URL: postgres://postgres:postgres@db:5432/postgres
       VERIFY_JWT: 'false'
+      PLUGGY_CLIENT_ID: ${PLUGGY_CLIENT_ID}
+      PLUGGY_CLIENT_SECRET: ${PLUGGY_CLIENT_SECRET}
     volumes:
       - ../../supabase/functions:/home/deno/functions:ro
       - deno-cache:/root/.cache/deno
