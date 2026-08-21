@@ -7,6 +7,34 @@ estado final, sem preservar neles uma versão obsoleta do planejamento.
 
 ## Mudanças registradas
 
+### CHG-040 - A correção da CHG-039 errou uma contagem e ancorou o teste de cadeia numa string que só existiria depois da tarefa
+
+- **Data:** 2026-08-21
+- **Fase/PR:** Fase 5 (PR 5b). Alcança a quarta linha do bloco DoD da **T5.6** em
+  `03_plan.md`, corrigida pela CHG-039 e ainda não despachada.
+- **Planejado originalmente:** a CHG-039 afirmava que o grep de `placeholder` em
+  `settings_bank_page.dart` "hoje devolve duas" linhas, e mandava o teste de
+  cadeia asserir na tela final "um dos quatro rótulos de estado".
+- **Por que não foi possível prosseguir:** o `auditor-de-criterios` rodou o grep
+  e ele devolve **uma** linha, não duas — a do `PlaceholderBody(title: 'Banco')`;
+  o `import` é de um barrel (`core/widgets/widgets.dart`) e não contém a
+  palavra. E os quatro rótulos de estado **são escolhidos por esta própria
+  tarefa**: quem lê o bloco hoje não tem como reproduzir a asserção sem adivinhar
+  o texto que o executor vai escrever, o que é exatamente o tipo de referência
+  que não resolve.
+- **Alternativas consideradas:** (a) fixar os quatro rótulos por extenso no
+  critério — tira do executor uma decisão de escrita de interface que é dele, e
+  engessa a redação da tela num documento de plano; (b) deixar a cadeia sem
+  asserção de conteúdo — volta a passar por construção, que foi o defeito que a
+  CHG-039 corrigiu.
+- **Decisão:** corrigir a contagem para **uma**, e ancorar a cadeia no que já
+  existe e é conferível hoje — `find.byType(PlaceholderBody)` **não encontra
+  nada** na tela final. Isso prova "deixou de ser placeholder" sem depender de
+  string futura; que os quatro rótulos apareçam continua cobrado na segunda
+  linha, no teste de widget dela, onde é o lugar certo.
+- **Resumo:** o bloco continua com seis linhas e a mesma exigência. Um número
+  errado saiu e uma âncora impossível virou uma verificável.
+
 ### CHG-039 - Quatro linhas do DoD da T5.6 já passavam sem a tarefa, e duas rodavam vazio por falta de `cd app`
 
 - **Data:** 2026-08-21
