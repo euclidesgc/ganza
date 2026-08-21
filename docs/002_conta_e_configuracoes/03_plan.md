@@ -1443,7 +1443,7 @@ As frentes de T5.1, T5.2 e T5.4 escrevem em árvores separadas —
 T5.3 fica em fila depois de T5.1, porque a função escreve na tabela que a
 migration cria. Vale worktree onde houver escrita simultânea.
 
-- [ ] **T5.5** — Implementar `app/lib/modules/settings_module/data/` para a conexão bancária e trocar a capacidade de banco para vir da tabela. · camada **data** · `especialista-dados`
+- [x] **T5.5** — Implementar `app/lib/modules/settings_module/data/` para a conexão bancária e trocar a capacidade de banco para vir da tabela. · camada **data** · `especialista-dados` · **DoD: CUMPRIDO**
 
   **DoD da tarefa**
   - A leitura da conexão passa pelo `SupabaseClient` sob RLS, e conectar e desconectar passam pela Edge Function `bank-connections`; nenhum arquivo do app fala com a Pluggy: `rtk proxy grep -rni 'pluggy' app/lib` devolve **exatamente uma** linha — o comentário de `app/lib/core/network/dio_factory.dart`, que já existia antes desta fase e diz justamente que chamada a API de terceiro não sai do app — e **nenhuma** linha sob `app/lib/modules/settings_module/`.
