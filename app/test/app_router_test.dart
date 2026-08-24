@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:ganza/app_router.dart';
+import 'package:ganza/core/error/failure.dart';
 import 'package:ganza/core/session/session.dart';
 import 'package:ganza/core/theme/app_theme.dart';
 import 'package:ganza/core/widgets/widgets.dart';
@@ -14,7 +17,6 @@ import 'package:ganza/modules/auth_module/auth_module.dart';
 import 'package:ganza/modules/auth_module/domain/usecases/change_password.dart';
 import 'package:ganza/modules/auth_module/presentation/change_password/change_password_cubit.dart';
 import 'package:ganza/modules/auth_module/presentation/change_password/change_password_page.dart';
-import 'package:ganza/core/error/failure.dart';
 import 'package:ganza/modules/settings_module/domain/domain.dart';
 import 'package:ganza/modules/settings_module/presentation/account/account_cubit.dart';
 import 'package:ganza/modules/settings_module/presentation/ai/ai_settings_cubit.dart';
@@ -22,6 +24,11 @@ import 'package:ganza/modules/settings_module/presentation/ai/settings_ai_page.d
 import 'package:ganza/modules/settings_module/presentation/bank/bank_settings_cubit.dart';
 import 'package:ganza/modules/settings_module/presentation/bank/settings_bank_page.dart';
 import 'package:ganza/modules/settings_module/settings_module.dart';
+import 'package:ganza/modules/transactions_module/domain/entities/transaction.dart';
+import 'package:ganza/modules/transactions_module/domain/usecases/list_transactions.dart';
+import 'package:ganza/modules/transactions_module/presentation/transactions_list/transactions_list_cubit.dart';
+import 'package:ganza/modules/transactions_module/presentation/transactions_list/transactions_list_page.dart';
+import 'package:ganza/modules/transactions_module/transactions_module.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mocktail/mocktail.dart';
 
@@ -30,6 +37,8 @@ class _MockObserveCurrentUser extends Mock implements ObserveCurrentUser {}
 class _MockGetCurrentUser extends Mock implements GetCurrentUser {}
 
 class _MockListActiveAreas extends Mock implements ListActiveAreas {}
+
+class _MockListTransactions extends Mock implements ListTransactions {}
 
 class _MockGetUserProfile extends Mock implements GetUserProfile {}
 
@@ -62,11 +71,15 @@ class _FakeCapabilitiesSource implements CapabilitiesSource {
 
 void main() {
   late bool aiConfigured;
+  late StreamController<AuthenticatedUser?> sessionController;
 
   setUp(() {
     final observeCurrentUser = _MockObserveCurrentUser();
     final getCurrentUser = _MockGetCurrentUser();
-    when(() => observeCurrentUser()).thenAnswer((_) => const Stream.empty());
+    sessionController = StreamController<AuthenticatedUser?>.broadcast();
+    when(
+      () => observeCurrentUser(),
+    ).thenAnswer((_) => sessionController.stream);
     when(
       () => getCurrentUser(),
     ).thenReturn(const AuthenticatedUser(id: 'u1', email: 'e2e@ganza.local'));
@@ -75,6 +88,11 @@ void main() {
     when(
       () => listActiveAreas(),
     ).thenAnswer((_) async => const Right(<Area>[]));
+
+    final listTransactions = _MockListTransactions();
+    when(
+      () => listTransactions(),
+    ).thenAnswer((_) async => const Right(<Transaction>[]));
 
     final getUserProfile = _MockGetUserProfile();
     final updateDisplayName = _MockUpdateDisplayName();
@@ -109,6 +127,8 @@ void main() {
       ..registerLazySingleton<PasswordRecoveryScope>(PasswordRecoveryScope.new)
       ..registerLazySingleton<ListActiveAreas>(() => listActiveAreas)
       ..registerFactory(() => AreasCubit(getIt<ListActiveAreas>()))
+      ..registerLazySingleton<ListTransactions>(() => listTransactions)
+      ..registerFactory(() => TransactionsListCubit(getIt<ListTransactions>()))
       ..registerLazySingleton<GetUserProfile>(() => getUserProfile)
       ..registerLazySingleton<UpdateDisplayName>(() => updateDisplayName)
       ..registerFactory(
@@ -145,7 +165,10 @@ void main() {
       );
   });
 
-  tearDown(getIt.reset);
+  tearDown(() {
+    sessionController.close();
+    getIt.reset();
+  });
 
   Widget envolver(GoRouter roteador) =>
       MaterialApp.router(theme: AppTheme.light, routerConfig: roteador);
@@ -295,4 +318,72 @@ void main() {
       );
     },
   );
+
+  testWidgets('drawer chega a transações e voltar preserva a pilha', (
+    tester,
+  ) async {
+    final router = createRouter();
+    await tester.pumpWidget(envolver(router));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('Abrir menu'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Transações'));
+    await tester.pumpAndSettle();
+
+    expect(
+      GoRouterState.of(
+        tester.element(find.byType(TransactionsListPage)),
+      ).uri.toString(),
+      TransactionsRoutes.path,
+    );
+
+    router.pop();
+    await tester.pumpAndSettle();
+    expect(find.byType(AreasBody), findsOneWidget);
+  });
+
+  testWidgets('trocar a senha logado não desloga nem navega', (tester) async {
+    final changePassword = getIt<ChangePassword>();
+    when(
+      () => changePassword(
+        currentPassword: any(named: 'currentPassword'),
+        newPassword: any(named: 'newPassword'),
+      ),
+    ).thenAnswer((_) async => const Right(unit));
+
+    final router = createRouter(initialLocation: AuthRoutes.changePasswordPath);
+    await tester.pumpWidget(envolver(router));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const Key('change-password-current-field')),
+      'senhaAtual123',
+    );
+    await tester.enterText(
+      find.byKey(const Key('change-password-new-field')),
+      'senhaNova123',
+    );
+    await tester.enterText(
+      find.byKey(const Key('change-password-confirm-field')),
+      'senhaNova123',
+    );
+    await tester.pumpAndSettle();
+
+    sessionController.add(
+      const AuthenticatedUser(id: 'u1', email: 'e2e@ganza.local'),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('change-password-submit-button')));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(ChangePasswordPage), findsOneWidget);
+    expect(
+      GoRouterState.of(
+        tester.element(find.byType(ChangePasswordPage)),
+      ).uri.toString(),
+      AuthRoutes.changePasswordPath,
+    );
+  });
 }
