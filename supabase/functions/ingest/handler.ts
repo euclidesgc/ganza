@@ -19,6 +19,7 @@ const SYSTEM_INSTRUCTION = [
   'kinds permitidos: create_transaction, create_task, create_note, create_routine, create_commitment, attach_document.',
   'create_transaction exige payload com direction ("in"|"out"), amount (centavos inteiros) e description.',
   'create_routine exige payload com name, recurrence_mode ("calendar" ou "interval_from_completion"); no modo "calendar" inclua recurrence_rule (1=segunda..7=domingo); no modo "interval_from_completion" inclua interval_days (inteiro positivo).',
+  'create_commitment exige payload com name, direction ("in"|"out") e value_mode ("one_off"|"installment"|"fixed"|"variable"); no modo "installment" inclua total_amount (centavos inteiros) e installments_total (inteiro positivo), e opcionalmente interest_rate_monthly (ex.: 0.012 = 1,2%) e amortization_system ("price"|"sac").',
   'Não invente campos nem verbos. Se não houver registro, devolva [].',
 ].join('\n');
 
