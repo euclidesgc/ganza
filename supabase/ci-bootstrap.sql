@@ -44,3 +44,26 @@ begin
   )::uuid;
 end;
 $$;
+
+create or replace function auth.role() returns text
+  language plpgsql stable
+as $$
+declare
+  claims jsonb;
+begin
+  begin
+    claims := nullif(current_setting('request.jwt.claims', true), '')::jsonb;
+  exception
+    when invalid_text_representation then
+      claims := null;
+  end;
+
+  return nullif(
+    coalesce(
+      claims ->> 'role',
+      current_setting('request.jwt.claim.role', true)
+    ),
+    ''
+  );
+end;
+$$;
