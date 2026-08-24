@@ -1702,7 +1702,7 @@ frentes na branch da fase antes de seguir; daqui em diante é sequencial.
   - `supabase/functions/deno.json` lista os seis arquivos novos de `_shared/` na task `check`, e da pasta `supabase/functions/` os comandos `deno fmt --check`, `deno lint`, `deno task check` e `deno task test` saem `0`, sem nenhuma entrada nova em `imports`.
   - Os testes do segundo e do terceiro item foram **vistos falhar**, e a evidência fica **colada**, para ser conferida só lendo: `docs/002_conta_e_configuracoes/provas/t6_8_falha_sem_a_mudanca.md` traz dois diffs — remover a revalidação em `confirmProposal` e, separadamente, apontar `writeProposals` para `transactions` — com o `FAILED` de cada um`, com a data e a árvore restaurada depois.
 
-- [ ] **T6.9** — Registrar em `docs/002_conta_e_configuracoes/decisions.md` a decisão sobre o que não se usa como defesa e a regra de escrita de `category_hints`. · camada **docs** · `tech-lead`
+- [x] **T6.9** — Registrar em `docs/002_conta_e_configuracoes/decisions.md` a decisão sobre o que não se usa como defesa e a regra de escrita de `category_hints`. · camada **docs** · `tech-lead` · **DoD: CUMPRIDO**
 
   **DoD da tarefa**
   - `docs/002_conta_e_configuracoes/decisions.md` ganha uma entrada numerada afirmando por extenso que nenhuma defesa do pipeline de IA depende de lista de palavras proibidas nem de um segundo modelo classificando "isto é injection?", e que a defesa é privilégio zero da saída do modelo: conjunto fechado de ações e de campos, escrita por código determinístico, atrás de confirmação humana.
