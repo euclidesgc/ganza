@@ -6,7 +6,7 @@ function fakeSupabase(count: number, costRows: { cost_micros: number }[]): any {
   const inserts: Record<string, unknown>[] = [];
 
   // deno-lint-ignore no-explicit-any
-  function query(columns: string, opts?: { count?: string; head?: boolean }): any {
+  function query(_columns: string, opts?: { count?: string; head?: boolean }): any {
     const result = opts?.count === 'exact'
       ? { count, error: null }
       : { data: costRows, error: null };
