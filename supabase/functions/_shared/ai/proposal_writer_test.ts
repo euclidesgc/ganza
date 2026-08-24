@@ -128,6 +128,41 @@ Deno.test('confirmProposal rejeita category_id vindo do payload', async () => {
   if (!result.ok) assertEquals(result.code, 'payload_invalido');
 });
 
+Deno.test('confirmProposal migra create_routine e gera a primeira ocorrência', async () => {
+  const { supabase, inserts } = fakeSupabase({
+    id: 'p1',
+    status: 'pending',
+    kind: 'create_routine',
+    payload: {
+      name: 'banho no cachorro',
+      recurrence_mode: 'interval_from_completion',
+      interval_days: 15,
+    },
+  });
+  const result = await confirmProposal(supabase, 'p1');
+  assertEquals(result.ok, true);
+
+  const routine = inserts.find((row) => row.table === 'routines');
+  assertEquals(routine !== undefined, true);
+  assertEquals((routine ?? {}).recurrence_mode, 'interval_from_completion');
+
+  const occurrence = inserts.find((row) => row.table === 'routine_occurrences');
+  assertEquals((occurrence ?? {}).sequence, 1);
+  assertEquals('due_date' in (occurrence ?? {}), true);
+});
+
+Deno.test('confirmProposal rejeita create_routine com payload inválido', async () => {
+  const { supabase } = fakeSupabase({
+    id: 'p1',
+    status: 'pending',
+    kind: 'create_routine',
+    payload: { name: 'x', recurrence_mode: 'diario' },
+  });
+  const result = await confirmProposal(supabase, 'p1');
+  assertEquals(result.ok, false);
+  if (!result.ok) assertEquals(result.code, 'payload_invalido');
+});
+
 Deno.test('confirmar duas vezes devolve proposta_nao_pendente', async () => {
   const { supabase } = fakeSupabase({
     id: 'p1',

@@ -60,6 +60,27 @@ export function parseProposals(raw: unknown): ParseProposalsResult {
         return { ok: false, code: 'amount_invalido' };
       }
     }
+    if (item.kind === 'create_routine') {
+      const name = item.payload.name;
+      if (typeof name !== 'string' || name.trim().length === 0) {
+        return { ok: false, code: 'routine_name_invalido' };
+      }
+      const mode = item.payload.recurrence_mode;
+      if (mode !== 'calendar' && mode !== 'interval_from_completion') {
+        return { ok: false, code: 'recurrence_mode_invalido' };
+      }
+      if (mode === 'calendar') {
+        const rule = item.payload.recurrence_rule;
+        if (!Number.isInteger(rule) || (rule as number) < 1 || (rule as number) > 7) {
+          return { ok: false, code: 'recurrence_rule_invalido' };
+        }
+      } else {
+        const intervalDays = item.payload.interval_days;
+        if (!Number.isInteger(intervalDays) || (intervalDays as number) <= 0) {
+          return { ok: false, code: 'interval_days_invalido' };
+        }
+      }
+    }
     if (
       typeof item.payload.description === 'string' &&
       item.payload.description.length > maxDescriptionChars

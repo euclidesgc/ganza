@@ -18,6 +18,7 @@ const SYSTEM_INSTRUCTION = [
   'Devolva apenas uma lista JSON de propostas, cada uma com "kind" e "payload".',
   'kinds permitidos: create_transaction, create_task, create_note, create_routine, create_commitment, attach_document.',
   'create_transaction exige payload com direction ("in"|"out"), amount (centavos inteiros) e description.',
+  'create_routine exige payload com name, recurrence_mode ("calendar" ou "interval_from_completion"); no modo "calendar" inclua recurrence_rule (1=segunda..7=domingo); no modo "interval_from_completion" inclua interval_days (inteiro positivo).',
   'Não invente campos nem verbos. Se não houver registro, devolva [].',
 ].join('\n');
 
