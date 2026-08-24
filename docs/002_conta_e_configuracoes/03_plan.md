@@ -1613,7 +1613,7 @@ gravar dependa dele.
 
 **Tarefas**
 
-- [ ] **T6.1** `[paralela · frente A · worktree]` — Criar `supabase/migrations/0010_criar_messages_e_proposed_actions.sql` com `public.messages` (incluindo `origin` como procedência da mensagem) e `public.proposed_actions` com `kind` e `status` em listas fechadas, teto de propostas por mensagem e proibição de `user_id` dentro de `payload`, via skill `criar-migration`. · camada **migration** · `especialista-backend`
+- [x] **T6.1** `[paralela · frente A · worktree]` — Criar `supabase/migrations/0010_criar_messages_e_proposed_actions.sql` com `public.messages` (incluindo `origin` como procedência da mensagem) e `public.proposed_actions` com `kind` e `status` em listas fechadas, teto de propostas por mensagem e proibição de `user_id` dentro de `payload`, via skill `criar-migration`. · camada **migration** · `especialista-backend` · **DoD: CUMPRIDO**
 
   **DoD da tarefa**
   - `supabase/migrations/0010_criar_messages_e_proposed_actions.sql` aplica limpo num Postgres vazio, na sequência `supabase/ci-bootstrap.sql` + `0001`…`0010` com `psql -v ON_ERROR_STOP=1 -f <arquivo>; echo $?` imprimindo `0` em cada arquivo. O `psql -q` não imprime nada em caso de sucesso — quem prova é o código de saída.
@@ -1623,7 +1623,7 @@ gravar dependa dele.
   - `messages.origin` é `text not null default 'user_typed'` com `check (origin in ('user_typed','bank_sync','ocr','transcript','email','calendar'))`: `insert` com `origin = 'trusted'` é negado. `messages.content` tem `check (char_length(content) <= 4000)` e um `insert` com 4 001 caracteres é negado.
   - `psql -tAc "select count(*) from pg_constraint where conrelid='public.proposed_actions'::regclass and contype='f'"` devolve `2` — `user_id` referencia `auth.users` e `message_id` referencia `public.messages`, ambos `on delete cascade`.
 
-- [ ] **T6.2** `[paralela · frente A · worktree]` — Criar `supabase/migrations/0011_criar_camada_ia.sql` com `public.ai_providers`, `public.ai_routes` e `public.ai_usage`, e ampliar `supabase/ci-bootstrap.sql` com o stand-in de `auth.role()`. · camada **migration** · `especialista-backend`
+- [x] **T6.2** `[paralela · frente A · worktree]` — Criar `supabase/migrations/0011_criar_camada_ia.sql` com `public.ai_providers`, `public.ai_routes` e `public.ai_usage`, e ampliar `supabase/ci-bootstrap.sql` com o stand-in de `auth.role()`. · camada **migration** · `especialista-backend` · **DoD: CUMPRIDO**
 
   **DoD da tarefa**
   - `supabase/ci-bootstrap.sql` passa a definir `auth.role()` lendo `request.jwt.claims ->> 'role'` com fallback para `current_setting('request.jwt.claim.role', true)` e devolvendo `NULL` sem lançar em JSON malformado, no mesmo formato do `auth.uid()` que já está no arquivo; `psql -tAc "begin; set local request.jwt.claims = '{\"role\":\"service_role\"}'; select auth.role();"` devolve `service_role`, e com `request.jwt.claims` = `'nao-json'` devolve vazio sem `ERROR`.
@@ -1633,7 +1633,7 @@ gravar dependa dele.
   - `ai_usage` **não tem coluna de conteúdo**: `psql -tAc "select count(*) from information_schema.columns where table_name='ai_usage' and column_name in ('prompt','response','content','input','output','transcript')"` devolve `0`. Ela tem `cost_micros bigint not null default 0 check (cost_micros >= 0)` e `latency_ms integer` — dinheiro em inteiro, nunca `numeric` com casa decimal flutuante — e `content_sha256 text check (content_sha256 ~ '^[0-9a-f]{64}$')`.
   - `ai_routes.fallback_provider_id` é `not null references public.ai_providers` com `check (fallback_provider_id <> provider_id)`: `insert` com os dois iguais é negado. `ai_usage.message_id` é `uuid` **sem** chave estrangeira — apagar a mensagem não pode apagar o registro de custo, que é histórico contábil; conferir com `psql -tAc "select count(*) from pg_constraint where conrelid='public.ai_usage'::regclass and contype='f'"` devolvendo `1` (só `user_id`).
 
-- [ ] **T6.3** `[paralela · frente B · worktree]` — Criar `supabase/functions/_shared/ai/prompt_envelope.ts` e `prompt_envelope_test.ts`: separação de instrução e dado, com o conteúdo de terceiro em canal delimitado por nonce e saneado de caracteres invisíveis. · camada **backend** · `especialista-backend`
+- [x] **T6.3** `[paralela · frente B · worktree]` — Criar `supabase/functions/_shared/ai/prompt_envelope.ts` e `prompt_envelope_test.ts`: separação de instrução e dado, com o conteúdo de terceiro em canal delimitado por nonce e saneado de caracteres invisíveis. · camada **backend** · `especialista-backend` · **DoD: CUMPRIDO**
 
   **DoD da tarefa**
   - `supabase/functions/_shared/ai/prompt_envelope.ts` exporta `buildEnvelope(systemInstruction: string, sources: {origin: string, text: string}[])` devolvendo `{ systemInstruction: string; dataParts: { origin: string; text: string }[] }` — **objeto estruturado, nunca uma string única concatenada**, para que a instrução do sistema vá no campo `systemInstruction` da chamada ao provedor e o conteúdo de terceiro vá em partes separadas de `contents`.
@@ -1643,7 +1643,7 @@ gravar dependa dele.
   - Teste: texto acima de 4 000 caracteres é truncado para exatamente 4 000 e marcado como truncado no resultado; o total de caracteres de dado no envelope nunca passa de 16 000, e uma lista de 200 fontes de 200 caracteres é recusada com `code: 'envelope_too_large'`.
   - Cada um dos três testes acima foi **visto falhar**, e a evidência fica **colada**, para ser conferida só lendo: `docs/002_conta_e_configuracoes/provas/t6_3_falha_sem_a_mudanca.md` traz, por teste, o diff que comenta a chamada ao saneador — e, para o último, o que eleva o teto — junto do `FAILED` que `deno test supabase/functions/_shared/ai/prompt_envelope_test.ts` devolve`, com a data e a árvore restaurada depois. `deno fmt --check supabase/functions/_shared/ai/`, `deno lint supabase/functions/_shared/ai/` e `deno check supabase/functions/_shared/ai/prompt_envelope.ts` saem `0`.
 
-- [ ] **T6.4** `[paralela · frente B · worktree]` — Criar `supabase/functions/_shared/ai/proposal_schema.ts` e `proposal_schema_test.ts`: validação estrita da saída do modelo, com conjunto fechado de ações e de campos, rejeitando em vez de corrigir. · camada **backend** · `especialista-backend`
+- [x] **T6.4** `[paralela · frente B · worktree]` — Criar `supabase/functions/_shared/ai/proposal_schema.ts` e `proposal_schema_test.ts`: validação estrita da saída do modelo, com conjunto fechado de ações e de campos, rejeitando em vez de corrigir. · camada **backend** · `especialista-backend` · **DoD: CUMPRIDO**
 
   **DoD da tarefa**
   - `supabase/functions/_shared/ai/proposal_schema.ts` exporta `parseProposals(raw: unknown)` devolvendo a união discriminada `{ ok: true; value: Proposal[] } | { ok: false; code: string }`, com predicados escritos à mão no mesmo estilo de `supabase/functions/transactions/handler.ts` — **nenhuma dependência nova** em `supabase/functions/deno.json`, conferido por `git diff --stat supabase/functions/deno.json` não mostrando alteração em `imports`.
@@ -1653,7 +1653,7 @@ gravar dependa dele.
   - Cada rejeição acima foi **vista falhar**, e a evidência fica **colada**, para ser conferida só lendo: `docs/002_conta_e_configuracoes/provas/t6_4_falha_sem_a_mudanca.md` traz, por regra, o diff que afrouxa a checagem correspondente e o `FAILED` de `deno test supabase/functions/_shared/ai/proposal_schema_test.ts`. São seis reversões, uma por regra, não uma amostra, e a árvore fica restaurada depois.
   - `deno fmt --check supabase/functions/_shared/ai/`, `deno lint supabase/functions/_shared/ai/` e `deno check supabase/functions/_shared/ai/proposal_schema.ts` saem `0`.
 
-- [ ] **T6.5** `[paralela · frente B · worktree]` — Criar `supabase/functions/_shared/observability/ai_event.ts` e `ai_event_test.ts`: registro estruturado da chamada de IA com struct fechada de escalares e hash do conteúdo, sem dado sensível. · camada **backend** · `especialista-backend`
+- [x] **T6.5** `[paralela · frente B · worktree]` — Criar `supabase/functions/_shared/observability/ai_event.ts` e `ai_event_test.ts`: registro estruturado da chamada de IA com struct fechada de escalares e hash do conteúdo, sem dado sensível. · camada **backend** · `especialista-backend` · **DoD: CUMPRIDO**
 
   **DoD da tarefa**
   - `supabase/functions/_shared/observability/ai_event.ts` exporta `logAiEvent(event: AiEvent)`, onde `AiEvent` é uma interface fechada apenas com `taskType`, `providerName`, `model`, `status`, `promptTokens`, `completionTokens`, `costMicros`, `latencyMs`, `contentSha256`, `messageId` e `rejectionCode` — não existe campo de texto livre onde conteúdo pudesse ser passado, e `deno check` recusa a chamada que tente um campo a mais.
@@ -1662,7 +1662,7 @@ gravar dependa dele.
   - `rtk proxy grep -cE "Deno\.env|JSON\.stringify\(Deno" supabase/functions/_shared/observability/ai_event.ts` imprime `0`: o logger nunca serializa o ambiente do worker, onde vivem as chaves de serviço das funções que legitimamente as usam.
   - O teste do segundo item foi **visto falhar**, e a evidência fica **colada**, para ser conferida só lendo: `docs/002_conta_e_configuracoes/provas/t6_5_falha_sem_a_mudanca.md` traz o diff que acrescenta um campo com o conteúdo cru ao registro e o `FAILED` de `deno test supabase/functions/_shared/observability/ai_event_test.ts``, com a data e a árvore restaurada depois. `deno fmt --check`, `deno lint` e `deno check supabase/functions/_shared/observability/ai_event.ts` saem `0`.
 
-- [ ] **T6.6** `[paralela · frente B · worktree]` — Criar `supabase/functions/_shared/ai/normalize_description.ts` e `normalize_description_test.ts`: normalização determinística que gera a chave de `category_hints`, com charset e comprimento fechados. · camada **backend** · `especialista-backend`
+- [x] **T6.6** `[paralela · frente B · worktree]` — Criar `supabase/functions/_shared/ai/normalize_description.ts` e `normalize_description_test.ts`: normalização determinística que gera a chave de `category_hints`, com charset e comprimento fechados. · camada **backend** · `especialista-backend` · **DoD: CUMPRIDO**
 
   **DoD da tarefa**
   - `supabase/functions/_shared/ai/normalize_description.ts` exporta `normalizeDescription(raw: string): string` e é **puro**: `rtk proxy grep -cE "Deno\.env|createClient|fetch\(|from\('" supabase/functions/_shared/ai/normalize_description.ts` imprime `0`. Nenhuma escrita de hint nasce deste arquivo.
@@ -1682,7 +1682,7 @@ de uma vez só, na T6.8, porque seis edições concorrentes no mesmo arquivo é
 exatamente o atropelo que o isolamento existe para evitar. Consolidar as duas
 frentes na branch da fase antes de seguir; daqui em diante é sequencial.
 
-- [ ] **T6.7** — Criar `supabase/functions/_shared/ai/limits.ts` e `limits_test.ts`: teto de entrada e limite de taxa e de custo por usuário, apurados sobre `public.ai_usage`. · camada **backend** · `especialista-backend`
+- [x] **T6.7** — Criar `supabase/functions/_shared/ai/limits.ts` e `limits_test.ts`: teto de entrada e limite de taxa e de custo por usuário, apurados sobre `public.ai_usage`. · camada **backend** · `especialista-backend` · **DoD: CUMPRIDO**
 
   **DoD da tarefa**
   - `supabase/functions/_shared/ai/limits.ts` exporta `assertWithinLimits(supabase, request)` devolvendo `{ ok: true } | { ok: false; code: string; status: number }`, com `status` 413 para entrada grande e 429 para excesso de chamadas ou de custo.
@@ -1692,7 +1692,7 @@ frentes na branch da fase antes de seguir; daqui em diante é sequencial.
   - Teste: um lote de `bulk_categorize` com 101 descrições devolve `code: 'batch_too_large'` — o teto é 100 por chamada, para que um sync de doze meses da Pluggy não vire uma chamada única e cara.
   - Os dois primeiros testes foram **vistos falhar**, e a evidência fica **colada**, para ser conferida só lendo: `docs/002_conta_e_configuracoes/provas/t6_7_falha_sem_a_mudanca.md` traz o diff que eleva os tetos no código e o `FAILED` de `deno test supabase/functions/_shared/ai/limits_test.ts``, com a data e a árvore restaurada depois. `deno fmt --check`, `deno lint` e `deno check supabase/functions/_shared/ai/limits.ts` saem `0`.
 
-- [ ] **T6.8** — Criar `supabase/functions/_shared/ai/proposal_writer.ts`, `proposal_writer_test.ts` e `testdata/injection_corpus.json`: o único caminho de escrita derivado da saída do modelo, com revalidação na confirmação, e o corpus adversarial que prova privilégio zero. · camada **backend** · `especialista-backend`
+- [x] **T6.8** — Criar `supabase/functions/_shared/ai/proposal_writer.ts`, `proposal_writer_test.ts` e `testdata/injection_corpus.json`: o único caminho de escrita derivado da saída do modelo, com revalidação na confirmação, e o corpus adversarial que prova privilégio zero. · camada **backend** · `especialista-backend` · **DoD: CUMPRIDO**
 
   **DoD da tarefa**
   - `supabase/functions/_shared/ai/proposal_writer.ts` exporta `writeProposals` e `confirmProposal`. `rtk proxy grep -n "from('" supabase/functions/_shared/ai/proposal_writer.ts` mostra `from('proposed_actions')` nas duas funções e `from('transactions')` **apenas** dentro de `confirmProposal` — a escrita derivada do modelo alcança uma tabela só, e a tabela final só é alcançada pelo caminho que exige uma proposta pendente. `rtk proxy grep -cE "fetch\(|Deno\.env" supabase/functions/_shared/ai/proposal_writer.ts` imprime `0`.
@@ -1702,7 +1702,7 @@ frentes na branch da fase antes de seguir; daqui em diante é sequencial.
   - `supabase/functions/deno.json` lista os seis arquivos novos de `_shared/` na task `check`, e da pasta `supabase/functions/` os comandos `deno fmt --check`, `deno lint`, `deno task check` e `deno task test` saem `0`, sem nenhuma entrada nova em `imports`.
   - Os testes do segundo e do terceiro item foram **vistos falhar**, e a evidência fica **colada**, para ser conferida só lendo: `docs/002_conta_e_configuracoes/provas/t6_8_falha_sem_a_mudanca.md` traz dois diffs — remover a revalidação em `confirmProposal` e, separadamente, apontar `writeProposals` para `transactions` — com o `FAILED` de cada um`, com a data e a árvore restaurada depois.
 
-- [ ] **T6.9** — Registrar em `docs/002_conta_e_configuracoes/decisions.md` a decisão sobre o que não se usa como defesa e a regra de escrita de `category_hints`. · camada **docs** · `tech-lead`
+- [x] **T6.9** — Registrar em `docs/002_conta_e_configuracoes/decisions.md` a decisão sobre o que não se usa como defesa e a regra de escrita de `category_hints`. · camada **docs** · `tech-lead` · **DoD: CUMPRIDO**
 
   **DoD da tarefa**
   - `docs/002_conta_e_configuracoes/decisions.md` ganha uma entrada numerada afirmando por extenso que nenhuma defesa do pipeline de IA depende de lista de palavras proibidas nem de um segundo modelo classificando "isto é injection?", e que a defesa é privilégio zero da saída do modelo: conjunto fechado de ações e de campos, escrita por código determinístico, atrás de confirmação humana.
@@ -1729,13 +1729,13 @@ Consolidar as frentes da onda 1 na branch da fase antes de abrir a onda 2.
 
 **DoD da Fase 6**
 
-- [ ] Todas as tarefas de T6.1 a T6.9 com o campo `DoD:` marcado CUMPRIDO, em negrito, na própria linha: `rtk proxy grep -cE '^- \[x\] \*\*T6\.[0-9]+\*\*.*\*\*DoD: CUMPRIDO\*\*' docs/002_conta_e_configuracoes/03_plan.md` imprime `9`, e `rtk proxy grep -cE '^- \[.\] \*\*T6\.[0-9]+\*\*.*\*\*DoD: NÃO CUMPRIDO\*\*' docs/002_conta_e_configuracoes/03_plan.md` imprime `0`. O padrão ancora na fase e traz os asteriscos: sem os asteriscos a contagem inclui as próprias linhas de critério que citam o campo, e sem a âncora ela cresce a cada fase seguinte que marcar uma tarefa — nos dois casos o número nunca fecha.
-- [ ] Da pasta `supabase/functions/`, `deno fmt --check`, `deno lint`, `deno task check` e `deno task test` saem `0`, com os seis arquivos novos de `_shared/` na task `check` e **nenhuma entrada nova** em `imports` do `deno.json`.
-- [ ] Prova negativa consolidada, colada no corpo do PR: o corpus completo de `supabase/functions/_shared/ai/testdata/injection_corpus.json` passa pelo pipeline `buildEnvelope` → `parseProposals` → `writeProposals` contra o Postgres local, e `psql -tAc "select count(*) from public.transactions"` devolve `0`. Nenhum registro nasce de instrução injetada, sem exceção e sem confirmação.
-- [ ] Num Postgres vazio, `supabase/ci-bootstrap.sql` + `0001`…`0011` aplicam com `ON_ERROR_STOP=1` e `echo $?` igual a `0` em cada arquivo; `select tablename from pg_tables where schemaname='public' and rowsecurity = false` devolve **0 linhas**; e a consulta de tabela-com-RLS-sem-política do `.github/workflows/ci.yml` devolve **0 linhas**.
-- [ ] `rtk proxy grep -rnE "Deno\.env|SERVICE_ROLE" supabase/functions/_shared/` não devolve nenhuma ocorrência: nenhum módulo desta fase alcança o ambiente do worker — o `envVars` já vem escopado por função desde a Fase 4, e módulo puro não tem por que ler `Deno.env` de todo modo.
-- [ ] Gate do CISO com veredito `pass` sobre o diff da fase, com atenção explícita a três itens: nenhuma chave de provedor em `ai_providers`, nenhum conteúdo de mensagem em log ou em `ai_usage`, e nenhuma dependência nova em `supabase/functions/deno.json`.
-- [ ] `CHANGELOG.md`, seção `Unreleased`, atualizado no mesmo PR.
+- [x] Todas as tarefas de T6.1 a T6.9 com o campo `DoD:` marcado CUMPRIDO, em negrito, na própria linha: `rtk proxy grep -cE '^- \[x\] \*\*T6\.[0-9]+\*\*.*\*\*DoD: CUMPRIDO\*\*' docs/002_conta_e_configuracoes/03_plan.md` imprime `9`, e `rtk proxy grep -cE '^- \[.\] \*\*T6\.[0-9]+\*\*.*\*\*DoD: NÃO CUMPRIDO\*\*' docs/002_conta_e_configuracoes/03_plan.md` imprime `0`. O padrão ancora na fase e traz os asteriscos: sem os asteriscos a contagem inclui as próprias linhas de critério que citam o campo, e sem a âncora ela cresce a cada fase seguinte que marcar uma tarefa — nos dois casos o número nunca fecha.
+- [x] Da pasta `supabase/functions/`, `deno fmt --check`, `deno lint`, `deno task check` e `deno task test` saem `0`, com os seis arquivos novos de `_shared/` na task `check` e **nenhuma entrada nova** em `imports` do `deno.json`.
+- [x] Prova negativa consolidada, colada no corpo do PR: o corpus completo de `supabase/functions/_shared/ai/testdata/injection_corpus.json` passa pelo pipeline `buildEnvelope` → `parseProposals` → `writeProposals` contra o Postgres local, e `psql -tAc "select count(*) from public.transactions"` devolve `0`. Nenhum registro nasce de instrução injetada, sem exceção e sem confirmação.
+- [x] Num Postgres vazio, `supabase/ci-bootstrap.sql` + `0001`…`0011` aplicam com `ON_ERROR_STOP=1` e `echo $?` igual a `0` em cada arquivo; `select tablename from pg_tables where schemaname='public' and rowsecurity = false` devolve **0 linhas**; e a consulta de tabela-com-RLS-sem-política do `.github/workflows/ci.yml` devolve **0 linhas**.
+- [x] `rtk proxy grep -rnE "Deno\.env|SERVICE_ROLE" supabase/functions/_shared/` não devolve nenhuma ocorrência: nenhum módulo desta fase alcança o ambiente do worker — o `envVars` já vem escopado por função desde a Fase 4, e módulo puro não tem por que ler `Deno.env` de todo modo.
+- [x] Gate do CISO com veredito `pass` sobre o diff da fase, com atenção explícita a três itens: nenhuma chave de provedor em `ai_providers`, nenhum conteúdo de mensagem em log ou em `ai_usage`, e nenhuma dependência nova em `supabase/functions/deno.json`.
+- [x] `CHANGELOG.md`, seção `Unreleased`, atualizado no mesmo PR.
 - [ ] Jobs "Edge Functions" e "Banco" verdes no CI do PR.
 
 ---
