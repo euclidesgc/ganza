@@ -1,5 +1,6 @@
 import { parseProposals, type Proposal } from './proposal_schema.ts';
 import { resolveCategory } from './resolve_category.ts';
+import { nextDueDate } from '../routine_math.ts';
 
 export type WriteResult =
   | { ok: true; count: number }
@@ -90,6 +91,52 @@ export async function confirmProposal(
     }
     resultingId = inserted?.id ?? null;
     resultingType = 'transaction';
+  } else if (data.kind === 'create_routine') {
+    const payload = data.payload;
+    const routineRow: Record<string, unknown> = {
+      name: payload.name,
+      recurrence_mode: payload.recurrence_mode,
+    };
+    if (payload.recurrence_mode === 'calendar') {
+      routineRow.recurrence_rule = payload.recurrence_rule;
+    } else {
+      routineRow.interval_days = payload.interval_days;
+    }
+
+    const { data: insertedRoutine, error: routineError } = await supabase
+      .from('routines')
+      .insert(routineRow)
+      .select('id')
+      .single();
+    if (routineError) {
+      return { ok: false, code: 'write_failed' };
+    }
+
+    const routineId = insertedRoutine?.id as string | undefined;
+    if (!routineId) {
+      return { ok: false, code: 'write_failed' };
+    }
+
+    const dueDate = nextDueDate(
+      payload.recurrence_mode,
+      payload.recurrence_mode === 'calendar' ? payload.recurrence_rule : null,
+      payload.recurrence_mode === 'interval_from_completion' ? payload.interval_days : null,
+      new Date(),
+    );
+
+    const { error: occurrenceError } = await supabase
+      .from('routine_occurrences')
+      .insert({
+        routine_id: routineId,
+        sequence: 1,
+        due_date: dueDate.toISOString().slice(0, 10),
+      });
+    if (occurrenceError) {
+      return { ok: false, code: 'write_failed' };
+    }
+
+    resultingId = routineId;
+    resultingType = 'routine';
   }
 
   const updateRow: Record<string, unknown> = { status: 'confirmed' };
