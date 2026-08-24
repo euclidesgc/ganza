@@ -52,16 +52,24 @@ Authorization: Bearer <jwt do usuário>
 ```
 mensagem → /ingest → classify_intent → extract_record → parseProposals
          → writeProposals (proposed_actions, pending) → cards
-card confirmado → confirmProposal → revalida → transactions
+card confirmado → confirmProposal → revalida → resolve_category (category_hints)
+                → transactions
 card cancelado → status = 'cancelled'
 ```
+
+A categoria da transação **não** vem da saída do modelo (CHG-001/FD-003): ela é
+resolvida por lookup determinístico na confirmação — `normalize_description` da
+descrição → `category_hints` → `category_id`, ou `null` quando não há hint. A
+correção de categoria (tela de transações) grava o hint e a categoria.
 
 ## 5. Invariantes que o DoD cobra (da `docs/decisions.md` Fase 1)
 
 1. A ingestão **não grava** na tabela final, só em `proposed_actions`.
 2. A extração devolve **lista** — mensagem que gera dois registros.
 3. Quem preencher `transactions.area_id` prova a posse da área (FK não respeita
-   RLS — D13): tentativa com `area_id` alheio recusada.
+   RLS — D13): tentativa com `area_id` alheio recusada. Vale igualmente para
+   `transactions.category_id`: a chave é resolvida por código determinístico
+   (nunca a saída do modelo) e a posse é provada no caminho de escrita.
 
 ## 6. Riscos
 
