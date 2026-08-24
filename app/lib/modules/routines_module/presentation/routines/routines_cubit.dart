@@ -3,28 +3,41 @@ import 'package:equatable/equatable.dart';
 
 import '../../../../core/error/failure.dart';
 import '../../domain/entities/routine_occurrence.dart';
+import '../../domain/entities/routine_summary.dart';
 import '../../domain/usecases/list_pending_occurrences.dart';
+import '../../domain/usecases/list_routine_summaries.dart';
 import '../../domain/usecases/resolve_occurrence.dart';
 
 part 'routines_state.dart';
 
 class RoutinesCubit extends Cubit<RoutinesState> {
-  RoutinesCubit(this._listPending, this._resolveOccurrence)
+  RoutinesCubit(this._listPending, this._listSummaries, this._resolveOccurrence)
     : super(const RoutinesLoading());
 
   final ListPendingOccurrences _listPending;
+  final ListRoutineSummaries _listSummaries;
   final ResolveOccurrence _resolveOccurrence;
 
   Future<void> load() async {
     emit(const RoutinesLoading());
 
-    final result = await _listPending();
+    final occurrences = await _listPending();
+    final summaries = await _listSummaries();
     if (isClosed) return;
 
+    if (occurrences.isLeft()) {
+      emit(RoutinesFailed(occurrences.getLeft().toNullable()!));
+      return;
+    }
+    if (summaries.isLeft()) {
+      emit(RoutinesFailed(summaries.getLeft().toNullable()!));
+      return;
+    }
+
     emit(
-      result.fold(
-        RoutinesFailed.new,
-        (occurrences) => RoutinesReady(occurrences),
+      RoutinesReady(
+        occurrences.getOrElse((_) => const <RoutineOccurrence>[]),
+        summaries: summaries.getOrElse((_) => const <RoutineSummary>[]),
       ),
     );
   }

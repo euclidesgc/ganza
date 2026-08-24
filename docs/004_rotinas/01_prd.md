@@ -33,6 +33,8 @@ o modelo interpreta o pedido, quem calcula a data é o código, testado.
 4. A tela de rotinas mostra a próxima ocorrência; marcá-la como **feita** gera a
    seguinte (15 dias após a conclusão real — modo `interval_from_completion`).
 5. Uma ocorrência passada da data sem ação fica na **lista de atrasadas**.
+6. Cada rotina mostra a **taxa de cumprimento** (`done_count / resolved_count`),
+   o número que responde "eu realmente faço isso ou acho que faço?".
 
 ## 4. Exceções e casos de borda
 

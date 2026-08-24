@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/theme.dart';
 import '../../../../injection.dart';
+import '../../domain/entities/routine_summary.dart';
 import 'routines_cubit.dart';
 import 'widgets/routine_occurrence_card.dart';
 
@@ -16,6 +17,13 @@ class RoutinesPage extends StatelessWidget {
         child: const RoutinesPage(),
       );
 
+  double? _completionRate(String routineId, List<RoutineSummary> summaries) {
+    for (final summary in summaries) {
+      if (summary.routineId == routineId) return summary.completionRate;
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -27,16 +35,26 @@ class RoutinesPage extends StatelessWidget {
               RoutinesReady(occurrences: final occurrences)
                   when occurrences.isEmpty =>
                 const Center(child: Text('Nenhuma rotina pendente.')),
-              RoutinesReady(occurrences: final occurrences) => ListView(
-                padding: const EdgeInsets.all(AppSpacing.md),
-                children: [
-                  for (final occurrence in occurrences)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                      child: RoutineOccurrenceCard(occurrence: occurrence),
-                    ),
-                ],
-              ),
+              RoutinesReady(
+                occurrences: final occurrences,
+                summaries: final summaries,
+              ) =>
+                ListView(
+                  padding: const EdgeInsets.all(AppSpacing.md),
+                  children: [
+                    for (final occurrence in occurrences)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                        child: RoutineOccurrenceCard(
+                          occurrence: occurrence,
+                          completionRate: _completionRate(
+                            occurrence.routineId,
+                            summaries,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
               RoutinesFailed(failure: final failure) => Center(
                 child: Text(failure.message),
               ),

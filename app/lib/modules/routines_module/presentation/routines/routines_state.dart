@@ -12,23 +12,30 @@ final class RoutinesLoading extends RoutinesState {
 }
 
 final class RoutinesReady extends RoutinesState {
-  const RoutinesReady(this.occurrences, {this.busyIds = const {}});
+  const RoutinesReady(
+    this.occurrences, {
+    this.busyIds = const {},
+    this.summaries = const [],
+  });
 
   final List<RoutineOccurrence> occurrences;
   final Set<String> busyIds;
+  final List<RoutineSummary> summaries;
 
   RoutinesReady copyWith({
     List<RoutineOccurrence>? occurrences,
     Set<String>? busyIds,
+    List<RoutineSummary>? summaries,
   }) {
     return RoutinesReady(
       occurrences ?? this.occurrences,
       busyIds: busyIds ?? this.busyIds,
+      summaries: summaries ?? this.summaries,
     );
   }
 
   @override
-  List<Object?> get props => [occurrences, busyIds];
+  List<Object?> get props => [occurrences, busyIds, summaries];
 }
 
 final class RoutinesFailed extends RoutinesState {

@@ -5,6 +5,7 @@ import 'package:ganza/core/error/failure.dart';
 import 'package:ganza/modules/routines_module/domain/entities/occurrence_status.dart';
 import 'package:ganza/modules/routines_module/domain/entities/routine_occurrence.dart';
 import 'package:ganza/modules/routines_module/domain/usecases/list_pending_occurrences.dart';
+import 'package:ganza/modules/routines_module/domain/usecases/list_routine_summaries.dart';
 import 'package:ganza/modules/routines_module/domain/usecases/resolve_occurrence.dart';
 import 'package:ganza/modules/routines_module/presentation/routines/routines_cubit.dart';
 import 'package:mocktail/mocktail.dart';
@@ -12,10 +13,13 @@ import 'package:mocktail/mocktail.dart';
 class MockListPendingOccurrences extends Mock
     implements ListPendingOccurrences {}
 
+class MockListRoutineSummaries extends Mock implements ListRoutineSummaries {}
+
 class MockResolveOccurrence extends Mock implements ResolveOccurrence {}
 
 void main() {
   late MockListPendingOccurrences listPending;
+  late MockListRoutineSummaries listSummaries;
   late MockResolveOccurrence resolveOccurrence;
 
   final occurrence = RoutineOccurrence(
@@ -29,10 +33,13 @@ void main() {
 
   setUp(() {
     listPending = MockListPendingOccurrences();
+    listSummaries = MockListRoutineSummaries();
     resolveOccurrence = MockResolveOccurrence();
+    when(() => listSummaries.call()).thenAnswer((_) async => const Right([]));
   });
 
-  RoutinesCubit buildCubit() => RoutinesCubit(listPending, resolveOccurrence);
+  RoutinesCubit buildCubit() =>
+      RoutinesCubit(listPending, listSummaries, resolveOccurrence);
 
   blocTest<RoutinesCubit, RoutinesState>(
     'load emite Loading e Ready com as pendentes',

@@ -46,6 +46,11 @@ occurrence_events    id, routine_id, occurrence_id, event
 RLS em todas, política `user_id = (select auth.uid())` (ou dono via `routine_id`
 para as tabelas-filha, que herdam o dono pela FK — decisão na migration).
 
+**View `routine_summaries`** (`security_invoker`) — projeção da taxa de
+cumprimento: `routine_id`, `name`, `done_count`, `resolved_count`. Roda com os
+privilégios do chamador, então a RLS de `routines`/`routine_occurrences`
+continua decidindo o dono; não é regra de negócio em plpgsql, é agregação.
+
 ## 4. Contratos
 
 **`confirmProposal` (estendido)** — para `create_routine`, revalida o payload

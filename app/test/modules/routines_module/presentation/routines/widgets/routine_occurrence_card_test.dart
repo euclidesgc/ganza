@@ -6,6 +6,7 @@ import 'package:ganza/core/theme/app_theme.dart';
 import 'package:ganza/modules/routines_module/domain/entities/occurrence_status.dart';
 import 'package:ganza/modules/routines_module/domain/entities/routine_occurrence.dart';
 import 'package:ganza/modules/routines_module/domain/usecases/list_pending_occurrences.dart';
+import 'package:ganza/modules/routines_module/domain/usecases/list_routine_summaries.dart';
 import 'package:ganza/modules/routines_module/domain/usecases/resolve_occurrence.dart';
 import 'package:ganza/modules/routines_module/presentation/routines/routines_cubit.dart';
 import 'package:ganza/modules/routines_module/presentation/routines/widgets/routine_occurrence_card.dart';
@@ -15,23 +16,28 @@ import 'package:mocktail/mocktail.dart';
 class MockListPendingOccurrences extends Mock
     implements ListPendingOccurrences {}
 
+class MockListRoutineSummaries extends Mock implements ListRoutineSummaries {}
+
 class MockResolveOccurrence extends Mock implements ResolveOccurrence {}
 
 void main() {
   late MockListPendingOccurrences listPending;
+  late MockListRoutineSummaries listSummaries;
   late MockResolveOccurrence resolveOccurrence;
 
   setUpAll(() => initializeDateFormatting('pt_BR'));
 
   setUp(() {
     listPending = MockListPendingOccurrences();
+    listSummaries = MockListRoutineSummaries();
     resolveOccurrence = MockResolveOccurrence();
+    when(() => listSummaries.call()).thenAnswer((_) async => const Right([]));
   });
 
   final hoje = DateTime.now();
 
   Widget montar(RoutineOccurrence occurrence) {
-    final cubit = RoutinesCubit(listPending, resolveOccurrence);
+    final cubit = RoutinesCubit(listPending, listSummaries, resolveOccurrence);
     return MaterialApp(
       theme: AppTheme.light,
       home: BlocProvider.value(
@@ -79,7 +85,7 @@ void main() {
     ).thenAnswer((_) async => const Right(unit));
     when(() => listPending.call()).thenAnswer((_) async => const Right([]));
 
-    final cubit = RoutinesCubit(listPending, resolveOccurrence);
+    final cubit = RoutinesCubit(listPending, listSummaries, resolveOccurrence);
     await cubit.load();
 
     await tester.pumpWidget(

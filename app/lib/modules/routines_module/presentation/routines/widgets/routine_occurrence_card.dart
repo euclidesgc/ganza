@@ -7,9 +7,14 @@ import '../../../domain/entities/routine_occurrence.dart';
 import '../routines_cubit.dart';
 
 class RoutineOccurrenceCard extends StatelessWidget {
-  const RoutineOccurrenceCard({required this.occurrence, super.key});
+  const RoutineOccurrenceCard({
+    required this.occurrence,
+    this.completionRate,
+    super.key,
+  });
 
   final RoutineOccurrence occurrence;
+  final double? completionRate;
 
   void _postpone(BuildContext context) {
     final tomorrow = DateTime.now().add(const Duration(days: 1));
@@ -64,6 +69,15 @@ class RoutineOccurrenceCard extends StatelessWidget {
                 color: context.ganza.mutedInk,
               ),
             ),
+            if (completionRate != null) ...[
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                '${(completionRate! * 100).round()}% feitas',
+                style: context.texts.bodySmall?.copyWith(
+                  color: context.ganza.mutedInk,
+                ),
+              ),
+            ],
             const SizedBox(height: AppSpacing.sm),
             Wrap(
               spacing: AppSpacing.sm,

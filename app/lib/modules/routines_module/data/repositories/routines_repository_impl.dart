@@ -4,8 +4,10 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/error/failure.dart';
 import '../../../../core/network/failure_from_exception.dart';
 import '../../domain/entities/routine_occurrence.dart';
+import '../../domain/entities/routine_summary.dart';
 import '../../domain/repositories/routines_repository.dart';
 import '../models/routine_occurrence_model.dart';
+import '../models/routine_summary_model.dart';
 
 class RoutinesRepositoryImpl implements RoutinesRepository {
   const RoutinesRepositoryImpl(this._client);
@@ -34,6 +36,29 @@ class RoutinesRepositoryImpl implements RoutinesRepository {
         );
       }
       return Right(occurrences);
+    } catch (error) {
+      return Left(failureFromException(error));
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<RoutineSummary>>> listSummaries() async {
+    try {
+      final rows = await _client
+          .from('routine_summaries')
+          .select('routine_id, name, done_count, resolved_count');
+
+      final summaries = <RoutineSummary>[];
+      for (final row in rows) {
+        final parsed = RoutineSummaryModel.fromMap(row);
+        if (parsed.isLeft()) {
+          return parsed.map((summary) => <RoutineSummary>[summary]);
+        }
+        summaries.add(
+          parsed.getOrElse((_) => throw StateError('inalcançável')),
+        );
+      }
+      return Right(summaries);
     } catch (error) {
       return Left(failureFromException(error));
     }
