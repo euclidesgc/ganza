@@ -163,6 +163,46 @@ Deno.test('confirmProposal rejeita create_routine com payload inválido', async 
   if (!result.ok) assertEquals(result.code, 'payload_invalido');
 });
 
+Deno.test('confirmProposal migra create_commitment e gera as parcelas', async () => {
+  const { supabase, inserts } = fakeSupabase({
+    id: 'p1',
+    status: 'pending',
+    kind: 'create_commitment',
+    payload: {
+      name: 'geladeira',
+      direction: 'out',
+      value_mode: 'installment',
+      total_amount: 120000,
+      installments_total: 12,
+    },
+  });
+  const result = await confirmProposal(supabase, 'p1');
+  assertEquals(result.ok, true);
+
+  const commitment = inserts.find((row) => row.table === 'commitments');
+  assertEquals(commitment !== undefined, true);
+  assertEquals((commitment ?? {}).value_mode, 'installment');
+
+  const occurrences = inserts.filter(
+    (row) => row.table === 'commitment_occurrences',
+  );
+  assertEquals(occurrences.length, 12);
+  assertEquals((occurrences[0] ?? {}).sequence, 1);
+  assertEquals((occurrences[11] ?? {}).sequence, 12);
+});
+
+Deno.test('confirmProposal rejeita create_commitment com payload inválido', async () => {
+  const { supabase } = fakeSupabase({
+    id: 'p1',
+    status: 'pending',
+    kind: 'create_commitment',
+    payload: { name: 'x', direction: 'out', value_mode: 'diario' },
+  });
+  const result = await confirmProposal(supabase, 'p1');
+  assertEquals(result.ok, false);
+  if (!result.ok) assertEquals(result.code, 'payload_invalido');
+});
+
 Deno.test('confirmar duas vezes devolve proposta_nao_pendente', async () => {
   const { supabase } = fakeSupabase({
     id: 'p1',

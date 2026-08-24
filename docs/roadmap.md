@@ -10,7 +10,7 @@ Status: `[ ]` não iniciada · `[-]` em andamento · `[x]` concluída.
 - [x] 002 - Conta, configurações e chaves do usuário (`docs/002_conta_e_configuracoes/`)
 - [x] 003 - Chat de texto e confirmação (`docs/003_chat_texto/`)
 - [x] 004 - Rotinas e ocorrências (`docs/004_rotinas/`)
-- [ ] 005 - Finanças e conciliação (`docs/005_financas/`)
+- [-] 005 - Finanças e conciliação (`docs/005_financas/`)
 - [ ] 006 - Recursos multimodais (`docs/006_multimodal/`)
 - [ ] 007 - Agenda e Google Calendar (`docs/007_agenda/`)
 - [ ] 008 - Organização por áreas (`docs/008_organizacao/`)

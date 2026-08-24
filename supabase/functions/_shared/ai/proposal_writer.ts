@@ -1,6 +1,14 @@
 import { parseProposals, type Proposal } from './proposal_schema.ts';
 import { resolveCategory } from './resolve_category.ts';
 import { nextDueDate } from '../routine_math.ts';
+import { amortizationSchedule } from '../finance_math.ts';
+
+function addMonthsIso(date: Date, months: number): string {
+  const d = new Date(
+    Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + months, date.getUTCDate()),
+  );
+  return d.toISOString().slice(0, 10);
+}
 
 export type WriteResult =
   | { ok: true; count: number }
@@ -137,6 +145,76 @@ export async function confirmProposal(
 
     resultingId = routineId;
     resultingType = 'routine';
+  } else if (data.kind === 'create_commitment') {
+    const payload = data.payload;
+    const commitmentRow: Record<string, unknown> = {
+      name: payload.name,
+      direction: payload.direction,
+      value_mode: payload.value_mode,
+    };
+    if (payload.total_amount !== undefined) {
+      commitmentRow.total_amount = payload.total_amount;
+    }
+    if (payload.installments_total !== undefined) {
+      commitmentRow.installments_total = payload.installments_total;
+    }
+    if (payload.interest_rate_monthly !== undefined) {
+      commitmentRow.interest_rate_monthly = payload.interest_rate_monthly;
+    }
+    if (payload.amortization_system !== undefined) {
+      commitmentRow.amortization_system = payload.amortization_system;
+    }
+
+    const { data: insertedCommitment, error: commitmentError } = await supabase
+      .from('commitments')
+      .insert(commitmentRow)
+      .select('id')
+      .single();
+    if (commitmentError || !insertedCommitment?.id) {
+      return { ok: false, code: 'write_failed' };
+    }
+
+    const commitmentId = insertedCommitment.id as string;
+    const occurrences: Record<string, unknown>[] = [];
+
+    if (payload.value_mode === 'installment') {
+      const total = payload.total_amount as number;
+      const count = payload.installments_total as number;
+      const rate = typeof payload.interest_rate_monthly === 'number'
+        ? payload.interest_rate_monthly
+        : 0;
+      const system = payload.amortization_system === 'sac' ? 'sac' : 'price';
+      const schedule = amortizationSchedule(system, total, count, rate);
+      for (const row of schedule) {
+        occurrences.push({
+          commitment_id: commitmentId,
+          sequence: row.period,
+          due_date: addMonthsIso(new Date(), row.period),
+          expected_amount: row.installment,
+          estimate_source: rate > 0 ? 'contract' : 'manual',
+        });
+      }
+    } else {
+      occurrences.push({
+        commitment_id: commitmentId,
+        sequence: 1,
+        due_date: addMonthsIso(new Date(), 1),
+        expected_amount: payload.total_amount ?? null,
+        estimate_source: payload.value_mode === 'variable' ? 'average' : 'contract',
+      });
+    }
+
+    if (occurrences.length > 0) {
+      const { error: occurrencesError } = await supabase
+        .from('commitment_occurrences')
+        .insert(occurrences);
+      if (occurrencesError) {
+        return { ok: false, code: 'write_failed' };
+      }
+    }
+
+    resultingId = commitmentId;
+    resultingType = 'commitment';
   }
 
   const updateRow: Record<string, unknown> = { status: 'confirmed' };

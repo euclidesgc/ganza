@@ -81,6 +81,35 @@ export function parseProposals(raw: unknown): ParseProposalsResult {
         }
       }
     }
+    if (item.kind === 'create_commitment') {
+      const name = item.payload.name;
+      if (typeof name !== 'string' || name.trim().length === 0) {
+        return { ok: false, code: 'commitment_name_invalido' };
+      }
+      const direction = item.payload.direction;
+      if (direction !== 'in' && direction !== 'out') {
+        return { ok: false, code: 'commitment_direction_invalido' };
+      }
+      const mode = item.payload.value_mode;
+      if (
+        mode !== 'one_off' &&
+        mode !== 'installment' &&
+        mode !== 'fixed' &&
+        mode !== 'variable'
+      ) {
+        return { ok: false, code: 'value_mode_invalido' };
+      }
+      if (mode === 'installment') {
+        const total = item.payload.total_amount;
+        const count = item.payload.installments_total;
+        if (!Number.isInteger(total) || (total as number) <= 0) {
+          return { ok: false, code: 'total_amount_invalido' };
+        }
+        if (!Number.isInteger(count) || (count as number) <= 0) {
+          return { ok: false, code: 'installments_total_invalido' };
+        }
+      }
+    }
     if (
       typeof item.payload.description === 'string' &&
       item.payload.description.length > maxDescriptionChars
