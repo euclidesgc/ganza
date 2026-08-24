@@ -13,30 +13,9 @@ const maxInputChars = 4000;
 const hourlyCallLimit = 60;
 const dailyBudgetMicros = 1_000_000_000;
 
-interface UsageRow {
-  cost_micros: number;
-}
-
-interface QueryResult {
-  count?: number | null;
-  data?: UsageRow[] | null;
-  error: unknown;
-}
-
-type Query = PromiseLike<QueryResult> & {
-  gte: (column: string, value: string) => Query;
-  eq: (column: string, value: string) => Query;
-};
-
-interface SupabaseLike {
-  from: (table: string) => {
-    select: (columns: string, opts?: { count?: string; head?: boolean }) => Query;
-    insert: (row: Record<string, unknown>) => Promise<{ error: unknown }>;
-  };
-}
-
 export async function assertWithinLimits(
-  supabase: SupabaseLike,
+  // deno-lint-ignore no-explicit-any
+  supabase: any,
   request: LimitsRequest,
 ): Promise<LimitsResult> {
   if (request.batchSize !== undefined && request.batchSize > maxBatchSize) {
@@ -74,8 +53,8 @@ export async function assertWithinLimits(
   if (budget.error) {
     return { ok: false, code: 'usage_query_failed', status: 500 };
   }
-  const total = (budget.data ?? []).reduce(
-    (sum, row) => sum + (row.cost_micros ?? 0),
+  const total = (budget.data as { cost_micros: number }[] | null ?? []).reduce(
+    (sum: number, row: { cost_micros: number }) => sum + (row.cost_micros ?? 0),
     0,
   );
   if (total > dailyBudgetMicros) {

@@ -15,7 +15,7 @@
     }
   },
   "tasks": {
-    "check": "deno check main/index.ts main/env.ts health/index.ts health/handler.ts transactions/index.ts transactions/handler.ts ai-credentials/index.ts ai-credentials/handler.ts bank-connections/index.ts bank-connections/handler.ts _shared/ai/prompt_envelope.ts _shared/ai/proposal_schema.ts _shared/ai/proposal_writer.ts _shared/ai/normalize_description.ts _shared/ai/limits.ts _shared/observability/ai_event.ts",
+    "check": "deno check main/index.ts main/env.ts health/index.ts health/handler.ts transactions/index.ts transactions/handler.ts ai-credentials/index.ts ai-credentials/handler.ts bank-connections/index.ts bank-connections/handler.ts ingest/index.ts ingest/handler.ts _shared/ai/prompt_envelope.ts _shared/ai/proposal_schema.ts _shared/ai/proposal_writer.ts _shared/ai/normalize_description.ts _shared/ai/limits.ts _shared/ai/execute.ts _shared/observability/ai_event.ts",
     "test": "deno test --allow-env --allow-net"
   }
 }
