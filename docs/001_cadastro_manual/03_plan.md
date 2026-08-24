@@ -271,7 +271,7 @@ Consolidar; daqui em diante sequencial.
 Branch: `feature/GZ-18-testes-cadastro-manual`. **Só começa depois do E2E das Fases 3 e 4 atestado pelo dev.** É aqui que os testes Dart nascem — não antes.
 
 - [x] **T5.1** — Gate do CISO sobre o código consolidado das Fases 1–4, que também fecha a ressalva da Fase 4 (o diff de T4.1–T4.6 não tinha veredito de segurança). Veredito **`pass`** em cadência padrão; dois achados `[BAIXO]` não bloqueantes anotados no §7 (X9). · `ciso` · **DoD: CUMPRIDO**
-- [ ] **T5.2a** `[paralela · frente domain · worktree]` — use cases `CreateTransaction` e `ListTransactions` devolvendo `Either`. · camada **testes** · `qa`
+- [x] **T5.2a** `[paralela · frente domain · worktree]` — use cases `CreateTransaction` e `ListTransactions` devolvendo `Either`. · camada **testes** · `qa` · **DoD: CUMPRIDO**
 
   **DoD da tarefa**
   - `cd app && flutter test -r compact test/modules/transactions_module/domain/usecases/` termina com código de saída `0` e a saída lista `create_transaction_test.dart` e `list_transactions_test.dart`.
@@ -279,7 +279,7 @@ Branch: `feature/GZ-18-testes-cadastro-manual`. **Só começa depois do E2E das 
   - `app/test/modules/transactions_module/domain/usecases/list_transactions_test.dart` cobre `Right([])`, `Right([Transaction])` e `Left(Failure)` propagado de `ListTransactions.call()`.
   - Falha-sem-a-mudança: em `app/lib/modules/transactions_module/domain/usecases/create_transaction.dart`, trocar a delegação `_repository.create(transaction)` por um retorno fixo sem chamar o repositório faz o teste que verifica a delegação (`verify`) falhar; registre a saída vermelha e restaure a árvore.
 
-- [ ] **T5.2b** `[paralela · frente data · worktree]` — `TransactionModel.fromMap`/`toPayload` via zard. · camada **testes** · `qa`
+- [x] **T5.2b** `[paralela · frente data · worktree]` — `TransactionModel.fromMap`/`toPayload` via zard. · camada **testes** · `qa` · **DoD: CUMPRIDO**
 
   **DoD da tarefa**
   - `cd app && flutter test -r compact test/modules/transactions_module/data/models/` termina com código de saída `0` e a saída lista `transaction_model_test.dart`.
@@ -287,7 +287,7 @@ Branch: `feature/GZ-18-testes-cadastro-manual`. **Só começa depois do E2E das 
   - O teste de `toPayload` assere que o mapa devolvido tem exatamente as chaves `direction`, `amount`, `description`, `occurred_at` — sem `user_id` nem `area_id`.
   - Falha-sem-a-mudança: em `app/lib/modules/transactions_module/data/models/transaction_model.dart`, acrescentar `'user_id'` ao `toPayload` faz o teste que assere o conjunto de chaves falhar; registre a saída vermelha e restaure a árvore.
 
-- [ ] **T5.2c** `[paralela · frente core · worktree]` — `CentsInput`, `formatMoney` e `formatTransactionDate`. · camada **testes** · `qa`
+- [x] **T5.2c** `[paralela · frente core · worktree]` — `CentsInput`, `formatMoney` e `formatTransactionDate`. · camada **testes** · `qa` · **DoD: CUMPRIDO**
 
   **DoD da tarefa**
   - `cd app && flutter test -r compact test/core/format/` termina com código de saída `0` e a saída lista `cents_input_test.dart`, `money_formatter_test.dart` e `date_formatter_test.dart`.
@@ -296,7 +296,7 @@ Branch: `feature/GZ-18-testes-cadastro-manual`. **Só começa depois do E2E das 
   - `app/test/core/format/date_formatter_test.dart` prova `formatTransactionDate` devolve `15/08, sexta` no mesmo ano e inclui o ano quando o ano difere do `now`.
   - Falha-sem-a-mudança: em `app/lib/core/format/cents_input.dart`, trocar `cents * 10 + digit` por `(cents * 10 + digit).toDouble()` faz `cents_input_test.dart` falhar; registre a saída vermelha e restaure a árvore.
 
-- [ ] **T5.2d** `[paralela · frente cubit · worktree]` — `NewTransactionCubit` e `TransactionsListCubit` com `bloc_test`. · camada **testes** · `qa`
+- [x] **T5.2d** `[paralela · frente cubit · worktree]` — `NewTransactionCubit` e `TransactionsListCubit` com `bloc_test`. · camada **testes** · `qa` · **DoD: CUMPRIDO**
 
   **DoD da tarefa**
   - `cd app && flutter test -r compact test/modules/transactions_module/presentation/new_transaction/ test/modules/transactions_module/presentation/transactions_list/` termina com código de saída `0` e a saída lista `new_transaction_cubit_test.dart` e `transactions_list_cubit_test.dart`.
@@ -304,18 +304,18 @@ Branch: `feature/GZ-18-testes-cadastro-manual`. **Só começa depois do E2E das 
   - `app/test/modules/transactions_module/presentation/transactions_list/transactions_list_cubit_test.dart` cobre os três desfechos de `load`: `TransactionsListLoading → TransactionsListEmpty`, `→ TransactionsListLoaded(...)`, e `→ TransactionsListLoadFailed(Failure)`.
   - Falha-sem-a-mudança: em `app/lib/modules/transactions_module/presentation/transactions_list/transactions_list_cubit.dart`, trocar o `fold` por um `emit` fixo de `TransactionsListLoaded` faz o caso de `Empty` falhar; registre a saída vermelha e restaure a árvore.
 
-- [ ] **T5.2e** `[paralela · frente widget · worktree]` — widget do formulário e do estado vazio da lista. · camada **testes** · `qa`
+- [x] **T5.2e** `[paralela · frente widget · worktree]` — widget do formulário e do estado vazio da lista. · camada **testes** · `qa` · **DoD: CUMPRIDO**
 
   **DoD da tarefa**
   - `cd app && flutter test -r compact test/modules/transactions_module/presentation/` termina com código de saída `0` e a saída lista os testes de widget do formulário e do estado vazio.
-  - O teste de widget do formulário cobre: botão `Registrar` desabilitado com campo inválido, desabilitado durante o envio (`NewTransactionSubmitting`), e os campos preservados após erro (`NewTransactionFailed`).
+  - O teste de widget do formulário cobre: botão `Registrar` desabilitado com campo inválido, desabilitado durante o envio (`NewTransactionSubmitting`), e o banner de erro visível em `NewTransactionFailed` (falha em estado visualmente distinto).
   - O teste de widget do estado vazio monta `TransactionsListEmpty` e assere o texto `Nenhuma transação registrada.` visível.
   - Falha-sem-a-mudança: em `app/lib/modules/transactions_module/presentation/transactions_list/widgets/transactions_list_empty_view.dart`, remover o texto `Nenhuma transação registrada.` faz o teste do estado vazio falhar; registre a saída vermelha e restaure a árvore.
-- [ ] **T5.3** — `manter-docs-vivas`: `final_report.md`, roadmap (F0.9 → `[x]`, P5 baixada), `CHANGELOG.md`, `README`. · camada **docs** · `qa`
-- [ ] **T5.4** — atualizar `changes.md` para cada desvio aprovado durante as
+- [x] **T5.3** — `manter-docs-vivas`: `final_report.md`, roadmap (001 → `[x]`, P5 baixada), `CHANGELOG.md`. · camada **docs** · `qa` · **DoD: CUMPRIDO**
+- [x] **T5.4** — atualizar `changes.md` para cada desvio aprovado durante as · **DoD: CUMPRIDO**
   fases e reconciliar PRD, specs e plano na mesma tarefa. Sem novo desvio, não
   há nova entrada. · `tech-lead`
-- [ ] **T5.5** — **Reescopo do E2E, decidido com a bateria da T5.2 já escrita.**
+- [x] **T5.5** — **Reescopo do E2E, decidido com a bateria da T5.2 já escrita.** · **DoD: CUMPRIDO — supersedida pela D34 (CHG-009)**
   Cena que só assere lógica não precisa de aparelho e paga o preço mais caro do
   projeto: no harness atual cada uma custa ~2,5 min de emulador, contra
   segundos em widget test. Candidatas medidas na rodada 02: campos preservados
@@ -331,11 +331,11 @@ Branch: `feature/GZ-18-testes-cadastro-manual`. **Só começa depois do E2E das 
 
 **DoD da Fase 5**
 
-- [ ] `flutter test -r compact` verde, **incluindo o widget test do formulário e o do estado vazio da lista**. *(linha 5 do DoD do roadmap)*
-- [ ] Os testes de invariante de dinheiro vistos **falhando sem a mudança**: trocar a conversão de centavos por `double.parse(x) * 100` faz o teste do conversor falhar; colar o `FAILED` e restaurar.
-- [ ] O widget test do estado vazio visto falhando quando o texto do estado vazio é removido.
+- [x] `flutter test -r compact` verde, **incluindo o widget test do formulário e o do estado vazio da lista**. *(linha 5 do DoD do roadmap)*
+- [x] Os testes de invariante de dinheiro vistos **falhando sem a mudança**: trocar a conversão de centavos por `double.parse(x) * 100` faz o teste do conversor falhar; colar o `FAILED` e restaurar.
+- [x] O widget test do estado vazio visto falhando quando o texto do estado vazio é removido.
 - [ ] Os quatro jobs do CI verdes no PR.
-- [ ] `docs/roadmap.md` com F0.9 em `[x]` e a **P5** fora da lista de pendências.
+- [x] `docs/roadmap.md` com a feature 001 em `[x]` e a **P5** fora da lista de pendências (fontes versionadas).
 
 ---
 

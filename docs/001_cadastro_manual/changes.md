@@ -6,6 +6,34 @@ documentos canônicos descrevem somente o estado final reconciliado.
 
 ## Mudanças registradas
 
+### CHG-009 - Fase 5 reconciliada com a suspensão do E2E e o reancoramento dos gates do CISO
+
+- **Data:** 2026-08-24
+- **Fase/PR:** Fase 5 (bateria automatizada + fechamento).
+- **Planejado originalmente:** a Fase 5 tinha a T5.1 como "segundo gate do CISO
+  (depois da limpeza do E2E)" e a T5.5 como o reescopo do roteiro E2E, com a
+  bateria (T5.2) escrita depois; o DoD da fase citava "F0.9" e a baixa da P5.
+- **Por que não foi possível prosseguir:** o plano da 001 é anterior às
+  decisões transversais **D34** (E2E passa a ser do humano, rodado por ele
+  quando quer revisar; o agente não escreve nem executa roteiro) e **D35** (os
+  dois gates do CISO reancorados: gate 1 antes da bateria, gate 2 depois das
+  docs, antes do PR final). A "limpeza do E2E" deixou de existir, e reescrever
+  o roteiro deixou de ser atribuição do agente.
+- **Alternativas consideradas:** reescrever as cinco tarefas da fase do zero;
+  ou reconciliar cada tarefa com a decisão transversal que a afetou, mantendo o
+  contrato de fechamento. Reescrever a fase inteira não acrescenta prova.
+- **Decisão tomada:** (1) a T5.1 virou o **gate 1 do CISO** sobre o código
+  consolidado das Fases 1–4, fechando também a ressalva da Fase 4 (veredito
+  `pass`, cadência padrão); (2) a T5.5 foi dada por **supersedida pela D34** —
+  a bateria de widget (T5.2e) já cobre o que a decisão queria mover para teste
+  (falha em estado visualmente distinto), e o roteiro em si é do humano; (3) o
+  DoD "F0.9 → `[x]` e P5 baixada" foi reconciliado para o item atual do roadmap
+  ("001") — a P5 já estava fechada desde as Fases 3/4 (fontes versionadas).
+- **Resumo da resolução:** a Fase 5 fecha com a bateria unit+widget, os gates
+  do CISO reancorados e as docs vivas, sem E2E novo.
+- **Reconciliação documental:** `03_plan.md` Fase 5 (T5.1, T5.5 e o DoD da
+  fase), `01_prd.md` §8 (P5) e este `changes.md`.
+
 ### CHG-008 - Evidência da rodada 01 precede o harness Patrol local
 
 - **Data:** 2026-08-18

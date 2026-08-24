@@ -6,7 +6,7 @@ de mudanças e evidências.
 
 Status: `[ ]` não iniciada · `[-]` em andamento · `[x]` concluída.
 
-- [-] 001 - Cadastro manual ponta a ponta (`docs/001_cadastro_manual/`)
+- [x] 001 - Cadastro manual ponta a ponta (`docs/001_cadastro_manual/`)
 - [-] 002 - Conta, configurações e chaves do usuário (`docs/002_conta_e_configuracoes/`)
 - [ ] 003 - Chat de texto e confirmação (`docs/003_chat_texto/`)
 - [ ] 004 - Rotinas e ocorrências (`docs/004_rotinas/`)
