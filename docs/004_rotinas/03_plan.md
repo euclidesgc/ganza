@@ -126,8 +126,33 @@ e **`done` gerando a próxima** (determinístico, FD-004), tudo com log em
 
 ### Fase 3 — App: rotinas e ocorrências · PR 3
 
-`routines_module`: lista de rotinas + próxima ocorrência + ações; atrasada
-visualmente distinta.
+Branch: `feature/GZ-44-rotinas-app`. A tela de rotinas lista as ocorrências
+pendentes (cada uma com o nome da rotina e a data), a **atrasada** é visualmente
+distinta, e cada linha resolve (`done`/`skip`/`cancel`/`postpone` para amanhã)
+refazendo a leitura.
+
+**Tarefas**
+
+- [x] **T3.1** — Domain+data do `routines_module`: entidades `RoutineOccurrence` e `OccurrenceStatus` (enum com `wireValue`), contrato `RoutinesRepository` (`listPending` + `resolve`), use case `ResolveOccurrence`, `RoutineOccurrenceModel` (zard) e `RoutinesRepositoryImpl` (PostgREST + `functions.invoke('routine-occurrences')`). · camada **app** · `especialista-dados` · **DoD: CUMPRIDO**
+
+  **DoD da tarefa**
+  - `app/lib/modules/routines_module/domain` é Dart puro (`rtk proxy grep -rE "flutter|supabase|dio" .../domain` devolve `0`); `RoutineOccurrenceModel` rejeita linha sem `id`/`due_date` (teste do model **falha sem a mudança**).
+  - `RoutinesRepositoryImpl.listPending` lê `routine_occurrences` com `status in (pending, postponed)` + `routines(name)` e `resolve` chama `functions.invoke('routine-occurrences', body: {occurrence_id, action, due_date?})` — provado por grep do caminho de chamada.
+  - `flutter analyze` em `app/` sai `0`; `dart format --output=none --set-exit-if-changed .` sai `0`.
+
+- [x] **T3.2** — Presentation: `RoutinesCubit` (estado `sealed` + `load`/`resolve` com refetch), `RoutinesPage` (lista), `RoutineOccurrenceCard` (nome, data, ações; atrasada com rótulo distinto), rotas `/rotinas` + DI + barrel público. · camada **app** · `especialista-apresentacao` · **DoD: CUMPRIDO**
+
+  **DoD da tarefa**
+  - Widget test prova que a lista mostra as ocorrências, a atrasada exibe o rótulo de atraso (visualmente distinto) e que tocar em uma ação chama `resolve` e refaz a leitura — **falha sem a mudança**.
+  - O cubit emite `Loading` → `Ready`/`Empty`/`Failed` (bloc_test) e `resolve` refaz a leitura sem o `id` resolvido.
+  - `flutter analyze` em `app/` sai `0`; `dart format --output=none --set-exit-if-changed .` sai `0`; `bash scripts/gates_guard.sh` imprime "limpos em app/lib"; `flutter test -r compact` verde.
+
+**DoD da Fase 3**
+
+- [x] `cd app && flutter test -r compact` verde — **169 testes**; `flutter analyze` sai `0`.
+- [ ] Job "App" verde no CI do PR.
+
+---
 
 ### Fase 4 — Atrasadas, taxa de cumprimento e fechamento · PR 4
 
@@ -153,6 +178,6 @@ Legenda das fases: `[ ]` não iniciada · `[-]` em andamento · `[x]` mergeada e
 `develop`.
 
 - [x] **Fase 1** — Recorrência determinística e rotina pelo chat · PR 1
-- [-] **Fase 2** — Estados e log · PR 2
-- [ ] **Fase 3** — App: rotinas e ocorrências · PR 3
+- [x] **Fase 2** — Estados e log · PR 2
+- [-] **Fase 3** — App: rotinas e ocorrências · PR 3
 - [ ] **Fase 4** — Atrasadas, taxa de cumprimento e fechamento · PR 4
