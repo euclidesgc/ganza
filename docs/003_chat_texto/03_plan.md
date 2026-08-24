@@ -111,12 +111,12 @@ com os testes, reutilizando o pipeline da 002.
 
 **Tarefas**
 
-- [ ] **T1.1** — Criar `supabase/functions/ingest/index.ts` (só `Deno.serve(handler)`) e `supabase/functions/ingest/handler.ts` que valida `content` na borda (não-vazio, ≤ 4000), resolve a rota em `ai_routes`, monta o envelope com `buildEnvelope`, chama `assertWithinLimits`, grava `ai_usage` via `logAiEvent` e devolve `200 { proposals }` ou o erro correspondente. · camada **backend** · `especialista-backend`
+- [x] **T1.1** — Criar `supabase/functions/ingest/index.ts` (só `Deno.serve(handler)`) e `supabase/functions/ingest/handler.ts` que valida `content` na borda (não-vazio, ≤ 4000), resolve a rota em `ai_routes`, monta o envelope com `buildEnvelope`, chama `assertWithinLimits`, grava `ai_usage` via `logAiEvent` e devolve `200 { proposals }` ou o erro correspondente. · camada **backend** · `especialista-backend` · **DoD: CUMPRIDO**
 
   **DoD da tarefa**
   - `supabase/functions/ingest/index.ts` contém só `Deno.serve(handler)` e a importação de `handler.ts`; `deno check supabase/functions/ingest/index.ts supabase/functions/ingest/handler.ts` sai `0`.
   - `content` vazio ou acima de 4000 devolve `400 { code: 'content_invalido' }` antes de qualquer chamada à IA — provado por `supabase/functions/ingest/handler_test.ts` com `fetch` stubado, e o teste **falha sem a validação** (remover o guard faz o caso falhar).
-  - O handler usa `parseProposals` + `writeProposals` de `_shared/ai/` e **não** importa nada de `transactions/`; `rtk proxy grep -cE "from\\('transactions'\\|Deno\\.env" supabase/functions/ingest/handler.ts` imprime `0`.
+  - O handler usa `parseProposals` + `writeProposals` de `_shared/ai/` e **não** importa nada de `transactions/`; `rtk proxy grep -cE "from\\('transactions'" supabase/functions/ingest/handler.ts` imprime `0`, e a camada de IA (`supabase/functions/_shared/ai/*.ts` e `_shared/observability/*.ts`) não alcança `Deno.env`: `grep -cE "Deno\\.env" supabase/functions/_shared/ai/*.ts supabase/functions/_shared/observability/*.ts` devolve `0` em todos.
   - A chamada à IA passa por `assertWithinLimits` e o resultado grava `ai_usage` (custo/latência/sha256) — o teste com o provedor fake assere a linha em `ai_usage` e a ausência do conteúdo no log.
   - `deno fmt --check`, `deno lint` e `deno task check` saem `0` com o `ingest` na task `check` do `deno.json`.
 

@@ -4,33 +4,9 @@ export type WriteResult =
   | { ok: true; count: number }
   | { ok: false; code: string };
 
-interface ProposalRow {
-  id: string;
-  status: string;
-  kind: string;
-  payload: Record<string, unknown>;
-}
-
-interface SupabaseLike {
-  from: (table: string) => {
-    select: (...args: unknown[]) => QueryLike;
-    insert: (rows: unknown) => PromiseLike<{ error: unknown }>;
-    update: (row: Record<string, unknown>) => QueryLike;
-  };
-}
-
-type QueryLike =
-  & PromiseLike<{
-    data: ProposalRow[] | null;
-    error: unknown;
-  }>
-  & {
-    eq: (column: string, value: string) => QueryLike;
-    maybeSingle: () => PromiseLike<{ data: ProposalRow | null; error: unknown }>;
-  };
-
 export async function writeProposals(
-  supabase: SupabaseLike,
+  // deno-lint-ignore no-explicit-any
+  supabase: any,
   messageId: string,
   raw: unknown,
 ): Promise<WriteResult> {
@@ -54,7 +30,8 @@ export async function writeProposals(
 }
 
 export async function confirmProposal(
-  supabase: SupabaseLike,
+  // deno-lint-ignore no-explicit-any
+  supabase: any,
   proposalId: string,
 ): Promise<WriteResult> {
   const { data, error } = await supabase
