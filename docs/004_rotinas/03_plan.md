@@ -101,8 +101,28 @@ determinístico, e faz o chat já criar rotina de ponta a ponta.
 
 ### Fase 2 — Estados e log (resolver ocorrência) · PR 2
 
-Edge Function `/routine-occurrences` (`done` gera a próxima, `postpone` move e
-loga, `skip`/`cancel` marcam) + testes.
+Branch: `feature/GZ-43-resolver-ocorrencia`. Fecha a máquina de estado: marcar a
+ocorrência nos estados terminais, **adiar movendo a data da mesma linha** (FD-005)
+e **`done` gerando a próxima** (determinístico, FD-004), tudo com log em
+`occurrence_events`.
+
+**Tarefas**
+
+- [x] **T2.1** — Edge Function `supabase/functions/routine-occurrences/` (`index.ts` só `Deno.serve(handler)`, `handler.ts` exportado): `POST { occurrence_id, action }` com `action` em `done|postpone|skip|cancel`; usa só o JWT do usuário (RLS decide dono); `done` marca e gera a próxima ocorrência (`sequence + 1`, `nextDueDate` com âncora `due_date + 1` no modo `calendar` e `completed_at` no `interval_from_completion`); `postpone` atualiza `due_date` da **mesma** linha e loga evento; `skip`/`cancel` marcam e logam. · camada **backend** · `especialista-backend` · **DoD: CUMPRIDO**
+
+  **DoD da tarefa**
+  - `supabase/functions/routine-occurrences/index.ts` contém só `Deno.serve(handler)`; `deno check supabase/functions/routine-occurrences/index.ts supabase/functions/routine-occurrences/handler.ts` sai `0`, e `routine-occurrences` está na task `check` do `deno.json`.
+  - `routine-occurrences/handler_test.ts` prova `405`/`401`/`400` (JSON inválido, `action`/`occurrence_id` inválidos, `postpone` sem `due_date`)/`404` (ocorrência alheia)/`409` (já terminal) e o caminho feliz de cada ação — `done` gera a próxima (`sequence + 1`), `postpone` atualiza `due_date` **sem** inserir ocorrência nova, `skip`/`cancel` marcam — com `fetch` stubado; cada caso **falha sem a mudança**.
+  - `postpone` grava `occurrence_events` (`postponed`, `from_date`/`to_date`) e **não** muda `sequence`: o teste assere que não há `insert` em `routine_occurrences` no `postpone`.
+  - `routine-occurrences` usa **só o JWT do usuário**: `rtk proxy grep -cE "SERVICE_ROLE" supabase/functions/routine-occurrences/handler.ts` imprime `0`.
+  - `deno fmt --check`, `deno lint`, `deno task check` e `deno task test` saem `0`.
+
+**DoD da Fase 2**
+
+- [x] `cd supabase/functions && deno task test` verde — **110 testes**, incluindo `routine-occurrences/handler_test.ts` (10).
+- [ ] Job "Edge Functions" verde no CI do PR.
+
+---
 
 ### Fase 3 — App: rotinas e ocorrências · PR 3
 
@@ -132,7 +152,7 @@ e docs vivas; roadmap 004 `[x]`.
 Legenda das fases: `[ ]` não iniciada · `[-]` em andamento · `[x]` mergeada em
 `develop`.
 
-- [-] **Fase 1** — Recorrência determinística e rotina pelo chat · PR 1
-- [ ] **Fase 2** — Estados e log · PR 2
+- [x] **Fase 1** — Recorrência determinística e rotina pelo chat · PR 1
+- [-] **Fase 2** — Estados e log · PR 2
 - [ ] **Fase 3** — App: rotinas e ocorrências · PR 3
 - [ ] **Fase 4** — Atrasadas, taxa de cumprimento e fechamento · PR 4
