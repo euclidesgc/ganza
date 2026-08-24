@@ -7,9 +7,9 @@ item canônico está no [`docs/roadmap.md`](../roadmap.md). **Este plano não
 inventa escopo: ele distribui o DoD entre as fases e acrescenta o que falta
 para cada fase se sustentar sozinha.**
 
-Estado: **não iniciada** · branch a criar (de `develop`) · a 002 entregou o
+Estado: **em andamento** — Fase 1 (`/ingest`) mergeada · a 002 entregou o
 pipeline `_shared/` e as tabelas que esta feature consome · **próximo passo:
-Fase 1 — a Edge Function `/ingest`.**
+Fase 2 — chat no app (`chat_module`).**
 
 ---
 
@@ -122,15 +122,45 @@ com os testes, reutilizando o pipeline da 002.
 
 **DoD da Fase 1**
 
-- [ ] `cd supabase/functions && deno task test` verde, incluindo `ingest/handler_test.ts`.
-- [ ] `curl -X POST …/functions/v1/ingest` com JWT e `content` válido devolve `200` com `proposals` lista; sem `Authorization` devolve `401`.
-- [ ] Job "Edge Functions" verde no CI do PR.
+- [x] `cd supabase/functions && deno task test` verde — 69 testes, incluindo os 5 de `ingest/handler_test.ts`.
+- [x] A validação de `content` (vazio e > 4000 → `400 content_invalido`) falha sem o guard — mutação vista vermelha e restaurada, provada por `ingest/handler_test.ts` com `fetch` stubado. *Ressalva do PR #40:* o `curl` contra `/functions/v1/ingest` com JWT real não rodou (o sandbox não sobe a stack Supabase completa); o caminho está provado por teste.
+- [x] Job "Edge Functions" verde no CI do PR.
 
 ---
 
 ### Fase 2 — Chat no app · PR 2
 
-`chat_module` (tela, cubit, cards) — placeholder da 002 vira a tela real.
+Branch: `feature/GZ-38-chat-app`. O placeholder da 002 vira a tela real: nasce o
+`chat_module` (domain puro, data via `functions.invoke('ingest')`, presentation
+com Cubit + estado `sealed`), o barrel público expõe só rota + DI, e o item de
+drawer `/chat` — já gated em 002 — agora chega numa tela que envia a mensagem e
+mostra os cards de proposta.
+
+**Tarefas**
+
+- [x] **T2.1** — Criar o `chat_module` completo: `domain/` (`ChatProposal`,
+  `ChatRepository`, `IngestMessage`), `data/` (`ChatRepositoryImpl` via
+  `functions.invoke('ingest')`), `presentation/` (`ChatCubit` + estado `sealed`,
+  `ChatPage`, `ChatComposer`, `ChatProposalCard`), `chat_injection.dart` e o
+  barrel público (`chat_module.dart`) só com rota + DI; registrar em
+  `app/lib/injection.dart`. · camada **app** · `especialista-apresentacao` +
+  `especialista-dados` · **DoD: CUMPRIDO**
+
+  **DoD da tarefa**
+  - `app/test/modules/chat_module/presentation/chat/chat_page_test.dart` passa e **falha sem a mudança**: voltando a `ChatPage` ao placeholder da 002 (sem `ChatComposer`/`ChatProposalCard`), o caso "enviar mostra os cards de proposta retornados" falha.
+  - O mesmo arquivo prova o estado `ChatSending` visível: com o use case pendente, o `FilledButton` "Enviar" tem `onPressed` nulo (caso "botão de enviar desabilitado durante o envio"), e **falha sem o `ChatSending`** no `switch` do `chat_page.dart`.
+  - `cd app && flutter analyze` sai `0`; `cd app && dart format --output=none --set-exit-if-changed .` sai `0`; `bash scripts/gates_guard.sh` imprime "limpos em app/lib".
+  - O domínio é Dart puro e a apresentação não alcança `data/`: `rtk proxy grep -rE "flutter|supabase|dio" app/lib/modules/chat_module/domain` e `rtk proxy grep -rE "modules/chat_module/data" app/lib/modules/chat_module/presentation` devolvem `0`.
+  - O repositório fala só com o Supabase (`_client.functions.invoke('ingest', body: {'content': content})`) e nenhum cliente de API externa existe no app: `rtk proxy grep -rE "gemini|pluggy|google" app/lib` devolve `0`.
+  - `app/lib/modules/chat_module/chat_module.dart` contém exatamente `export 'chat_injection.dart';` e `export 'chat_routes.dart';` — o barrel público expõe só rota + DI.
+
+**DoD da Fase 2**
+
+- [x] `cd app && flutter test -r compact` verde — **120 testes**, incluindo os 2 de `chat_page_test.dart`.
+- [x] `cd app && flutter analyze` sai `0`; `dart format --output=none --set-exit-if-changed .` sai `0`.
+- [x] Job "App" verde no CI do PR.
+
+---
 
 ### Fase 3 — Confirmação · PR 3
 
@@ -174,8 +204,8 @@ Legenda das fases: `[ ]` não iniciada · `[-]` em andamento · `[x]` mergeada e
 `develop`. Na linha de **tarefa**, `[x]` significa o veredito `CUMPRIDO` do
 `supervisor-dod`, no campo `DoD:` da própria linha.
 
-- [ ] **Fase 1** — Edge Function `/ingest` · PR 1
-- [ ] **Fase 2** — Chat no app · PR 2
+- [x] **Fase 1** — Edge Function `/ingest` · PR 1
+- [-] **Fase 2** — Chat no app · PR 2
 - [ ] **Fase 3** — Confirmação · PR 3
 - [ ] **Fase 4** — `category_hints` · PR 4
 - [ ] **Fase 5** — Bateria automatizada e fechamento · PR 5

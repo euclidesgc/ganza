@@ -8,6 +8,9 @@ import 'package:ganza/core/theme/app_theme.dart';
 import 'package:ganza/injection.dart';
 import 'package:ganza/modules/auth_module/auth_module.dart';
 import 'package:ganza/modules/chat_module/chat_module.dart';
+import 'package:ganza/modules/chat_module/domain/repositories/chat_repository.dart';
+import 'package:ganza/modules/chat_module/domain/usecases/ingest_message.dart';
+import 'package:ganza/modules/chat_module/presentation/chat/chat_cubit.dart';
 import 'package:ganza/modules/chat_module/presentation/chat/chat_page.dart';
 import 'package:ganza/modules/settings_module/domain/domain.dart';
 import 'package:ganza/modules/settings_module/presentation/ai/ai_settings_cubit.dart';
@@ -25,6 +28,8 @@ class _MockGetAiProviderKinds extends Mock implements GetAiProviderKinds {}
 class _MockGetAiCredential extends Mock implements GetAiCredential {}
 
 class _MockSaveAiCredential extends Mock implements SaveAiCredential {}
+
+class _MockChatRepository extends Mock implements ChatRepository {}
 
 class _FakeCapabilitiesSource implements CapabilitiesSource {
   bool aiConfigured = false;
@@ -55,6 +60,8 @@ void main() {
     when(() => getProviderKinds()).thenAnswer((_) async => const Right([]));
     when(() => getCredential()).thenAnswer((_) async => const Right(null));
 
+    final chatRepository = _MockChatRepository();
+
     getIt
       ..registerLazySingleton<ObserveCurrentUser>(() => observeCurrentUser)
       ..registerLazySingleton<GetCurrentUser>(() => getCurrentUser)
@@ -63,6 +70,9 @@ void main() {
       ..registerLazySingleton<GetAiProviderKinds>(() => getProviderKinds)
       ..registerLazySingleton<GetAiCredential>(() => getCredential)
       ..registerLazySingleton<SaveAiCredential>(() => saveCredential)
+      ..registerLazySingleton<ChatRepository>(() => chatRepository)
+      ..registerFactory(() => IngestMessage(getIt<ChatRepository>()))
+      ..registerFactory(() => ChatCubit(getIt<IngestMessage>()))
       ..registerFactory(
         () => AiSettingsCubit(
           getIt<GetAiProviderKinds>(),
