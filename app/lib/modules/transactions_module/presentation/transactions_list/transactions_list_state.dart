@@ -12,12 +12,13 @@ final class TransactionsListLoading extends TransactionsListState {
 }
 
 final class TransactionsListLoaded extends TransactionsListState {
-  const TransactionsListLoaded(this.transactions);
+  const TransactionsListLoaded(this.transactions, {this.categories = const []});
 
   final List<Transaction> transactions;
+  final List<Category> categories;
 
   @override
-  List<Object?> get props => [transactions];
+  List<Object?> get props => [transactions, categories];
 }
 
 final class TransactionsListEmpty extends TransactionsListState {

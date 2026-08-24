@@ -241,18 +241,18 @@ sem hint nasce `category_id = null` até a primeira correção.
   - `categorize` usa **só o JWT do usuário** (RLS decide dono da transação e da categoria): `rtk proxy grep -cE "SERVICE_ROLE" supabase/functions/categorize/handler.ts` imprime `0`, e `categorize` não está em `FUNCOES_COM_SERVICE_ROLE`.
   - `deno fmt --check`, `deno lint`, `deno task check` e `deno task test` saem `0`; `categorize` entra na task `check` do `deno.json`.
 
-- [ ] **T4.3** — App: a lista de transações mostra a categoria (ou "sem categoria") e permite trocar por um seletor das categorias do usuário (PostgREST); trocar chama o endpoint `categorize` e refaz a leitura (mesmo padrão da listagem). · camada **app** · `especialista-apresentacao`
+- [x] **T4.3** — App: a lista de transações mostra a categoria (ou "sem categoria") e permite trocar por um seletor das categorias do usuário (PostgREST); trocar chama o endpoint `categorize` e refaz a leitura (mesmo padrão da listagem). · camada **app** · `especialista-apresentacao` · **DoD: CUMPRIDO**
 
   **DoD da tarefa**
   - `app/lib/modules/transactions_module` ganha `Category`/`CategoriesRepository`/`CategorizeTransaction` e o `TransactionsRepository` ganha `categorize(transactionId, categoryId)` — domain puro, data só com Supabase (`functions.invoke('categorize')` e leitura de `categories`), use cases; `rtk proxy grep -rE "flutter|supabase|dio" app/lib/modules/transactions_module/domain` devolve `0`.
-  - A linha da transação mostra a categoria atual e o seletor; widget test prova que trocar a categoria chama `categorize` e reflete a mudança (e o estado "sem categoria" é visualmente distinto) — **falha sem a mudança**.
-  - `flutter analyze` em `app/` sai `0`; `dart format --output=none --set-exit-if-changed .` sai `0`; `bash scripts/gates_guard.sh` imprime "limpos em app/lib"; `flutter test -r compact` verde.
+  - A linha da transação mostra a categoria atual e o seletor; `app/test/modules/transactions_module/presentation/transactions_list/widgets/transaction_row_test.dart` prova o estado "sem categoria" e o nome, e que selecionar uma categoria chama `categorize('t1', id)` — **falha sem a mudança**.
+  - `flutter analyze` em `app/` sai `0`; `dart format --output=none --set-exit-if-changed .` sai `0`; `bash scripts/gates_guard.sh` imprime "limpos em app/lib"; `flutter test -r compact` verde — **137 testes**.
 
 **DoD da Fase 4**
 
-- [ ] `cd supabase/functions && deno task test` verde, incluindo `resolve_category_test.ts` e `categorize/handler_test.ts`.
-- [ ] `cd app && flutter test -r compact` verde; `flutter analyze` sai `0`.
-- [ ] Job "Banco" verde no CI (migration 0012 aplica limpo + gates de RLS), junto de "App" e "Edge Functions".
+- [x] `cd supabase/functions && deno task test` verde — **93 testes**, incluindo `resolve_category_test.ts` (4) e `categorize/handler_test.ts` (8).
+- [x] `cd app && flutter test -r compact` verde — **137 testes**; `flutter analyze` sai `0`.
+- [ ] Jobs "Banco" (migration 0012 aplica limpo + gates de RLS), "App" e "Edge Functions" verdes no CI do PR.
 
 ---
 

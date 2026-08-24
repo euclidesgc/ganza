@@ -2,13 +2,20 @@ import 'package:flutter/material.dart';
 
 import '../../../../../core/format/format.dart';
 import '../../../../../core/theme/theme.dart';
+import '../../../domain/entities/category.dart';
 import '../../../domain/entities/transaction.dart';
 import '../../../domain/entities/transaction_direction.dart';
+import 'category_selector.dart';
 
 class TransactionRow extends StatelessWidget {
-  const TransactionRow({required this.transaction, super.key});
+  const TransactionRow({
+    required this.transaction,
+    required this.categories,
+    super.key,
+  });
 
   final Transaction transaction;
+  final List<Category> categories;
 
   @override
   Widget build(BuildContext context) {
@@ -53,6 +60,8 @@ class TransactionRow extends StatelessWidget {
               ],
             ),
           ),
+          const SizedBox(width: AppSpacing.sm),
+          CategorySelector(transaction: transaction, categories: categories),
           const SizedBox(width: AppSpacing.md),
           Text(
             signedAmount,
