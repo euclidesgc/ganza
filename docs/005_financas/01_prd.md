@@ -47,9 +47,10 @@ descontam igual — §6.6); o oficial é o que o banco informar.
 
 ## 5. O que esta feature **não** entrega primeiro (registrado no `changes.md`)
 
-- **Sincronização bancária (Pluggy/OFX)** — é a Fase 3/4; depende da decisão
-  FD-021 (OFX é o caminho recomendado para começar) e de conta externa do humano.
-- **Faturas de cartão e cartão-benefício** — Fase 4.
+- **Sincronização via Pluggy** — o caminho OFX é o recomendado (FD-021); a
+  Pluggy fica para quando o número de usuários justificar (conta externa do humano).
+- **Faturas de cartão, cartão-benefício e telas de correção** — ficam para uma
+  fase posterior (CHG-001); o "obter dados bancários" está completo via OFX.
 
 ## 6. Invariantes que o DoD cobra
 
