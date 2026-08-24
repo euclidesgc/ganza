@@ -99,10 +99,35 @@ juros/amortização e o modelo de compromisso que gera as parcelas futuras.
 
 ---
 
-### Fase 2 — App: compromissos e dashboard financeiro · PR 2
+### Fase 2 — App: compromissos e simulação de quitação · PR 2
 
-`commitments_module` (lista, cronograma, simulação de quitação) e o dashboard
-(saldo, comprometido, dívida total e custo de juros).
+Branch: `feature/GZ-47-compromissos-app`. Expõe a matemática ao app e entrega a
+tela de compromissos com a **simulação de quitação antecipada** — o coração do
+"plano de recuperação".
+
+**Tarefas**
+
+- [x] **T2.1** — Edge Function `supabase/functions/finance-math/` (`POST { mode, total_amount, installments_total, interest_rate_monthly }` → `{ schedule, early_payoff_present_value }`), JWT do usuário, sem `service_role`; reusa `_shared/finance_math.ts`. · camada **backend** · `especialista-backend` · **DoD: CUMPRIDO**
+
+  **DoD da tarefa**
+  - `finance-math/handler_test.ts` prova `405`/`401`/`400` (parâmetros inválidos) e o caminho feliz (schedule com saldo final 0 e PV de quitação) — **falha sem a mudança**; o handler **não** calcula nada (delega a `_shared/finance_math.ts`).
+  - `finance-math` usa só o JWT do usuário: `rtk proxy grep -cE "SERVICE_ROLE" supabase/functions/finance-math/handler.ts` imprime `0`.
+  - `deno fmt --check`, `deno lint`, `deno task check` e `deno task test` saem `0`.
+
+- [x] **T2.2** — App `commitments_module`: lista de compromissos (nome, direção, modo, total) + simulação de quitação via `/finance-math`; o card mostra saldo devedor e a simulação. · camada **app** · `especialista-apresentacao` · **DoD: CUMPRIDO**
+
+  **DoD da tarefa**
+  - `app/lib/modules/commitments_module` (domain puro, data com zard, presentation com Cubit `sealed`, barrel só rota+DI); `rtk proxy grep -rE "flutter|supabase|dio" .../domain` devolve `0`.
+  - Widget test prova que a lista mostra os compromissos e que a simulação chama `finance-math` e exibe o valor presente — **falha sem a mudança**.
+  - `flutter analyze` em `app/` sai `0`; `dart format --output=none --set-exit-if-changed .` sai `0`; `flutter test -r compact` verde; `bash scripts/gates_guard.sh` limpo.
+
+**DoD da Fase 2**
+
+- [x] `cd supabase/functions && deno task test` verde — **125 testes**, incluindo `finance-math/handler_test.ts` (8).
+- [x] `cd app && flutter test -r compact` verde — **182 testes**; `flutter analyze` sai `0`.
+- [ ] Jobs "App" e "Edge Functions" verdes no CI do PR.
+
+---
 
 ### Fase 3 — Conciliação · PR 3
 
@@ -133,7 +158,7 @@ fechamento (bateria + docs vivas; roadmap 005 `[x]`).
 Legenda das fases: `[ ]` não iniciada · `[-]` em andamento · `[x]` mergeada em
 `develop`.
 
-- [-] **Fase 1** — `/finance-math` e compromissos · PR 1
-- [ ] **Fase 2** — App: compromissos e dashboard · PR 2
+- [x] **Fase 1** — `/finance-math` e compromissos · PR 1
+- [-] **Fase 2** — App: compromissos e dashboard · PR 2
 - [ ] **Fase 3** — Conciliação · PR 3
 - [ ] **Fase 4** — Sincronização, faturas e correção · PR 4

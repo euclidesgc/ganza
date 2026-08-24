@@ -10,6 +10,7 @@ import 'injection.dart';
 import 'modules/areas_module/areas_module.dart';
 import 'modules/auth_module/auth_module.dart';
 import 'modules/chat_module/chat_module.dart';
+import 'modules/commitments_module/commitments_module.dart';
 import 'modules/routines_module/routines_module.dart';
 import 'modules/settings_module/settings_module.dart';
 import 'modules/transactions_module/transactions_module.dart';
@@ -86,6 +87,7 @@ GoRouter createRouter({String initialLocation = AreasRoutes.path}) {
         routes: [
           AreasRoutes.route,
           ChatRoutes.route,
+          CommitmentsRoutes.route,
           RoutinesRoutes.route,
           SettingsRoutes.route,
           TransactionsRoutes.route,
