@@ -189,27 +189,27 @@ mantém pendências de sessões anteriores visíveis.
   - `proposals` **não** está em `FUNCOES_COM_SERVICE_ROLE` de `supabase/functions/main/env.ts` — o handler não lê `Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')`; `rtk proxy grep -cE "SERVICE_ROLE" supabase/functions/proposals/handler.ts` imprime `0`.
   - `deno fmt --check`, `deno lint` e `deno task check` saem `0`.
 
-- [ ] **T3.2** — App domain+data: `ChatProposal` ganha `id`/`sequence`/`status`; `ChatRepository` ganha `listPending()`, `confirm(id)`, `cancel(id)`; `ChatProposalModel` com `safeParse` (zard) lendo a linha de `proposed_actions`; `ChatRepositoryImpl` lê por PostgREST e confirma/cancela via `functions.invoke('proposals')`; use cases `ListPendingProposals`, `ConfirmProposal`, `CancelProposal`. · camada **app** · `especialista-dados`
+- [x] **T3.2** — App domain+data: `ChatProposal` ganha `id`/`sequence`/`status`; `ChatRepository` ganha `listPending()`, `confirm(id)`, `cancel(id)`; `ChatProposalModel` com `safeParse` (zard) lendo a linha de `proposed_actions`; `ChatRepositoryImpl` lê por PostgREST e confirma/cancela via `functions.invoke('proposals')`; use cases `ListPendingProposals`, `ConfirmProposal`, `CancelProposal`. · camada **app** · `especialista-dados` · **DoD: CUMPRIDO**
 
   **DoD da tarefa**
-  - `app/test/modules/chat_module/data/repositories/chat_repository_impl_test.dart` (ou o teste do model) passa e **falha sem a mudança**: `ChatProposalModel.safeParse` rejeita linha sem `id` ou sem `kind` (mutação vista vermelha).
-  - `ChatRepositoryImpl.listPending` consulta `proposed_actions` (`.eq('status','pending')`) via `SupabaseClient` e o `confirm`/`cancel` chamam `functions.invoke('proposals', body: {'proposal_id': id, 'action': ...})` — provado por teste com `SupabaseClient`/`FunctionsClient` mockados (mocktail).
+  - `app/test/modules/chat_module/data/models/chat_proposal_model_test.dart` passa e **falha sem a mudança**: `ChatProposalModel.fromMap` rejeita linha sem `id`, sem `kind` ou com `payload` não-mapa (4 casos, cada `Left` com `ValidationFailure`).
+  - `ChatRepositoryImpl` fala com o Supabase do jeito certo: `rtk proxy grep -nE "from\\('proposed_actions'\\)|'status', 'pending'|invoke\\('proposals'|action': 'confirm'|action': 'cancel'" app/lib/modules/chat_module/data/repositories/chat_repository_impl.dart` devolve **4 linhas** (a leitura de `proposed_actions` filtrada por `status=pending` e as duas chamadas de confirm/cancel).
   - O domínio continua Dart puro e o `data/` é o único lugar com try/catch: `rtk proxy grep -rE "flutter|supabase|dio" app/lib/modules/chat_module/domain` devolve `0` e `rtk proxy grep -rn "try" app/lib/modules/chat_module/domain` devolve `0`.
   - `flutter analyze` em `app/` sai `0`; `dart format --output=none --set-exit-if-changed .` sai `0`.
 
-- [ ] **T3.3** — App presentation: `ChatCubit` passa a carregar os pendentes por PostgREST ao abrir e a refazer a leitura após enviar/confirmar/cancelar; `ChatProposalCard` ganha botões **Confirmar**/**Cancelar** (não editáveis) que chamam o cubit; widget test prova a cadeia visível confirmar → card some e cancelar → card some. · camada **app** · `especialista-apresentacao`
+- [x] **T3.3** — App presentation: `ChatCubit` passa a carregar os pendentes por PostgREST ao abrir e a refazer a leitura após enviar/confirmar/cancelar; `ChatProposalCard` ganha botões **Confirmar**/**Cancelar** (não editáveis) que chamam o cubit; widget test prova a cadeia visível confirmar → card some e cancelar → card some. · camada **app** · `especialista-apresentacao` · **DoD: CUMPRIDO**
 
   **DoD da tarefa**
-  - `app/test/modules/chat_module/presentation/chat/chat_page_test.dart` (ou `chat_cubit_test.dart`) prova, via `whenListen`/`BlocProvider.value`, cada estado do `sealed` (Loading/Loaded/Empty/Failed) e que confirmar um card o remove da lista (refetch sem o `id`) — **falha sem a mudança** (sem o `confirm` no cubit, o card não some).
-  - O card tem exatamente dois controles **Confirmar**/**Cancelar** e nenhum campo de texto editável: o widget test localiza os botões por rótulo e assere que não há `TextField` dentro do `ChatProposalCard`.
-  - Confirmar/cancelar desabilita os botões durante a operação (estado de voo) — provado por widget test com o use case pendente, botão com `onPressed` nulo.
+  - `app/test/modules/chat_module/presentation/chat/chat_cubit_test.dart` prova cada estado do `sealed` — `ChatLoading`, `ChatReady` (com cards e vazia) e `ChatFailed` — e que `confirm`/`cancel` removem o card ao refazer a leitura (refetch sem o `id`); **falha sem a mudança** (sem o `confirm` no cubit, o card não some).
+  - O card tem exatamente dois controles **Confirmar**/**Cancelar** e nenhum campo de texto editável: `app/test/modules/chat_module/presentation/chat/chat_page_test.dart` localiza os botões por rótulo e assere que não há `TextField` dentro do `ChatProposalCard`.
+  - Confirmar/cancelar desabilita os botões durante a operação (estado de voo, `busyIds`) e enviar desabilita o botão durante o envio — provado por `chat_cubit_test.dart` (estado `busyIds`) e por widget test com o use case pendente (botão com `onPressed` nulo).
   - `flutter analyze` em `app/` sai `0`; `dart format --output=none --set-exit-if-changed .` sai `0`; `bash scripts/gates_guard.sh` imprime "limpos em app/lib".
 
 **DoD da Fase 3**
 
-- [ ] `cd supabase/functions && deno task test` verde, incluindo `proposals/handler_test.ts`.
-- [ ] `cd app && flutter test -r compact` verde.
-- [ ] `cd app && flutter analyze` sai `0`; `deno fmt --check`/`deno lint`/`deno task check` em `supabase/functions` saem `0`.
+- [x] `cd supabase/functions && deno task test` verde — **79 testes**, incluindo os 10 de `proposals/handler_test.ts`.
+- [x] `cd app && flutter test -r compact` verde — **132 testes**.
+- [x] `cd app && flutter analyze` sai `0`; `deno fmt --check`/`deno lint`/`deno task check` em `supabase/functions` saem `0`.
 - [ ] Jobs "App" e "Edge Functions" verdes no CI do PR.
 
 ---
