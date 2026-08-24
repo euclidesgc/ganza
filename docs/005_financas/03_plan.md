@@ -131,8 +131,31 @@ tela de compromissos com a **simulação de quitação antecipada** — o coraç
 
 ### Fase 3 — Conciliação · PR 3
 
-Movimento bancário casa com registro/ocorrência (valor ± centavos, janela ±5
-dias); sem match → pergunta no chat.
+Branch: `feature/GZ-48-conciliacao`. A máquina de match: o movimento bancário
+casa com a ocorrência prevista por **valor igual (± centavos) em janela de ±5
+dias** (a mais próxima vence); o valor do banco é canônico.
+
+**Tarefas**
+
+- [x] **T3.1** — `supabase/functions/_shared/conciliation.ts` + `conciliation_test.ts`: `findMatch(movement, candidates)` determinístico. · camada **backend** · `especialista-backend` · **DoD: CUMPRIDO**
+
+  **DoD da tarefa**
+  - `conciliation_test.ts` prova o match por valor (tolerância de 1 centavo) + janela de 5 dias, que a **mais próxima** vence, e que fora da janela ou do valor devolve `null` — **falha sem a mudança**.
+  - `deno fmt --check`, `deno lint` e `deno task check` saem `0`.
+
+- [x] **T3.2** — Edge Function `supabase/functions/conciliate/` (`POST { transaction_id }`): lê a transação `bank_sync` pendente, busca a ocorrência compatível (`pending`, valor/±5 dias), casa (grava `transaction_id`/`actual_amount`/`status='matched'` na ocorrência e `reconciliation_status='matched'` na transação) ou devolve `sem_match`. · camada **backend** · `especialista-backend` · **DoD: CUMPRIDO**
+
+  **DoD da tarefa**
+  - `conciliate/handler_test.ts` prova `405`/`401`/`400`/`404` (transação alheia) e o caminho feliz (casa e grava o vínculo) e `sem_match` — com `fetch` stubado; **falha sem a mudança**.
+  - `conciliate` usa **só o JWT do usuário**: `rtk proxy grep -cE "SERVICE_ROLE" supabase/functions/conciliate/handler.ts` imprime `0`.
+  - `deno fmt --check`, `deno lint`, `deno task check` e `deno task test` saem `0`.
+
+**DoD da Fase 3**
+
+- [x] `cd supabase/functions && deno task test` verde — **136 testes**, incluindo `conciliation_test.ts` (5) e `conciliate/handler_test.ts` (6).
+- [ ] Job "Edge Functions" verde no CI do PR.
+
+---
 
 ### Fase 4 — Sincronização bancária, faturas e correção · PR 4
 
@@ -159,6 +182,6 @@ Legenda das fases: `[ ]` não iniciada · `[-]` em andamento · `[x]` mergeada e
 `develop`.
 
 - [x] **Fase 1** — `/finance-math` e compromissos · PR 1
-- [-] **Fase 2** — App: compromissos e dashboard · PR 2
-- [ ] **Fase 3** — Conciliação · PR 3
+- [x] **Fase 2** — App: compromissos e dashboard · PR 2
+- [-] **Fase 3** — Conciliação · PR 3
 - [ ] **Fase 4** — Sincronização, faturas e correção · PR 4
