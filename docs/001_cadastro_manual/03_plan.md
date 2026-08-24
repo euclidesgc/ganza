@@ -2,7 +2,7 @@
 
 Fatiamento e execução. O "o quê" está em [`02_specs.md`](02_specs.md), o contrato do pronto em [`01_prd.md`](01_prd.md), as decisões desta feature em [`decisions.md`](decisions.md), os desvios em [`changes.md`](changes.md), e o item canônico está no [`docs/roadmap.md`](../roadmap.md). **Este plano não inventa escopo: ele distribui o DoD entre as fases e acrescenta o que falta para cada fase se sustentar sozinha.**
 
-Estado: **Fase 4 aguardando merge** · branch `feature/GZ-17-registrar-transacao` (de `develop`) · T4.1–T4.7 concluídas, E2E da rodada 02 verde e atestado pelo dev, DoD fechado e [PR #20](https://github.com/euclidesgc/ganza/pull/20) com os cinco jobs verdes; **próximo passo: mergear o PR 4 e começar a Fase 5**.
+Estado: **Fase 5 em andamento** · branch `feature/GZ-18-testes-cadastro-manual` (de `develop`) · Fase 4 mergeada ([PR #20](https://github.com/euclidesgc/ganza/pull/20)); a ressalva do gate do CISO da Fase 4 é fechada pelo T5.1 desta fase.
 
 ---
 
@@ -270,13 +270,52 @@ Consolidar; daqui em diante sequencial.
 
 Branch: `feature/GZ-18-testes-cadastro-manual`. **Só começa depois do E2E das Fases 3 e 4 atestado pelo dev.** É aqui que os testes Dart nascem — não antes.
 
-- [ ] **T5.1** — Segundo gate do CISO (depois da limpeza do E2E). · `ciso`
-- [ ] **T5.2** — `escrever-testes`, conforme o inventário do `01_prd.md` §7: *domain* (use cases devolvendo `Either`), *data* (`safeParse` com payload válido, `amount` como string, `direction` desconhecida, `area_id` nulo), *core* (dígitos→centavos, centavos→`R$`, formatador de data com e sem ano), *cubit* (`bloc_test` de envio e de listagem, os três desfechos cada), *widget* (formulário: desabilitado inválido, desabilitado em voo, dados preservados após erro) e *widget* (**estado vazio da lista**). `test/` espelha `lib/`; `mocktail` + `bloc_test`; zero `build_runner`. · camada **testes** · `qa`
-- [ ] **T5.3** — `manter-docs-vivas`: `final_report.md`, roadmap (F0.9 → `[x]`, P5 baixada), `CHANGELOG.md`, `README`. · camada **docs** · `qa`
-- [ ] **T5.4** — atualizar `changes.md` para cada desvio aprovado durante as
+- [x] **T5.1** — Gate do CISO sobre o código consolidado das Fases 1–4, que também fecha a ressalva da Fase 4 (o diff de T4.1–T4.6 não tinha veredito de segurança). Veredito **`pass`** em cadência padrão; dois achados `[BAIXO]` não bloqueantes anotados no §7 (X9). · `ciso` · **DoD: CUMPRIDO**
+- [x] **T5.2a** `[paralela · frente domain · worktree]` — use cases `CreateTransaction` e `ListTransactions` devolvendo `Either`. · camada **testes** · `qa` · **DoD: CUMPRIDO**
+
+  **DoD da tarefa**
+  - `cd app && flutter test -r compact test/modules/transactions_module/domain/usecases/` termina com código de saída `0` e a saída lista `create_transaction_test.dart` e `list_transactions_test.dart`.
+  - `app/test/modules/transactions_module/domain/usecases/create_transaction_test.dart` cobre o desfecho `Right` (o mock do `TransactionsRepository` devolve `Right(Transaction)` e `CreateTransaction.call` devolve o mesmo `Right`) e o desfecho `Left` (o mock devolve `Left(Failure)` e o use case propaga o mesmo `Left`).
+  - `app/test/modules/transactions_module/domain/usecases/list_transactions_test.dart` cobre `Right([])`, `Right([Transaction])` e `Left(Failure)` propagado de `ListTransactions.call()`.
+  - Falha-sem-a-mudança: em `app/lib/modules/transactions_module/domain/usecases/create_transaction.dart`, trocar a delegação `_repository.create(transaction)` por um retorno fixo sem chamar o repositório faz o teste que verifica a delegação (`verify`) falhar; registre a saída vermelha e restaure a árvore.
+
+- [x] **T5.2b** `[paralela · frente data · worktree]` — `TransactionModel.fromMap`/`toPayload` via zard. · camada **testes** · `qa` · **DoD: CUMPRIDO**
+
+  **DoD da tarefa**
+  - `cd app && flutter test -r compact test/modules/transactions_module/data/models/` termina com código de saída `0` e a saída lista `transaction_model_test.dart`.
+  - `app/test/modules/transactions_module/data/models/transaction_model_test.dart` cobre: payload válido devolve `Right(Transaction)`; `amount` como string devolve `Left(ValidationFailure)`; `direction` desconhecida devolve `Left(ValidationFailure)`; `area_id` nulo no mapa é aceito e vira `null` na entidade.
+  - O teste de `toPayload` assere que o mapa devolvido tem exatamente as chaves `direction`, `amount`, `description`, `occurred_at` — sem `user_id` nem `area_id`.
+  - Falha-sem-a-mudança: em `app/lib/modules/transactions_module/data/models/transaction_model.dart`, acrescentar `'user_id'` ao `toPayload` faz o teste que assere o conjunto de chaves falhar; registre a saída vermelha e restaure a árvore.
+
+- [x] **T5.2c** `[paralela · frente core · worktree]` — `CentsInput`, `formatMoney` e `formatTransactionDate`. · camada **testes** · `qa` · **DoD: CUMPRIDO**
+
+  **DoD da tarefa**
+  - `cd app && flutter test -r compact test/core/format/` termina com código de saída `0` e a saída lista `cents_input_test.dart`, `money_formatter_test.dart` e `date_formatter_test.dart`.
+  - `app/test/core/format/cents_input_test.dart` prova o acúmulo de dígitos (`"4500"` → `4500` centavos, nunca via `double`), `backspace` e o teto de 9 dígitos de reais (append que passaria de `99999999999` não muda o valor).
+  - `app/test/core/format/money_formatter_test.dart` prova `formatMoney(4500) == 'R$ 45,00'`, valor negativo com o sinal `−` e valor grande (`R$ 1.234.567,89`) sem arredondamento.
+  - `app/test/core/format/date_formatter_test.dart` prova `formatTransactionDate` devolve `15/08, sexta` no mesmo ano e inclui o ano quando o ano difere do `now`.
+  - Falha-sem-a-mudança: em `app/lib/core/format/cents_input.dart`, trocar `cents * 10 + digit` por `(cents * 10 + digit).toDouble()` faz `cents_input_test.dart` falhar; registre a saída vermelha e restaure a árvore.
+
+- [x] **T5.2d** `[paralela · frente cubit · worktree]` — `NewTransactionCubit` e `TransactionsListCubit` com `bloc_test`. · camada **testes** · `qa` · **DoD: CUMPRIDO**
+
+  **DoD da tarefa**
+  - `cd app && flutter test -r compact test/modules/transactions_module/presentation/new_transaction/ test/modules/transactions_module/presentation/transactions_list/` termina com código de saída `0` e a saída lista `new_transaction_cubit_test.dart` e `transactions_list_cubit_test.dart`.
+  - `app/test/modules/transactions_module/presentation/new_transaction/new_transaction_cubit_test.dart` cobre a sequência exata de `submit`: `NewTransactionIdle → NewTransactionSubmitting → NewTransactionSucceeded`, e o desfecho `NewTransactionIdle → NewTransactionSubmitting → NewTransactionFailed(Failure)`.
+  - `app/test/modules/transactions_module/presentation/transactions_list/transactions_list_cubit_test.dart` cobre os três desfechos de `load`: `TransactionsListLoading → TransactionsListEmpty`, `→ TransactionsListLoaded(...)`, e `→ TransactionsListLoadFailed(Failure)`.
+  - Falha-sem-a-mudança: em `app/lib/modules/transactions_module/presentation/transactions_list/transactions_list_cubit.dart`, trocar o `fold` por um `emit` fixo de `TransactionsListLoaded` faz o caso de `Empty` falhar; registre a saída vermelha e restaure a árvore.
+
+- [x] **T5.2e** `[paralela · frente widget · worktree]` — widget do formulário e do estado vazio da lista. · camada **testes** · `qa` · **DoD: CUMPRIDO**
+
+  **DoD da tarefa**
+  - `cd app && flutter test -r compact test/modules/transactions_module/presentation/` termina com código de saída `0` e a saída lista os testes de widget do formulário e do estado vazio.
+  - O teste de widget do formulário cobre: botão `Registrar` desabilitado com campo inválido, desabilitado durante o envio (`NewTransactionSubmitting`), e o banner de erro visível em `NewTransactionFailed` (falha em estado visualmente distinto).
+  - O teste de widget do estado vazio monta `TransactionsListEmpty` e assere o texto `Nenhuma transação registrada.` visível.
+  - Falha-sem-a-mudança: em `app/lib/modules/transactions_module/presentation/transactions_list/widgets/transactions_list_empty_view.dart`, remover o texto `Nenhuma transação registrada.` faz o teste do estado vazio falhar; registre a saída vermelha e restaure a árvore.
+- [x] **T5.3** — `manter-docs-vivas`: `final_report.md`, roadmap (001 → `[x]`, P5 baixada), `CHANGELOG.md`. · camada **docs** · `qa` · **DoD: CUMPRIDO**
+- [x] **T5.4** — atualizar `changes.md` para cada desvio aprovado durante as · **DoD: CUMPRIDO**
   fases e reconciliar PRD, specs e plano na mesma tarefa. Sem novo desvio, não
   há nova entrada. · `tech-lead`
-- [ ] **T5.5** — **Reescopo do E2E, decidido com a bateria da T5.2 já escrita.**
+- [x] **T5.5** — **Reescopo do E2E, decidido com a bateria da T5.2 já escrita.** · **DoD: CUMPRIDO — supersedida pela D34 (CHG-009)**
   Cena que só assere lógica não precisa de aparelho e paga o preço mais caro do
   projeto: no harness atual cada uma custa ~2,5 min de emulador, contra
   segundos em widget test. Candidatas medidas na rodada 02: campos preservados
@@ -292,11 +331,11 @@ Branch: `feature/GZ-18-testes-cadastro-manual`. **Só começa depois do E2E das 
 
 **DoD da Fase 5**
 
-- [ ] `flutter test -r compact` verde, **incluindo o widget test do formulário e o do estado vazio da lista**. *(linha 5 do DoD do roadmap)*
-- [ ] Os testes de invariante de dinheiro vistos **falhando sem a mudança**: trocar a conversão de centavos por `double.parse(x) * 100` faz o teste do conversor falhar; colar o `FAILED` e restaurar.
-- [ ] O widget test do estado vazio visto falhando quando o texto do estado vazio é removido.
+- [x] `flutter test -r compact` verde, **incluindo o widget test do formulário e o do estado vazio da lista**. *(linha 5 do DoD do roadmap)*
+- [x] Os testes de invariante de dinheiro vistos **falhando sem a mudança**: trocar a conversão de centavos por `double.parse(x) * 100` faz o teste do conversor falhar; colar o `FAILED` e restaurar.
+- [x] O widget test do estado vazio visto falhando quando o texto do estado vazio é removido.
 - [ ] Os quatro jobs do CI verdes no PR.
-- [ ] `docs/roadmap.md` com F0.9 em `[x]` e a **P5** fora da lista de pendências.
+- [x] `docs/roadmap.md` com a feature 001 em `[x]` e a **P5** fora da lista de pendências (fontes versionadas).
 
 ---
 
@@ -326,6 +365,7 @@ Branch: `feature/GZ-18-testes-cadastro-manual`. **Só começa depois do E2E das 
 | X6 | **O E2E pode apontar acidentalmente para HML.** Isso escreveria dados de teste fora do ambiente descartável. | Fases 2, 3 e 4 | `scripts/e2e-local.sh` e os roteiros específicos recusam host não local; `reset` e `down` removem containers, volumes e dados da rodada. |
 | X7 | **O deploy da função pode reiniciar o edge-runtime da HML.** Não é prova de feature e pode indisponibilizar o endpoint por segundos. | Fase 2, T2.5 | O deploy ocorre apenas após merge em `develop`; não há smoke remoto obrigatório nesta rodada. |
 | X8 | **`intl` nunca foi inicializado neste app.** `DateFormat('EEEE', 'pt_BR')` sem `initializeDateFormatting` lança em runtime, e o widget test passaria mesmo assim se o teste inicializar por conta própria. | Fase 3 | Embutido na T3.1, e o print do E2E é o que prova de verdade — um `LocaleDataException` apareceria na tela, não no teste. |
+| X9 | **`isValidAmount` da Edge Function valida só `> 0`, sem teto.** O app (`CentsInput`) limita a 9 dígitos de reais, então é defesa-em-profundidade opcional, não bypass nem vazamento. | financeiro | Conhecida e aceita — achado `[BAIXO]` do gate 1 do CISO (T5.1). |
 
 ---
 
@@ -342,10 +382,12 @@ Legenda: `[ ]` não iniciada · `[-]` em andamento · `[x]` mergeada em `develop
   [`CHG-008`](changes.md#chg-008---evidência-da-rodada-01-precede-o-harness-patrol-local)
   registra como rodada histórica, cuja prova visual a rodada 02 refaz sob o
   harness Patrol local.
-- [-] **Fase 4** — Escrita: formulário → Edge Function · PR 4 — T4.1–T4.7
+- [x] **Fase 4** — Escrita: formulário → Edge Function · PR 4 — T4.1–T4.7
   concluídas. E2E da rodada 02 verde em 30 min 33 s, com as dez cenas e o
   atestado do dev; DoD fechado, PR #20 com os cinco jobs do CI verdes.
   **Ressalva:** o gate do CISO desta fase não deixou veredito registrado — o
   diff de T4.1–T4.6 não tem revisão de segurança documentada, e o D19 do
-  `../decisions.md` veio do gate de uma fase anterior.
-- [ ] **Fase 5** — Bateria automatizada + fechamento · PR 5
+  `../decisions.md` veio do gate de uma fase anterior. **Fechada pelo T5.1**
+  desta fase, que roda o gate 1 do CISO sobre o código consolidado.
+- [-] **Fase 5** — Bateria automatizada + fechamento · PR 5 — em andamento na
+  branch `feature/GZ-18-testes-cadastro-manual`.

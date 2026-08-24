@@ -133,7 +133,7 @@ do cadastro fecha o par. O `report.md` liga cada passo ao PNG e ao log.
 
 ## 8. Dependências e riscos
 
-- **P5 (fontes)** bloqueia a verificação da última linha do DoD. Ver Pergunta P3 do `02_specs.md`.
+- **P5 (fontes)** fechada: as fontes Fraunces e IBM Plex Sans foram versionadas em `app/assets/fonts/`, e os algarismos tabulares passaram a valer.
 - **D3/D7**: o E2E roda exclusivamente na stack local descartável. HML não recebe escrita de teste.
 - **P8 (role dedicado no Postgres)** não bloqueia: a escrita desta etapa usa o JWT do usuário, não uma conexão de serviço.
 - **R1 (escopo)**: o maior risco desta etapa não é técnico. É o formulário crescer — categoria, conta, forma de pagamento, anexo — e a Fase 0 nunca fechar. A régua é o DoD: criada e listada.
