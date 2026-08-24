@@ -55,6 +55,20 @@ void main() {
         (transaction) => expect(transaction.areaId, isNull),
       );
     });
+
+    test('category_id e categories(name) viram a entidade', () {
+      final result = TransactionModel.fromMap({
+        ...validMap,
+        'category_id': 'c1',
+        'categories': {'name': 'Alimentação'},
+      });
+      result.fold((failure) => fail('esperava Right, veio $failure'), (
+        transaction,
+      ) {
+        expect(transaction.categoryId, 'c1');
+        expect(transaction.categoryName, 'Alimentação');
+      });
+    });
   });
 
   group('TransactionModel.toPayload', () {

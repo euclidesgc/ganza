@@ -7,9 +7,9 @@ item canônico está no [`docs/roadmap.md`](../roadmap.md). **Este plano não
 inventa escopo: ele distribui o DoD entre as fases e acrescenta o que falta
 para cada fase se sustentar sozinha.**
 
-Estado: **em andamento** — Fases 1 (`/ingest`) e 2 (`chat_module`) mergeadas ·
-a 002 entregou o pipeline `_shared/` e as tabelas que esta feature consome ·
-**próximo passo: Fase 3 — confirmação.**
+Estado: **em andamento** — Fases 1 (`/ingest`), 2 (`chat_module`) e 3
+(confirmação) mergeadas · a 002 entregou o pipeline `_shared/` e as tabelas que
+esta feature consome · **próximo passo: Fase 4 — `category_hints`.**
 
 ---
 
@@ -216,7 +216,45 @@ mantém pendências de sessões anteriores visíveis.
 
 ### Fase 4 — `category_hints` · PR 4
 
-Correção de categoria do usuário vira lookup na próxima ingestão.
+Branch: `feature/GZ-40-category-hints`. Fecha a última linha do DoD do roadmap:
+a correção de categoria vira **lookup** — `normalize_description(descrição)` →
+`category_hints` → `category_id`, aplicado **sem modelo** (plano §6.2, FD-011,
+FD-003). O modelo não ganha campo de categoria nesta fase (CHG-001): transação
+sem hint nasce `category_id = null` até a primeira correção.
+
+**Tarefas**
+
+- [x] **T4.1** — Migration `supabase/migrations/0012_criar_categorias_e_category_hints.sql`: cria `categories` (por usuário, RLS, `unique (user_id, lower(btrim(name)))`), `transactions.category_id` (`on delete set null`) e `category_hints` (`normalized_description` com charset `[a-z0-9 ]{1,64}`, `unique (user_id, normalized_description)`, RLS); semeia oito categorias padrão no signup e faz backfill para quem já existia. · camada **banco** · `especialista-dados` · **DoD: CUMPRIDO**
+
+  **DoD da tarefa**
+  - A migration aplica limpo num banco vazio: `docker run supabase/postgres:15.8.1.085` + `supabase/ci-bootstrap.sql` + todas as `supabase/migrations/*.sql` em ordem saem sem erro, e as três checagens do job "Banco" (toda tabela de `public` com RLS, toda tabela com RLS tem política, toda política chama `auth.uid()`/`current_setting()` dentro de `(select ...)`) devolvem **vazio**.
+  - O signup semeia 8 categorias e 4 áreas: `insert into auth.users` dispara `handle_new_user` e `select count(*)` em `categories`/`areas` devolve `8`/`4`.
+  - `category_hints.normalized_description` tem `check (normalized_description ~ '^[a-z0-9 ]{1,64}$')` — a chave é texto inerte (FD-011), nunca instrução.
+  - `transactions.category_id` é `uuid null references categories on delete set null` — a FK não respeita RLS (D13), então a posse é provada no código que escreve, não na FK.
+
+- [x] **T4.2** — Backend: novo `supabase/functions/_shared/ai/resolve_category.ts` (`normalize_description` → `category_hints`, RLS-scoped, devolve `category_id` ou `null`); `confirmProposal` resolve a categoria e a copia para `transactions` sem aceitar `category_id` do payload; nova Edge Function `supabase/functions/categorize/` que corrige a categoria de uma transação (atualiza `transactions.category_id` + upsert de `category_hints` com `hits = hits + 1`), com JWT do usuário. · camada **backend** · `especialista-backend` · **DoD: CUMPRIDO**
+
+  **DoD da tarefa**
+  - `supabase/functions/_shared/ai/resolve_category_test.ts` prova que descrição sem hint devolve `null` e com hint devolve o `category_id`; `resolve_category` usa `normalizeDescription` e consulta `category_hints` por `(user_id, normalized_description)` — **falha sem a mudança**.
+  - `proposal_writer_test.ts` (confirmProposal) prova que a transação inserida ganha o `category_id` do hint e que um payload com `category_id` vindo do modelo é rejeitado (`parseProposals` continua proibindo a chave) — o `category_id` gravado nunca vem da saída do modelo.
+  - `supabase/functions/categorize/handler_test.ts` prova `405`/`401`/`400` (JSON inválido, `transaction_id`/`category_id` inválidos)/`404` (transação ou categoria alheia) e o caminho feliz (atualiza a transação e faz upsert do hint) — com `fetch` stubado; cada caso **falha sem a mudança**.
+  - `categorize` usa **só o JWT do usuário** (RLS decide dono da transação e da categoria): `rtk proxy grep -cE "SERVICE_ROLE" supabase/functions/categorize/handler.ts` imprime `0`, e `categorize` não está em `FUNCOES_COM_SERVICE_ROLE`.
+  - `deno fmt --check`, `deno lint`, `deno task check` e `deno task test` saem `0`; `categorize` entra na task `check` do `deno.json`.
+
+- [x] **T4.3** — App: a lista de transações mostra a categoria (ou "sem categoria") e permite trocar por um seletor das categorias do usuário (PostgREST); trocar chama o endpoint `categorize` e refaz a leitura (mesmo padrão da listagem). · camada **app** · `especialista-apresentacao` · **DoD: CUMPRIDO**
+
+  **DoD da tarefa**
+  - `app/lib/modules/transactions_module` ganha `Category`/`CategoriesRepository`/`CategorizeTransaction` e o `TransactionsRepository` ganha `categorize(transactionId, categoryId)` — domain puro, data só com Supabase (`functions.invoke('categorize')` e leitura de `categories`), use cases; `rtk proxy grep -rE "flutter|supabase|dio" app/lib/modules/transactions_module/domain` devolve `0`.
+  - A linha da transação mostra a categoria atual e o seletor; `app/test/modules/transactions_module/presentation/transactions_list/widgets/transaction_row_test.dart` prova o estado "sem categoria" e o nome, e que selecionar uma categoria chama `categorize('t1', id)` — **falha sem a mudança**.
+  - `flutter analyze` em `app/` sai `0`; `dart format --output=none --set-exit-if-changed .` sai `0`; `bash scripts/gates_guard.sh` imprime "limpos em app/lib"; `flutter test -r compact` verde — **137 testes**.
+
+**DoD da Fase 4**
+
+- [x] `cd supabase/functions && deno task test` verde — **93 testes**, incluindo `resolve_category_test.ts` (4) e `categorize/handler_test.ts` (8).
+- [x] `cd app && flutter test -r compact` verde — **137 testes**; `flutter analyze` sai `0`.
+- [ ] Jobs "Banco" (migration 0012 aplica limpo + gates de RLS), "App" e "Edge Functions" verdes no CI do PR.
+
+---
 
 ### Fase 5 — Bateria automatizada e fechamento · PR 5
 
@@ -254,6 +292,6 @@ Legenda das fases: `[ ]` não iniciada · `[-]` em andamento · `[x]` mergeada e
 
 - [x] **Fase 1** — Edge Function `/ingest` · PR 1
 - [x] **Fase 2** — Chat no app · PR 2
-- [-] **Fase 3** — Confirmação · PR 3
-- [ ] **Fase 4** — `category_hints` · PR 4
+- [x] **Fase 3** — Confirmação · PR 3
+- [-] **Fase 4** — `category_hints` · PR 4
 - [ ] **Fase 5** — Bateria automatizada e fechamento · PR 5

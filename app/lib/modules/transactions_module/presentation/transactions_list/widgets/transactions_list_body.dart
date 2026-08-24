@@ -21,16 +21,20 @@ class TransactionsListBody extends StatelessWidget {
           message: failure.message,
         ),
         TransactionsListEmpty() => const TransactionsListEmptyView(),
-        TransactionsListLoaded(:final transactions) => ListView(
-          padding: const EdgeInsets.all(AppSpacing.md),
-          children: [
-            for (final transaction in transactions)
-              Padding(
-                padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                child: TransactionRow(transaction: transaction),
-              ),
-          ],
-        ),
+        TransactionsListLoaded(:final transactions, :final categories) =>
+          ListView(
+            padding: const EdgeInsets.all(AppSpacing.md),
+            children: [
+              for (final transaction in transactions)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                  child: TransactionRow(
+                    transaction: transaction,
+                    categories: categories,
+                  ),
+                ),
+            ],
+          ),
       },
     );
   }

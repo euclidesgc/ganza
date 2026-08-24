@@ -23,7 +23,8 @@ class TransactionsRepositoryImpl implements TransactionsRepository {
           .from('transactions')
           .select(
             'id, area_id, direction, amount, description, occurred_at, '
-            'source, reconciliation_status, created_at, updated_at',
+            'source, reconciliation_status, created_at, updated_at, '
+            'category_id, categories(name)',
           )
           .order('occurred_at', ascending: false)
           .order('created_at', ascending: false);
@@ -58,6 +59,22 @@ class TransactionsRepositoryImpl implements TransactionsRepository {
         body: TransactionModel.toPayload(transaction),
       );
       return TransactionModel.fromMap(response.data as Map<String, dynamic>);
+    } catch (error) {
+      return Left(failureFromException(error));
+    }
+  }
+
+  @override
+  Future<Either<Failure, Unit>> categorize(
+    String transactionId,
+    String categoryId,
+  ) async {
+    try {
+      await _client.functions.invoke(
+        'categorize',
+        body: {'transaction_id': transactionId, 'category_id': categoryId},
+      );
+      return const Right(unit);
     } catch (error) {
       return Left(failureFromException(error));
     }

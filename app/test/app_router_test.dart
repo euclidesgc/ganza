@@ -24,7 +24,10 @@ import 'package:ganza/modules/settings_module/presentation/ai/settings_ai_page.d
 import 'package:ganza/modules/settings_module/presentation/bank/bank_settings_cubit.dart';
 import 'package:ganza/modules/settings_module/presentation/bank/settings_bank_page.dart';
 import 'package:ganza/modules/settings_module/settings_module.dart';
+import 'package:ganza/modules/transactions_module/domain/entities/category.dart';
 import 'package:ganza/modules/transactions_module/domain/entities/transaction.dart';
+import 'package:ganza/modules/transactions_module/domain/usecases/categorize_transaction.dart';
+import 'package:ganza/modules/transactions_module/domain/usecases/list_categories.dart';
 import 'package:ganza/modules/transactions_module/domain/usecases/list_transactions.dart';
 import 'package:ganza/modules/transactions_module/presentation/transactions_list/transactions_list_cubit.dart';
 import 'package:ganza/modules/transactions_module/presentation/transactions_list/transactions_list_page.dart';
@@ -39,6 +42,11 @@ class _MockGetCurrentUser extends Mock implements GetCurrentUser {}
 class _MockListActiveAreas extends Mock implements ListActiveAreas {}
 
 class _MockListTransactions extends Mock implements ListTransactions {}
+
+class _MockListCategories extends Mock implements ListCategories {}
+
+class _MockCategorizeTransaction extends Mock
+    implements CategorizeTransaction {}
 
 class _MockGetUserProfile extends Mock implements GetUserProfile {}
 
@@ -94,6 +102,12 @@ void main() {
       () => listTransactions(),
     ).thenAnswer((_) async => const Right(<Transaction>[]));
 
+    final listCategories = _MockListCategories();
+    when(
+      () => listCategories(),
+    ).thenAnswer((_) async => const Right(<Category>[]));
+    final categorizeTransaction = _MockCategorizeTransaction();
+
     final getUserProfile = _MockGetUserProfile();
     final updateDisplayName = _MockUpdateDisplayName();
     when(() => getUserProfile()).thenAnswer(
@@ -128,7 +142,17 @@ void main() {
       ..registerLazySingleton<ListActiveAreas>(() => listActiveAreas)
       ..registerFactory(() => AreasCubit(getIt<ListActiveAreas>()))
       ..registerLazySingleton<ListTransactions>(() => listTransactions)
-      ..registerFactory(() => TransactionsListCubit(getIt<ListTransactions>()))
+      ..registerLazySingleton<ListCategories>(() => listCategories)
+      ..registerLazySingleton<CategorizeTransaction>(
+        () => categorizeTransaction,
+      )
+      ..registerFactory(
+        () => TransactionsListCubit(
+          getIt<ListTransactions>(),
+          getIt<ListCategories>(),
+          getIt<CategorizeTransaction>(),
+        ),
+      )
       ..registerLazySingleton<GetUserProfile>(() => getUserProfile)
       ..registerLazySingleton<UpdateDisplayName>(() => updateDisplayName)
       ..registerFactory(

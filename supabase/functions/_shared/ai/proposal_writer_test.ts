@@ -2,8 +2,12 @@ import { assertEquals } from '@std/assert';
 import { confirmProposal, writeProposals } from './proposal_writer.ts';
 import corpus from './testdata/injection_corpus.json' with { type: 'json' };
 
-// deno-lint-ignore no-explicit-any
-function fakeSupabase(proposal?: any): { supabase: any; inserts: Record<string, unknown>[] } {
+function fakeSupabase(
+  // deno-lint-ignore no-explicit-any
+  proposal?: any,
+  hintCategoryId: string | null = null,
+  // deno-lint-ignore no-explicit-any
+): { supabase: any; inserts: Record<string, unknown>[] } {
   const inserts: Record<string, unknown>[] = [];
 
   // deno-lint-ignore no-explicit-any
@@ -21,7 +25,15 @@ function fakeSupabase(proposal?: any): { supabase: any; inserts: Record<string, 
 
   const supabase = {
     from: (table: string) => ({
-      select: () => builder(proposal ?? null),
+      select: () => {
+        if (table === 'category_hints') {
+          return builder(hintCategoryId ? { category_id: hintCategoryId } : null);
+        }
+        if (table === 'categories') {
+          return builder(hintCategoryId ? { id: hintCategoryId } : null);
+        }
+        return builder(proposal ?? null);
+      },
       insert: (rows: unknown) => {
         const list = Array.isArray(rows) ? rows : [rows];
         for (const row of list) inserts.push({ table, ...(row as object) });
@@ -81,6 +93,39 @@ Deno.test('confirmProposal monta a linha final por allowlist', async () => {
   assertEquals('user_id' in (transaction ?? {}), false);
   assertEquals('note' in (transaction ?? {}), false);
   assertEquals((transaction ?? {}).description, 'almoço');
+});
+
+Deno.test('confirmProposal copia a categoria do hint para a transação', async () => {
+  const { supabase, inserts } = fakeSupabase(
+    {
+      id: 'p1',
+      status: 'pending',
+      kind: 'create_transaction',
+      payload: { direction: 'out', amount: 4500, description: 'almoço no bar' },
+    },
+    'c1',
+  );
+  const result = await confirmProposal(supabase, 'p1');
+  assertEquals(result.ok, true);
+  const transaction = inserts.find((row) => row.table === 'transactions');
+  assertEquals((transaction ?? {}).category_id, 'c1');
+});
+
+Deno.test('confirmProposal rejeita category_id vindo do payload', async () => {
+  const { supabase } = fakeSupabase({
+    id: 'p1',
+    status: 'pending',
+    kind: 'create_transaction',
+    payload: {
+      direction: 'out',
+      amount: 4500,
+      description: 'x',
+      category_id: 'c9',
+    },
+  });
+  const result = await confirmProposal(supabase, 'p1');
+  assertEquals(result.ok, false);
+  if (!result.ok) assertEquals(result.code, 'payload_invalido');
 });
 
 Deno.test('confirmar duas vezes devolve proposta_nao_pendente', async () => {

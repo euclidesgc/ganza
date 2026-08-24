@@ -8,4 +8,9 @@ abstract interface class TransactionsRepository {
   Future<Either<Failure, List<Transaction>>> list();
 
   Future<Either<Failure, Transaction>> create(NewTransaction transaction);
+
+  Future<Either<Failure, Unit>> categorize(
+    String transactionId,
+    String categoryId,
+  );
 }

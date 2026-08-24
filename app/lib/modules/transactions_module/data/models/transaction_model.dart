@@ -22,7 +22,10 @@ abstract final class TransactionModel {
     'reconciliation_status': z.string(),
     'created_at': z.string(),
     'updated_at': z.string(),
+    'category_id': z.string().optional(),
   });
+
+  static final _categorySchema = z.map({'name': z.string()});
 
   static Either<Failure, Transaction> fromMap(Map<String, dynamic> map) {
     final result = _schema.safeParse(_withoutNulls(map));
@@ -55,6 +58,8 @@ abstract final class TransactionModel {
         reconciliationStatus: data['reconciliation_status'] as String,
         createdAt: createdAt.toUtc(),
         updatedAt: updatedAt.toUtc(),
+        categoryId: data['category_id'] as String?,
+        categoryName: _categoryName(map['categories']),
       ),
     );
   }
@@ -76,6 +81,13 @@ abstract final class TransactionModel {
       if (direction.wireValue == wireValue) return direction;
     }
     return null;
+  }
+
+  static String? _categoryName(dynamic raw) {
+    if (raw is! Map) return null;
+    final result = _categorySchema.safeParse(Map<String, dynamic>.from(raw));
+    if (!result.success || result.data == null) return null;
+    return result.data!['name'] as String;
   }
 
   /// O `.nullable()` do zard 0.0.26 não aceita `null` de fato — só `.optional()`

@@ -1,6 +1,10 @@
+export 'entities/category.dart';
 export 'entities/new_transaction.dart';
 export 'entities/transaction.dart';
 export 'entities/transaction_direction.dart';
+export 'repositories/categories_repository.dart';
 export 'repositories/transactions_repository.dart';
+export 'usecases/categorize_transaction.dart';
 export 'usecases/create_transaction.dart';
+export 'usecases/list_categories.dart';
 export 'usecases/list_transactions.dart';

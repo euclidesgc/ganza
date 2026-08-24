@@ -14,6 +14,8 @@ class Transaction extends Equatable {
     required this.reconciliationStatus,
     required this.createdAt,
     required this.updatedAt,
+    this.categoryId,
+    this.categoryName,
   });
 
   final String id;
@@ -26,32 +28,8 @@ class Transaction extends Equatable {
   final String reconciliationStatus;
   final DateTime createdAt;
   final DateTime updatedAt;
-
-  Transaction copyWith({
-    String? id,
-    String? Function()? areaId,
-    TransactionDirection? direction,
-    int? amount,
-    String? description,
-    DateTime? occurredAt,
-    String? source,
-    String? reconciliationStatus,
-    DateTime? createdAt,
-    DateTime? updatedAt,
-  }) {
-    return Transaction(
-      id: id ?? this.id,
-      areaId: areaId != null ? areaId() : this.areaId,
-      direction: direction ?? this.direction,
-      amount: amount ?? this.amount,
-      description: description ?? this.description,
-      occurredAt: occurredAt ?? this.occurredAt,
-      source: source ?? this.source,
-      reconciliationStatus: reconciliationStatus ?? this.reconciliationStatus,
-      createdAt: createdAt ?? this.createdAt,
-      updatedAt: updatedAt ?? this.updatedAt,
-    );
-  }
+  final String? categoryId;
+  final String? categoryName;
 
   @override
   List<Object?> get props => [
@@ -65,5 +43,7 @@ class Transaction extends Equatable {
     reconciliationStatus,
     createdAt,
     updatedAt,
+    categoryId,
+    categoryName,
   ];
 }
