@@ -12,7 +12,9 @@ function fakeSupabase(proposal?: any): { supabase: any; inserts: Record<string, 
       data,
       error: null,
       eq: () => b,
+      select: () => b,
       maybeSingle: () => Promise.resolve({ data, error: null }),
+      single: () => Promise.resolve({ data: { id: 't1' }, error: null }),
     };
     return b;
   }
@@ -23,7 +25,7 @@ function fakeSupabase(proposal?: any): { supabase: any; inserts: Record<string, 
       insert: (rows: unknown) => {
         const list = Array.isArray(rows) ? rows : [rows];
         for (const row of list) inserts.push({ table, ...(row as object) });
-        return Promise.resolve({ error: null });
+        return builder(null);
       },
       update: (row: Record<string, unknown>) => {
         inserts.push({ table, update: row });

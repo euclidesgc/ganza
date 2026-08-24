@@ -7,9 +7,9 @@ item canônico está no [`docs/roadmap.md`](../roadmap.md). **Este plano não
 inventa escopo: ele distribui o DoD entre as fases e acrescenta o que falta
 para cada fase se sustentar sozinha.**
 
-Estado: **em andamento** — Fase 1 (`/ingest`) mergeada · a 002 entregou o
-pipeline `_shared/` e as tabelas que esta feature consome · **próximo passo:
-Fase 2 — chat no app (`chat_module`).**
+Estado: **em andamento** — Fases 1 (`/ingest`) e 2 (`chat_module`) mergeadas ·
+a 002 entregou o pipeline `_shared/` e as tabelas que esta feature consome ·
+**próximo passo: Fase 3 — confirmação.**
 
 ---
 
@@ -164,7 +164,55 @@ mostra os cards de proposta.
 
 ### Fase 3 — Confirmação · PR 3
 
-Endpoint de confirmação + card confirmar/cancelar + refetch.
+Branch: `feature/GZ-39-confirmacao`. Fecha a invariante nº 1: a proposta pendente
+só vira registro com **confirmação explícita** (confirmar) ou morre **cancelada**
+(cancelar). A fonte de verdade dos cards deixa de ser a resposta do `/ingest` e
+passa a ser a leitura de `proposed_actions` (status `pending`) por PostgREST —
+mesmo padrão da `transactions_list` —, o que dá `id` ao card para confirmar e
+mantém pendências de sessões anteriores visíveis.
+
+**Tarefas**
+
+- [x] **T3.1** — Backend: nova Edge Function `supabase/functions/proposals/`
+  (`index.ts` só `Deno.serve(handler)`, `handler.ts` exportado) que recebe
+  `{ "proposal_id": "uuid", "action": "confirm" | "cancel" }`, usa **só o JWT do
+  usuário** (RLS decide dono, sem `service_role`), chama `confirmProposal` ou o
+  novo `cancelProposal` de `_shared/ai/proposal_writer.ts`, e devolve `200 { status,
+  proposal_id }` ou o erro correspondente; `confirmProposal` passa a gravar
+  `resulting_id`/`resulting_type` no `proposed_actions`. · camada **backend** ·
+  `especialista-backend` · **DoD: CUMPRIDO**
+
+  **DoD da tarefa**
+  - `supabase/functions/proposals/index.ts` contém só `Deno.serve(handler)`; `deno check supabase/functions/proposals/index.ts supabase/functions/proposals/handler.ts` sai `0`, e `proposals` está na task `check` do `supabase/functions/deno.json`.
+  - `supabase/functions/proposals/handler_test.ts` prova `405` fora de POST, `401` sem `Authorization`, `400` com JSON inválido/`action` fora de `confirm`/`cancel`/`proposal_id` ausente, `404 proposta_nao_encontrada`, `409 proposta_nao_pendente`, o caminho feliz de `confirm` (insere em `transactions` e grava `status='confirmed'` + `resulting_id`) e o de `cancel` (`status='cancelled'`) — com `fetch` stubado; cada caso **falha sem a mudança** (reverter o guard faz o caso falhar).
+  - A confirmação **revalida** o payload por allowlist (`parseProposals`) antes de inserir em `transactions`, e o `cancel` não insere nada em `transactions`: `rtk proxy grep -cE "from\\('transactions'" supabase/functions/proposals/handler.ts` imprime `0` (a inserção fica só em `_shared/ai/proposal_writer.ts`), e o teste de cancel assere a ausência de `insert` em `transactions`.
+  - `proposals` **não** está em `FUNCOES_COM_SERVICE_ROLE` de `supabase/functions/main/env.ts` — o handler não lê `Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')`; `rtk proxy grep -cE "SERVICE_ROLE" supabase/functions/proposals/handler.ts` imprime `0`.
+  - `deno fmt --check`, `deno lint` e `deno task check` saem `0`.
+
+- [ ] **T3.2** — App domain+data: `ChatProposal` ganha `id`/`sequence`/`status`; `ChatRepository` ganha `listPending()`, `confirm(id)`, `cancel(id)`; `ChatProposalModel` com `safeParse` (zard) lendo a linha de `proposed_actions`; `ChatRepositoryImpl` lê por PostgREST e confirma/cancela via `functions.invoke('proposals')`; use cases `ListPendingProposals`, `ConfirmProposal`, `CancelProposal`. · camada **app** · `especialista-dados`
+
+  **DoD da tarefa**
+  - `app/test/modules/chat_module/data/repositories/chat_repository_impl_test.dart` (ou o teste do model) passa e **falha sem a mudança**: `ChatProposalModel.safeParse` rejeita linha sem `id` ou sem `kind` (mutação vista vermelha).
+  - `ChatRepositoryImpl.listPending` consulta `proposed_actions` (`.eq('status','pending')`) via `SupabaseClient` e o `confirm`/`cancel` chamam `functions.invoke('proposals', body: {'proposal_id': id, 'action': ...})` — provado por teste com `SupabaseClient`/`FunctionsClient` mockados (mocktail).
+  - O domínio continua Dart puro e o `data/` é o único lugar com try/catch: `rtk proxy grep -rE "flutter|supabase|dio" app/lib/modules/chat_module/domain` devolve `0` e `rtk proxy grep -rn "try" app/lib/modules/chat_module/domain` devolve `0`.
+  - `flutter analyze` em `app/` sai `0`; `dart format --output=none --set-exit-if-changed .` sai `0`.
+
+- [ ] **T3.3** — App presentation: `ChatCubit` passa a carregar os pendentes por PostgREST ao abrir e a refazer a leitura após enviar/confirmar/cancelar; `ChatProposalCard` ganha botões **Confirmar**/**Cancelar** (não editáveis) que chamam o cubit; widget test prova a cadeia visível confirmar → card some e cancelar → card some. · camada **app** · `especialista-apresentacao`
+
+  **DoD da tarefa**
+  - `app/test/modules/chat_module/presentation/chat/chat_page_test.dart` (ou `chat_cubit_test.dart`) prova, via `whenListen`/`BlocProvider.value`, cada estado do `sealed` (Loading/Loaded/Empty/Failed) e que confirmar um card o remove da lista (refetch sem o `id`) — **falha sem a mudança** (sem o `confirm` no cubit, o card não some).
+  - O card tem exatamente dois controles **Confirmar**/**Cancelar** e nenhum campo de texto editável: o widget test localiza os botões por rótulo e assere que não há `TextField` dentro do `ChatProposalCard`.
+  - Confirmar/cancelar desabilita os botões durante a operação (estado de voo) — provado por widget test com o use case pendente, botão com `onPressed` nulo.
+  - `flutter analyze` em `app/` sai `0`; `dart format --output=none --set-exit-if-changed .` sai `0`; `bash scripts/gates_guard.sh` imprime "limpos em app/lib".
+
+**DoD da Fase 3**
+
+- [ ] `cd supabase/functions && deno task test` verde, incluindo `proposals/handler_test.ts`.
+- [ ] `cd app && flutter test -r compact` verde.
+- [ ] `cd app && flutter analyze` sai `0`; `deno fmt --check`/`deno lint`/`deno task check` em `supabase/functions` saem `0`.
+- [ ] Jobs "App" e "Edge Functions" verdes no CI do PR.
+
+---
 
 ### Fase 4 — `category_hints` · PR 4
 
@@ -205,7 +253,7 @@ Legenda das fases: `[ ]` não iniciada · `[-]` em andamento · `[x]` mergeada e
 `supervisor-dod`, no campo `DoD:` da própria linha.
 
 - [x] **Fase 1** — Edge Function `/ingest` · PR 1
-- [-] **Fase 2** — Chat no app · PR 2
-- [ ] **Fase 3** — Confirmação · PR 3
+- [x] **Fase 2** — Chat no app · PR 2
+- [-] **Fase 3** — Confirmação · PR 3
 - [ ] **Fase 4** — `category_hints` · PR 4
 - [ ] **Fase 5** — Bateria automatizada e fechamento · PR 5
