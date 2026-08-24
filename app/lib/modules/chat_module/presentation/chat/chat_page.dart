@@ -1,14 +1,43 @@
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../../core/widgets/widgets.dart';
+import '../../../../injection.dart';
+import 'chat_cubit.dart';
+import 'widgets/chat_composer.dart';
+import 'widgets/chat_proposal_card.dart';
 
 class ChatPage extends StatelessWidget {
   const ChatPage({super.key});
 
   static Widget pageBuilder(BuildContext context, GoRouterState state) =>
-      const ChatPage();
+      BlocProvider(create: (_) => getIt<ChatCubit>(), child: const ChatPage());
 
   @override
-  Widget build(BuildContext context) => const PlaceholderBody(title: 'Chat');
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Expanded(
+          child: BlocBuilder<ChatCubit, ChatState>(
+            builder: (context, state) => switch (state) {
+              ChatSucceeded(proposals: final proposals)
+                  when proposals.isEmpty =>
+                const Center(child: Text('Nenhum registro proposto.')),
+              ChatSucceeded(proposals: final proposals) => ListView.builder(
+                itemCount: proposals.length,
+                itemBuilder: (context, index) =>
+                    ChatProposalCard(proposal: proposals[index]),
+              ),
+              ChatFailed(failure: final failure) => Center(
+                child: Text(failure.message),
+              ),
+              _ => const SizedBox.shrink(),
+            },
+          ),
+        ),
+        const ChatComposer(),
+      ],
+    );
+  }
 }
