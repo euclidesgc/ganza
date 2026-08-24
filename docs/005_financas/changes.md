@@ -6,7 +6,16 @@ feature.
 
 ## Mudanças registradas
 
-Nenhuma mudança registrada.
+### CHG-001 - A Fase 4 entrega o OFX; faturas, cartão-benefício e correção ficam para depois
+
+- **Data:** 2026-08-24
+- **Fase/PR:** Fase 4.
+- **Planejado originalmente:** "Pluggy/OFX (FD-021), faturas de cartão, cartão-benefício, telas de correção e fechamento".
+- **Por que não foi possível prosseguir:** a Fase 4 acumulava três superfícies grandes (importação de extrato, faturas de cartão e telas de correção) num PR só, quando o núcleo do objetivo — "obter meus dados bancários" — é servido pela importação de extrato sozinha.
+- **Alternativas consideradas:** (a) manter o escopo original e abrir um PR gigante; (b) entregar o OFX + fechamento e adiar faturas/cartão-benefício/correção.
+- **Decisão tomada:** (b). A Fase 4 entrega o parser OFX + `/import-ofx` + fechamento; faturas de cartão, cartão-benefício e telas de correção entram numa fase posterior (registrado no PRD §5).
+- **Resumo da resolução:** o "obter dados bancários" fica completo e o conciliador da Fase 3 passa a ter movimento real para casar.
+- **Reconciliação documental:** `01_prd.md` §5 e `03_plan.md` Fase 4 neste arquivo.
 
 ## Modelo de registro
 

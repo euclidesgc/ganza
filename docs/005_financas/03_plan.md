@@ -157,10 +157,42 @@ dias** (a mais próxima vence); o valor do banco é canônico.
 
 ---
 
-### Fase 4 — Sincronização bancária, faturas e correção · PR 4
+### Fase 4 — Sincronização bancária (OFX) e fechamento · PR 4
 
-Pluggy/OFX (FD-021), faturas de cartão, cartão-benefício, telas de correção e
-fechamento (bateria + docs vivas; roadmap 005 `[x]`).
+Branch: `feature/GZ-49-sync-ofx`. Entrega o "obter meus dados bancários" pelo
+caminho **OFX** (FD-021): parser determinístico + importação que cria os
+movimentos `bank_sync` (deduplicados), prontos para o conciliador da Fase 3.
+Faturas de cartão, cartão-benefício e telas de correção ficam para depois
+(CHG-001).
+
+**Tarefas**
+
+- [x] **T4.1** — `supabase/functions/_shared/ofx.ts` + `ofx_test.ts`: `parseOfx(raw)` determinístico (extrai `DTPOSTED`/`TRNAMT`/`FITID`/`MEMO`, normaliza data e converte valor para centavos com sinal). · camada **backend** · `especialista-backend` · **DoD: CUMPRIDO**
+
+  **DoD da tarefa**
+  - `ofx_test.ts` prova a extração de múltiplos `STMTTRN` (SGML e XML), a data `YYYYMMDD` → `YYYY-MM-DD` e o valor decimal → centavos com sinal — **falha sem a mudança**.
+  - `deno fmt --check`, `deno lint` e `deno task check` saem `0`.
+
+- [x] **T4.2** — Migration `0016_adicionar_external_id_transactions.sql` (`external_id text` + `unique (user_id, external_id)`) e Edge Function `supabase/functions/import-ofx/` (`POST { ofx }`): parseia, cria as transações `bank_sync` (direção pelo sinal, valor absoluto em centavos) e **deduplica** por `external_id`. · camadas **banco**+**backend** · `especialista-backend` · **DoD: CUMPRIDO**
+
+  **DoD da tarefa**
+  - A migration aplica limpo (docker + todas as migrations) e os 3 gates do job "Banco" devolvem **vazio**.
+  - `import-ofx/handler_test.ts` prova `405`/`401`/`400` (OFX inválido) e o caminho feliz (cria N transações `bank_sync` com `external_id`) e a deduplicação (reimportar não duplica) — **falha sem a mudança**.
+  - `import-ofx` usa **só o JWT do usuário**: `rtk proxy grep -cE "SERVICE_ROLE" supabase/functions/import-ofx/handler.ts` imprime `0`.
+  - `deno fmt --check`, `deno lint`, `deno task check` e `deno task test` saem `0`.
+
+- [x] **T4.3** — Fechamento: bateria (golden do card de compromisso), docs vivas e roadmap `005` `[x]`. · camadas **app**+**docs** · `qa`/`tech-lead` · **DoD: CUMPRIDO**
+
+  **DoD da tarefa**
+  - Golden do card de compromisso (com e sem simulação) com fonte real; `flutter analyze` e `flutter test -r compact` verdes.
+  - `docs/005_financas/01_prd.md`/`02_specs.md` descrevem o estado final; `docs/roadmap.md` marca `- [x] 005 - Finanças e conciliação`.
+  - `bash scripts/verify-gauntlet.sh` sai `✓` com a 005 `[x]`.
+
+**DoD da Fase 4**
+
+- [ ] `cd supabase/functions && deno task test` verde, incluindo `ofx_test.ts` e `import-ofx/handler_test.ts`.
+- [ ] `cd app && flutter test -r compact` verde; `flutter analyze` sai `0`.
+- [ ] Jobs "Banco", "App" e "Edge Functions" verdes no CI do PR.
 
 ---
 
@@ -183,5 +215,5 @@ Legenda das fases: `[ ]` não iniciada · `[-]` em andamento · `[x]` mergeada e
 
 - [x] **Fase 1** — `/finance-math` e compromissos · PR 1
 - [x] **Fase 2** — App: compromissos e dashboard · PR 2
-- [-] **Fase 3** — Conciliação · PR 3
-- [ ] **Fase 4** — Sincronização, faturas e correção · PR 4
+- [x] **Fase 3** — Conciliação · PR 3
+- [-] **Fase 4** — Sincronização bancária (OFX) e fechamento · PR 4
