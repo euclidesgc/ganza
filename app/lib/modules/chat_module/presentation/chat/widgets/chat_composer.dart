@@ -29,8 +29,12 @@ class _ChatComposerState extends State<ChatComposer> {
 
   @override
   Widget build(BuildContext context) {
-    final sending = context.select<ChatCubit, bool>(
-      (cubit) => cubit.state is ChatSending,
+    final busy = context.select<ChatCubit, bool>(
+      (cubit) => switch (cubit.state) {
+        ChatLoading() => true,
+        ChatReady(sending: final sending) => sending,
+        ChatFailed() => false,
+      },
     );
 
     return Padding(
@@ -49,7 +53,7 @@ class _ChatComposerState extends State<ChatComposer> {
           ),
           const SizedBox(width: AppSpacing.sm),
           FilledButton(
-            onPressed: sending ? null : _send,
+            onPressed: busy ? null : _send,
             style: FilledButton.styleFrom(
               minimumSize: const Size(0, AppSpacing.touchTarget),
             ),

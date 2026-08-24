@@ -9,7 +9,10 @@ import 'package:ganza/injection.dart';
 import 'package:ganza/modules/auth_module/auth_module.dart';
 import 'package:ganza/modules/chat_module/chat_module.dart';
 import 'package:ganza/modules/chat_module/domain/repositories/chat_repository.dart';
+import 'package:ganza/modules/chat_module/domain/usecases/cancel_proposal.dart';
+import 'package:ganza/modules/chat_module/domain/usecases/confirm_proposal.dart';
 import 'package:ganza/modules/chat_module/domain/usecases/ingest_message.dart';
+import 'package:ganza/modules/chat_module/domain/usecases/list_pending_proposals.dart';
 import 'package:ganza/modules/chat_module/presentation/chat/chat_cubit.dart';
 import 'package:ganza/modules/chat_module/presentation/chat/chat_page.dart';
 import 'package:ganza/modules/settings_module/domain/domain.dart';
@@ -61,6 +64,9 @@ void main() {
     when(() => getCredential()).thenAnswer((_) async => const Right(null));
 
     final chatRepository = _MockChatRepository();
+    when(
+      () => chatRepository.listPending(),
+    ).thenAnswer((_) async => const Right([]));
 
     getIt
       ..registerLazySingleton<ObserveCurrentUser>(() => observeCurrentUser)
@@ -72,7 +78,17 @@ void main() {
       ..registerLazySingleton<SaveAiCredential>(() => saveCredential)
       ..registerLazySingleton<ChatRepository>(() => chatRepository)
       ..registerFactory(() => IngestMessage(getIt<ChatRepository>()))
-      ..registerFactory(() => ChatCubit(getIt<IngestMessage>()))
+      ..registerFactory(() => ListPendingProposals(getIt<ChatRepository>()))
+      ..registerFactory(() => ConfirmProposal(getIt<ChatRepository>()))
+      ..registerFactory(() => CancelProposal(getIt<ChatRepository>()))
+      ..registerFactory(
+        () => ChatCubit(
+          getIt<IngestMessage>(),
+          getIt<ListPendingProposals>(),
+          getIt<ConfirmProposal>(),
+          getIt<CancelProposal>(),
+        ),
+      )
       ..registerFactory(
         () => AiSettingsCubit(
           getIt<GetAiProviderKinds>(),

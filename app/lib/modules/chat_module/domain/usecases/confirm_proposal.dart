@@ -3,11 +3,11 @@ import 'package:fpdart/fpdart.dart';
 import '../../../../core/error/failure.dart';
 import '../repositories/chat_repository.dart';
 
-class IngestMessage {
-  const IngestMessage(this._repository);
+class ConfirmProposal {
+  const ConfirmProposal(this._repository);
 
   final ChatRepository _repository;
 
-  Future<Either<Failure, Unit>> call(String content) =>
-      _repository.ingest(content);
+  Future<Either<Failure, Unit>> call(String proposalId) =>
+      _repository.confirm(proposalId);
 }

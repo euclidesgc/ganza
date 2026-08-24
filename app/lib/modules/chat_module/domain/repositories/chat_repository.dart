@@ -4,5 +4,11 @@ import '../../../../core/error/failure.dart';
 import '../entities/chat_proposal.dart';
 
 abstract interface class ChatRepository {
-  Future<Either<Failure, List<ChatProposal>>> ingest(String content);
+  Future<Either<Failure, Unit>> ingest(String content);
+
+  Future<Either<Failure, List<ChatProposal>>> listPending();
+
+  Future<Either<Failure, Unit>> confirm(String proposalId);
+
+  Future<Either<Failure, Unit>> cancel(String proposalId);
 }

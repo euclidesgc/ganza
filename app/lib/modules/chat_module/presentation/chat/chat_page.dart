@@ -11,7 +11,10 @@ class ChatPage extends StatelessWidget {
   const ChatPage({super.key});
 
   static Widget pageBuilder(BuildContext context, GoRouterState state) =>
-      BlocProvider(create: (_) => getIt<ChatCubit>(), child: const ChatPage());
+      BlocProvider(
+        create: (_) => getIt<ChatCubit>()..load(),
+        child: const ChatPage(),
+      );
 
   @override
   Widget build(BuildContext context) {
@@ -21,10 +24,9 @@ class ChatPage extends StatelessWidget {
         Expanded(
           child: BlocBuilder<ChatCubit, ChatState>(
             builder: (context, state) => switch (state) {
-              ChatSucceeded(proposals: final proposals)
-                  when proposals.isEmpty =>
+              ChatReady(proposals: final proposals) when proposals.isEmpty =>
                 const Center(child: Text('Nenhum registro proposto.')),
-              ChatSucceeded(proposals: final proposals) => ListView.builder(
+              ChatReady(proposals: final proposals) => ListView.builder(
                 itemCount: proposals.length,
                 itemBuilder: (context, index) =>
                     ChatProposalCard(proposal: proposals[index]),
@@ -32,7 +34,7 @@ class ChatPage extends StatelessWidget {
               ChatFailed(failure: final failure) => Center(
                 child: Text(failure.message),
               ),
-              _ => const SizedBox.shrink(),
+              ChatLoading() => const Center(child: CircularProgressIndicator()),
             },
           ),
         ),
