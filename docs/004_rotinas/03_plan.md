@@ -156,8 +156,36 @@ refazendo a leitura.
 
 ### Fase 4 — Atrasadas, taxa de cumprimento e fechamento · PR 4
 
-Lista de atrasadas, taxa de cumprimento por rotina, bateria (unit+widget+golden)
-e docs vivas; roadmap 004 `[x]`.
+Branch: `feature/GZ-45-fechamento-rotinas`. A lista já põe a atrasada primeiro
+(Fase 3); aqui fecha a métrica (taxa de cumprimento por rotina), a bateria
+golden e a documentação, e marca a 004 `[x]` no roadmap.
+
+**Tarefas**
+
+- [x] **T4.1** — Taxa de cumprimento: migration `0014_criar_view_resumo_rotinas.sql` com a view `routine_summaries` (`security_invoker`, `done_count`/`resolved_count` por rotina); no app, `RoutineSummary` + `listSummaries()` no repositório e a taxa exibida no card da ocorrência. · camadas **banco**+**app** · `especialista-dados` · **DoD: CUMPRIDO**
+
+  **DoD da tarefa**
+  - A view aplica limpo (docker + todas as migrations) e, com `security_invoker`, respeita a RLS das tabelas de baixo (`routines`/`routine_occurrences`) — provado pelo gate "Banco" verde.
+  - `RoutineSummaryModel` (zard) rejeita linha sem `routine_id`/`name` (teste **falha sem a mudança**); a taxa é `done_count / resolved_count` (0 quando `resolved_count = 0`).
+  - `RoutinesRepositoryImpl.listSummaries` lê a view por PostgREST — provado por grep do caminho de chamada; `flutter analyze` sai `0`.
+
+- [x] **T4.2** — Golden dos estados da rotina: o card com "Atrasada" e o card normal, com fonte real (`FontLoader`). · camada **app** · `qa` · **DoD: CUMPRIDO**
+
+  **DoD da tarefa**
+  - `app/test/modules/routines_module/presentation/routines/widgets/routine_occurrence_card_golden_test.dart` gera goldens (`atrasada` e `normal`) em `app/test/**/goldens/`; `flutter test --update-goldens` gera e `flutter test` confere.
+  - `flutter analyze` sai `0`; `dart format --output=none --set-exit-if-changed .` sai `0`.
+
+- [x] **T4.3** — Docs vivas e fechamento: reconciliar PRD/specs/plano e marcar `004` `[x]` no `docs/roadmap.md`. · camada **docs** · `tech-lead` · **DoD: CUMPRIDO**
+
+  **DoD da tarefa**
+  - `docs/004_rotinas/01_prd.md` e `02_specs.md` descrevem o estado final (sem pendência); `docs/roadmap.md` marca `- [x] 004 - Rotinas e ocorrências`.
+  - `bash scripts/verify-gauntlet.sh` sai `✓` com a 004 `[x]`.
+
+**DoD da Fase 4**
+
+- [x] `cd app && flutter test -r compact` verde — **175 testes** (unit + widget + golden); `flutter analyze` sai `0`.
+- [x] `bash scripts/verify-gauntlet.sh` sai `✓`; `docs/roadmap.md` com `004` `[x]`.
+- [ ] Jobs "Banco", "App" e "Harness" verdes no CI do PR.
 
 ---
 
