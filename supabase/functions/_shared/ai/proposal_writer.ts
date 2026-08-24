@@ -1,4 +1,5 @@
 import { parseProposals, type Proposal } from './proposal_schema.ts';
+import { resolveCategory } from './resolve_category.ts';
 
 export type WriteResult =
   | { ok: true; count: number }
@@ -59,15 +60,29 @@ export async function confirmProposal(
     const occurredAt = typeof payload.occurred_at === 'string'
       ? payload.occurred_at
       : new Date().toISOString();
+
+    const category = await resolveCategory(
+      supabase,
+      typeof payload.description === 'string' ? payload.description : '',
+    );
+    if (!category.ok) {
+      return { ok: false, code: category.code };
+    }
+
+    const transactionRow: Record<string, unknown> = {
+      direction: payload.direction,
+      amount: payload.amount,
+      description: payload.description,
+      occurred_at: occurredAt,
+      source: 'chat',
+    };
+    if (category.categoryId !== null) {
+      transactionRow.category_id = category.categoryId;
+    }
+
     const { data: inserted, error: insertError } = await supabase
       .from('transactions')
-      .insert({
-        direction: payload.direction,
-        amount: payload.amount,
-        description: payload.description,
-        occurred_at: occurredAt,
-        source: 'chat',
-      })
+      .insert(transactionRow)
       .select('id')
       .single();
     if (insertError) {

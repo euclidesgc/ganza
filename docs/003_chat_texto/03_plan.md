@@ -232,7 +232,7 @@ sem hint nasce `category_id = null` até a primeira correção.
   - `category_hints.normalized_description` tem `check (normalized_description ~ '^[a-z0-9 ]{1,64}$')` — a chave é texto inerte (FD-011), nunca instrução.
   - `transactions.category_id` é `uuid null references categories on delete set null` — a FK não respeita RLS (D13), então a posse é provada no código que escreve, não na FK.
 
-- [ ] **T4.2** — Backend: novo `supabase/functions/_shared/ai/resolve_category.ts` (`normalize_description` → `category_hints`, RLS-scoped, devolve `category_id` ou `null`); `confirmProposal` resolve a categoria e a copia para `transactions` sem aceitar `category_id` do payload; nova Edge Function `supabase/functions/categorize/` que corrige a categoria de uma transação (atualiza `transactions.category_id` + upsert de `category_hints` com `hits = hits + 1`), com JWT do usuário. · camada **backend** · `especialista-backend` · **DoD: CUMPRIDO**
+- [x] **T4.2** — Backend: novo `supabase/functions/_shared/ai/resolve_category.ts` (`normalize_description` → `category_hints`, RLS-scoped, devolve `category_id` ou `null`); `confirmProposal` resolve a categoria e a copia para `transactions` sem aceitar `category_id` do payload; nova Edge Function `supabase/functions/categorize/` que corrige a categoria de uma transação (atualiza `transactions.category_id` + upsert de `category_hints` com `hits = hits + 1`), com JWT do usuário. · camada **backend** · `especialista-backend` · **DoD: CUMPRIDO**
 
   **DoD da tarefa**
   - `supabase/functions/_shared/ai/resolve_category_test.ts` prova que descrição sem hint devolve `null` e com hint devolve o `category_id`; `resolve_category` usa `normalizeDescription` e consulta `category_hints` por `(user_id, normalized_description)` — **falha sem a mudança**.
@@ -241,7 +241,7 @@ sem hint nasce `category_id = null` até a primeira correção.
   - `categorize` usa **só o JWT do usuário** (RLS decide dono da transação e da categoria): `rtk proxy grep -cE "SERVICE_ROLE" supabase/functions/categorize/handler.ts` imprime `0`, e `categorize` não está em `FUNCOES_COM_SERVICE_ROLE`.
   - `deno fmt --check`, `deno lint`, `deno task check` e `deno task test` saem `0`; `categorize` entra na task `check` do `deno.json`.
 
-- [ ] **T4.3** — App: a lista de transações mostra a categoria (ou "sem categoria") e permite trocar por um seletor das categorias do usuário (PostgREST); trocar chama o endpoint `categorize` e refaz a leitura (mesmo padrão da listagem). · camada **app** · `especialista-apresentacao` · **DoD: CUMPRIDO**
+- [ ] **T4.3** — App: a lista de transações mostra a categoria (ou "sem categoria") e permite trocar por um seletor das categorias do usuário (PostgREST); trocar chama o endpoint `categorize` e refaz a leitura (mesmo padrão da listagem). · camada **app** · `especialista-apresentacao`
 
   **DoD da tarefa**
   - `app/lib/modules/transactions_module` ganha `Category`/`CategoriesRepository`/`CategorizeTransaction` e o `TransactionsRepository` ganha `categorize(transactionId, categoryId)` — domain puro, data só com Supabase (`functions.invoke('categorize')` e leitura de `categories`), use cases; `rtk proxy grep -rE "flutter|supabase|dio" app/lib/modules/transactions_module/domain` devolve `0`.
