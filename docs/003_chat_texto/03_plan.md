@@ -7,9 +7,9 @@ item canônico está no [`docs/roadmap.md`](../roadmap.md). **Este plano não
 inventa escopo: ele distribui o DoD entre as fases e acrescenta o que falta
 para cada fase se sustentar sozinha.**
 
-Estado: **em andamento** — Fases 1 (`/ingest`), 2 (`chat_module`) e 3
-(confirmação) mergeadas · a 002 entregou o pipeline `_shared/` e as tabelas que
-esta feature consome · **próximo passo: Fase 4 — `category_hints`.**
+Estado: **em andamento** — Fases 1 a 4 mergeadas (`/ingest`, chat no app,
+confirmação e `category_hints`) · **próximo passo: Fase 5 — bateria e
+fechamento.**
 
 ---
 
@@ -258,7 +258,41 @@ sem hint nasce `category_id = null` até a primeira correção.
 
 ### Fase 5 — Bateria automatizada e fechamento · PR 5
 
-Testes unit + widget + golden, docs vivas, fechamento.
+Branch: `feature/GZ-41-bateria-fechamento`. Fecha a feature com o que o escopo
+automatizado do ganza promete (unit + widget + golden): os use cases que as
+fases 2–4 introduziram ganham teste de delegação, os estados visíveis do chat e
+da linha de transação ganham golden com a fonte real, e a documentação é
+reconciliada antes de marcar a 003 `[x]` no roadmap.
+
+**Tarefas**
+
+- [x] **T5.1** — Testes unit dos use cases novos: `IngestMessage`, `ListPendingProposals`, `ConfirmProposal`, `CancelProposal` (chat) e `ListCategories`, `CategorizeTransaction` (transações) — cada um delega ao repositório e propaga `Left`/`Right`. · camada **app** · `qa` · **DoD: CUMPRIDO**
+
+  **DoD da tarefa**
+  - `app/test/modules/chat_module/domain/usecases/*_test.dart` (4 arquivos) e `app/test/modules/transactions_module/domain/usecases/list_categories_test.dart`/`categorize_transaction_test.dart` passam e **falham sem a mudança** (sem a delegação do use case, o teste não chama o repositório).
+  - Cada use case devolve `Right` delegando ao repositório e propaga o `Left` — provado com `mocktail` (o contrato `abstract interface class` é o alvo do mock).
+  - `flutter test` nesses arquivos sai verde e `flutter analyze` em `app/` sai `0`.
+
+- [x] **T5.2** — Golden dos estados visíveis: o card de proposta do chat (com valor e botões), o estado vazio do chat e a linha de transação (com e sem categoria), com a fonte real carregada via `FontLoader`. · camada **app** · `qa` · **DoD: CUMPRIDO**
+
+  **DoD da tarefa**
+  - `app/test/modules/chat_module/presentation/chat/widgets/chat_proposal_card_golden_test.dart` e `app/test/modules/transactions_module/presentation/transactions_list/widgets/transaction_row_golden_test.dart` geram goldens em `app/test/**/goldens/` (`.png` versionado) com `matchesGoldenFile` — `flutter test --update-goldens` gera e `flutter test` confere sem diferença.
+  - Os goldens carregam `Fraunces` e `IBM Plex Sans` via `FontLoader` (não o fallback), e o estado "sem categoria" difere visualmente do "com categoria" (dois arquivos distintos).
+  - `flutter analyze` em `app/` sai `0`; `dart format --output=none --set-exit-if-changed .` sai `0`.
+
+- [x] **T5.3** — Docs vivas e fechamento: reconciliar PRD/specs/plano com o estado final e marcar `003` como `[x]` no `docs/roadmap.md`. · camada **docs** · `tech-lead` · **DoD: CUMPRIDO**
+
+  **DoD da tarefa**
+  - `docs/003_chat_texto/01_prd.md` e `02_specs.md` descrevem o estado final (confirmação com `resolve_category`, `category_hints`, `/categorize`) — sem pendência de fase.
+  - `docs/roadmap.md` marca `- [x] 003 - Chat de texto e confirmação`.
+  - `bash scripts/verify-gauntlet.sh` sai `✓` com a 003 `[x]`.
+
+**DoD da Fase 5**
+
+- [x] `cd app && flutter test -r compact` verde — **153 testes** (unit + widget + golden incluídos); `flutter analyze` sai `0`.
+- [x] `cd supabase/functions && deno task test` verde — **93 testes** (o pipeline da 003 inteiro).
+- [x] `bash scripts/verify-gauntlet.sh` sai `✓`; `docs/roadmap.md` com `003` `[x]`.
+- [ ] Jobs "App" e "Harness" verdes no CI do PR.
 
 ---
 
@@ -293,5 +327,5 @@ Legenda das fases: `[ ]` não iniciada · `[-]` em andamento · `[x]` mergeada e
 - [x] **Fase 1** — Edge Function `/ingest` · PR 1
 - [x] **Fase 2** — Chat no app · PR 2
 - [x] **Fase 3** — Confirmação · PR 3
-- [-] **Fase 4** — `category_hints` · PR 4
-- [ ] **Fase 5** — Bateria automatizada e fechamento · PR 5
+- [x] **Fase 4** — `category_hints` · PR 4
+- [-] **Fase 5** — Bateria automatizada e fechamento · PR 5

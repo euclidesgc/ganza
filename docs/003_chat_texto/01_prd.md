@@ -18,7 +18,7 @@ vários registros ("almocei por 45 e depois paguei a conta de luz" → dois card
 | A IA interpreta | O código decide |
 |---|---|
 | A intenção (`create`, `attach`, `query`) e os campos de cada registro | O conjunto fechado de `kind` e de campos — rejeita o que sair dele |
-| A categoria sugerida | A escrita, que passa por `parseProposals` + `proposal_writer`, atrás de confirmação |
+| Nada de categoria nesta fase (CHG-001) — a sugestão pelo modelo é posterior | A resolução determinística de categoria (`normalize_description` → `category_hints`), atrás de confirmação |
 | Nada | Juros, amortização, parcelamento — isso é `/finance-math`, nunca o modelo |
 
 `update` **não existe no chat** (`docs/plano.md` §6.2). Corrigir é na tela do
@@ -73,6 +73,10 @@ registro, fora do chat.
 - **Invariante de posse de área**: a etapa que preencher `transactions.area_id`
   prova que a área é do usuário (FK **não** respeita RLS — D13), com tentativa de
   `area_id` alheio recusada.
+- **Invariante de posse de categoria**: quem preenche `transactions.category_id`
+  prova a posse (D13) — a categoria vem de `resolve_category` (lookup por
+  `category_hints`, revalidado por RLS) ou da correção `/categorize`, nunca da
+  saída do modelo.
 
 ## 8. Dependências e riscos
 
