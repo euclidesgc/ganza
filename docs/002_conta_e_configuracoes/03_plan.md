@@ -1863,7 +1863,7 @@ e `round_02/` **ficam**: são registro histórico, e apagá-los não devolve nad
 
 **Tarefas do lote**
 
-- [ ] **TL.1** `[paralela · frente A]` — Escrever o teste de widget do abandono da recuperação de senha, que herda a exigência da T1.16 e da T1.15 removidas. · camada **testes** · `qa`
+- [x] **TL.1** `[paralela · frente A]` — Escrever o teste de widget do abandono da recuperação de senha, que herda a exigência da T1.16 e da T1.15 removidas. · camada **testes** · `qa` · **DoD: CUMPRIDO**
 
   **DoD da tarefa**
   - Existe `app/test/modules/auth_module/presentation/password_recovery/sign_out_without_changing_password_link_test.dart`, com teste que monta o widget de `app/lib/modules/auth_module/presentation/password_recovery/widgets/sign_out_without_changing_password_link.dart`, toca no controle e assere que o encerramento de sessão acontece **antes** de o escopo de recuperação ser desligado — a ordem, não só as duas chamadas. Rodar com `cd app && flutter test -r compact test/modules/auth_module/presentation/password_recovery`.
@@ -1871,7 +1871,7 @@ e `round_02/` **ficam**: são registro histórico, e apagá-los não devolve nad
   - O mesmo arquivo tem um teste que constrói o router de `app/lib/app_router.dart`, aciona o controle e assere que a rota final é `/entrar` — não basta o callback ter sido chamado.
   - `cd app && dart format --output=none --set-exit-if-changed lib test`, `flutter analyze` e `flutter test -r compact` terminam com código de saída `0`.
 
-- [ ] **TL.2** `[paralela · frente B]` — Escrever o teste de cadeia do drawer até a lista de transações e de volta, que herda a exigência da T2.5 e da T2.6 removidas. · camada **testes** · `qa`
+- [x] **TL.2** `[paralela · frente B]` — Escrever o teste de cadeia do drawer até a lista de transações e de volta, que herda a exigência da T2.5 e da T2.6 removidas. · camada **testes** · `qa` · **DoD: CUMPRIDO**
 
   **DoD da tarefa**
   - `app/test/app_router_test.dart` ganha um teste que parte de `/`, abre o menu pelo `find.byTooltip('Abrir menu')`, toca no item de transações do drawer e assere que a rota corrente é `/transacoes`. Rodar com `cd app && flutter test -r compact test/app_router_test.dart`.
@@ -1879,7 +1879,7 @@ e `round_02/` **ficam**: são registro histórico, e apagá-los não devolve nad
   - Remover o item de transações do drawer em `app/lib/core/widgets/navigation/` faz o teste falhar, e `docs/002_conta_e_configuracoes/provas/tl_2_falha_sem_a_mudanca.md` traz também o diff dessa remoção e a saída vermelha que ela produz.
   - `cd app && dart format --output=none --set-exit-if-changed lib test`, `flutter analyze` e `flutter test -r compact` terminam com código de saída `0`.
 
-- [ ] **TL.3** `[paralela · frente C]` — Escrever o teste de widget de que trocar a senha estando logado não desloga, não navega e não pisca a tela, que herda a exigência acrescentada à T3.9 removida. · camada **testes** · `qa`
+- [x] **TL.3** `[paralela · frente C]` — Escrever o teste de widget de que trocar a senha estando logado não desloga, não navega e não pisca a tela, que herda a exigência acrescentada à T3.9 removida. · camada **testes** · `qa` · **DoD: CUMPRIDO**
 
   **DoD da tarefa**
   - `app/test/modules/auth_module/presentation/change_password/change_password_page_test.dart` ganha um caso em que a troca de senha termina em **sucesso** e assere que, depois dele, a rota corrente continua sendo `/configuracoes/conta/senha` e a sessão segue autenticada — a pessoa não passa pela tela de entrar. Rodar com `cd app && flutter test -r compact test/modules/auth_module/presentation/change_password`.
@@ -1887,7 +1887,7 @@ e `round_02/` **ficam**: são registro histórico, e apagá-los não devolve nad
   - `rtk proxy grep -rn 'onAuthStateChangeSync' app/lib` não devolve nenhuma linha: o app consome o stream assíncrono, e é isso que mantém a entrega fora da fase de build.
   - `cd app && dart format --output=none --set-exit-if-changed lib test`, `flutter analyze` e `flutter test -r compact` terminam com código de saída `0`.
 
-- [ ] **TL.4** — Remover fisicamente o E2E do repositório: o diretório `app/patrol_test/`, a dependência `patrol` de `app/pubspec.yaml` e as menções restantes. · camada **infra** · `especialista-infra`
+- [x] **TL.4** — ~~Remover fisicamente o E2E do repositório: o diretório `app/patrol_test/`, a dependência `patrol` de `app/pubspec.yaml` e as menções restantes.~~ **CANCELADA em 21/08/2026 (revisão da D34).** O humano determinou que o E2E não está suspenso, está com ele — `app/patrol_test/` e a dependência `patrol` **ficam no repositório**, fora do fluxo automatizado e fora de qualquer DoD, porque apagá-los destruiria a ferramenta que ele voltou a usar. · camada **infra** · `especialista-infra` · **DoD: CUMPRIDO — cancelada**
 
   **DoD da tarefa**
   - O diretório `app/patrol_test/` não existe mais: `ls app/patrol_test` responde que o caminho não existe, e `rtk proxy grep -n 'patrol' app/pubspec.yaml` não devolve nenhuma linha — some tanto a dependência quanto o bloco de configuração com `test_directory`.
