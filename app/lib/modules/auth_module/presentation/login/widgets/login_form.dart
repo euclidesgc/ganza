@@ -128,7 +128,7 @@ class _LoginFormState extends State<LoginForm> {
                   selector: (state) => state is LoginInProgress,
                   builder: (context, inProgress) => OutlinedButton.icon(
                     onPressed: inProgress ? null : _signInWithBiometrics,
-                    icon: const Icon(Icons.fingerprint),
+                    icon: const Icon(AppIcons.fingerprint),
                     label: const Text('Entrar com digital'),
                   ),
                 ),

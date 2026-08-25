@@ -21,6 +21,7 @@ abstract final class AppIcons {
   static const connectedStatus = IconData(0xEB80, fontFamily: 'RemixIcon');
   static const notConfiguredStatus = IconData(0xEA21, fontFamily: 'RemixIcon');
   static const advance = IconData(0xEA6E, fontFamily: 'RemixIcon');
+  static const fingerprint = Icons.fingerprint;
   static const microphone = Icons.mic_outlined;
   static const stopRecording = Icons.stop_circle_outlined;
 }

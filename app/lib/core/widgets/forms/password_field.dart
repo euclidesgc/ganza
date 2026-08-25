@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/widget_previews.dart';
 
 import '../../theme/theme.dart';
 
@@ -68,14 +67,3 @@ class _PasswordFieldState extends State<PasswordField> {
     );
   }
 }
-
-@Preview(name: 'Campo de senha')
-Widget passwordFieldPreview() => MaterialApp(
-  theme: AppTheme.light,
-  home: Scaffold(
-    body: Padding(
-      padding: const EdgeInsets.all(16),
-      child: PasswordField(controller: TextEditingController(), label: 'Senha'),
-    ),
-  ),
-);
