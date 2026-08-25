@@ -95,3 +95,47 @@ export async function callProvider(
   }
   return text;
 }
+
+export async function transcribeAudio(
+  provider: ResolvedProvider,
+  audioBase64: string,
+  mimeType: string,
+): Promise<string> {
+  if (provider.kind !== 'gemini') {
+    throw new Error('unsupported_provider');
+  }
+
+  const url = `${provider.baseUrl}/v1beta/models/${provider.model}:generateContent`;
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-goog-api-key': provider.apiKey,
+    },
+    body: JSON.stringify({
+      systemInstruction: {
+        parts: [{ text: 'Transcreva o áudio em português, devolvendo apenas o texto.' }],
+      },
+      contents: [
+        {
+          role: 'user',
+          parts: [
+            { inline_data: { mime_type: mimeType, data: audioBase64 } },
+          ],
+        },
+      ],
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`provider_error_${response.status}`);
+  }
+
+  const payload = await response.json();
+  const text = (payload as { candidates?: { content?: { parts?: { text?: string }[] } }[] })
+    .candidates?.[0]?.content?.parts?.[0]?.text;
+  if (typeof text !== 'string') {
+    throw new Error('provider_response_invalid');
+  }
+  return text;
+}

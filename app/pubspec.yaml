@@ -19,6 +19,7 @@ dependencies:
   go_router: ^16.2.4
   http: ^1.6.0
   intl: ^0.20.2
+  record: ^7.1.1
   supabase_flutter: ^2.10.1
   zard: ^0.0.16
 

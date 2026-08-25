@@ -10,9 +10,13 @@ import 'package:ganza/modules/auth_module/auth_module.dart';
 import 'package:ganza/modules/chat_module/chat_module.dart';
 import 'package:ganza/modules/chat_module/domain/repositories/chat_repository.dart';
 import 'package:ganza/modules/chat_module/domain/usecases/cancel_proposal.dart';
+import 'package:ganza/modules/chat_module/domain/usecases/cancel_audio_recording.dart';
 import 'package:ganza/modules/chat_module/domain/usecases/confirm_proposal.dart';
 import 'package:ganza/modules/chat_module/domain/usecases/ingest_message.dart';
 import 'package:ganza/modules/chat_module/domain/usecases/list_pending_proposals.dart';
+import 'package:ganza/modules/chat_module/domain/usecases/start_audio_recording.dart';
+import 'package:ganza/modules/chat_module/domain/usecases/stop_audio_recording.dart';
+import 'package:ganza/modules/chat_module/domain/usecases/transcribe_audio.dart';
 import 'package:ganza/modules/chat_module/presentation/chat/chat_cubit.dart';
 import 'package:ganza/modules/chat_module/presentation/chat/chat_page.dart';
 import 'package:ganza/modules/settings_module/domain/domain.dart';
@@ -33,6 +37,14 @@ class _MockGetAiCredential extends Mock implements GetAiCredential {}
 class _MockSaveAiCredential extends Mock implements SaveAiCredential {}
 
 class _MockChatRepository extends Mock implements ChatRepository {}
+
+class _MockStartAudioRecording extends Mock implements StartAudioRecording {}
+
+class _MockStopAudioRecording extends Mock implements StopAudioRecording {}
+
+class _MockCancelAudioRecording extends Mock implements CancelAudioRecording {}
+
+class _MockTranscribeAudio extends Mock implements TranscribeAudio {}
 
 class _FakeCapabilitiesSource implements CapabilitiesSource {
   bool aiConfigured = false;
@@ -64,6 +76,10 @@ void main() {
     when(() => getCredential()).thenAnswer((_) async => const Right(null));
 
     final chatRepository = _MockChatRepository();
+    final startAudioRecording = _MockStartAudioRecording();
+    final stopAudioRecording = _MockStopAudioRecording();
+    final cancelAudioRecording = _MockCancelAudioRecording();
+    final transcribeAudio = _MockTranscribeAudio();
     when(
       () => chatRepository.listPending(),
     ).thenAnswer((_) async => const Right([]));
@@ -87,6 +103,10 @@ void main() {
           getIt<ListPendingProposals>(),
           getIt<ConfirmProposal>(),
           getIt<CancelProposal>(),
+          startAudioRecording,
+          stopAudioRecording,
+          cancelAudioRecording,
+          transcribeAudio,
         ),
       )
       ..registerFactory(
