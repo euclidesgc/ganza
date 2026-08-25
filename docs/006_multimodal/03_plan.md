@@ -6,7 +6,8 @@ contrato do pronto em [`01_prd.md`](01_prd.md), as decisões desta feature em
 item canônico está no [`docs/roadmap.md`](../roadmap.md).
 
 Estado: **pronta para PR** · branch `feature/GZ-50-transcrever` · as Fases 1 e
-2 estão concluídas e validadas localmente. O CI remoto e o merge em `develop`
+2 estão concluídas e validadas localmente. CHG-001 regenerou exclusivamente os
+dois baselines golden preexistentes de rotinas; CI remoto e merge em `develop`
 continuam pendentes.
 
 ---
@@ -126,7 +127,8 @@ com o provedor de IA.
 - [x] `cd app && flutter analyze` sai `0` (2026-08-25).
 - [x] `cd app && flutter test test/modules/chat_module -r compact` sai `0` (`41 passed`), incluindo a cadeia gravação → transcrição → cards, os erros visíveis e os goldens da feature.
 - [x] `cd supabase/functions && /tmp/ganza-deno.dhMmjt/deno task test` sai `0` (`159 passed`), incluindo `/transcribe`.
-- [ ] `cd app && flutter test -r compact` ainda tem duas falhas golden de baseline em `routines_module`, sem relação com a feature 006; elas não são declaradas verdes nem corrigidas neste PR.
+- [x] O teste focal dos dois goldens de `routines_module` passou após regenerar exclusivamente os dois PNGs sob Flutter 3.44.9 (CHG-001), sem alteração de código de rotina.
+- [x] `cd app && flutter test -r compact` sai `0` (`201 passed`) após a regeneração dos baselines.
 - [ ] O CI do PR está verde; após o merge, `docs/roadmap.md` muda a feature 006 para `[x]`.
 
 ---
