@@ -27,6 +27,10 @@ Deno.test('ai-credentials recebe SUPABASE_SERVICE_ROLE_KEY', () => {
   assertEquals(chaves('ai-credentials').includes('SUPABASE_SERVICE_ROLE_KEY'), true);
 });
 
+Deno.test('transcribe recebe SUPABASE_SERVICE_ROLE_KEY', () => {
+  assertEquals(chaves('transcribe').includes('SUPABASE_SERVICE_ROLE_KEY'), true);
+});
+
 Deno.test('bank-connections não recebe SUPABASE_SERVICE_ROLE_KEY', () => {
   assertEquals(chaves('bank-connections').includes('SUPABASE_SERVICE_ROLE_KEY'), false);
 });

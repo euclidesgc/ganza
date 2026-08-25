@@ -1,4 +1,4 @@
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 
 abstract final class AppIcons {
   /// Cada glifo precisa ser `const IconData` para o Flutter fazer o
@@ -20,4 +20,6 @@ abstract final class AppIcons {
   static const connectedStatus = IconData(0xEB80, fontFamily: 'RemixIcon');
   static const notConfiguredStatus = IconData(0xEA21, fontFamily: 'RemixIcon');
   static const advance = IconData(0xEA6E, fontFamily: 'RemixIcon');
+  static const microphone = Icons.mic_outlined;
+  static const stopRecording = Icons.stop_circle_outlined;
 }

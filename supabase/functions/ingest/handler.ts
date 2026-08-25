@@ -121,7 +121,7 @@ export default async function handler(req: Request): Promise<Response> {
     );
   } catch (error) {
     const code = error instanceof Error ? error.message : 'provider_error';
-    await logAiEvent({
+    await logAiEvent(userClient, {
       taskType: 'extract_record',
       providerName: provider.kind,
       model: provider.model,
@@ -135,7 +135,7 @@ export default async function handler(req: Request): Promise<Response> {
     return errorResponse('provider_error', 'a IA não conseguiu responder', 502);
   }
 
-  await logAiEvent({
+  await logAiEvent(userClient, {
     taskType: 'extract_record',
     providerName: provider.kind,
     model: provider.model,

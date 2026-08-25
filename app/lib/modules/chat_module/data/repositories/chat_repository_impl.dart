@@ -1,11 +1,15 @@
+import 'dart:convert';
+
 import 'package:fpdart/fpdart.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../core/error/failure.dart';
 import '../../../../core/network/failure_from_exception.dart';
 import '../../domain/entities/chat_proposal.dart';
+import '../../domain/entities/audio_recording.dart';
 import '../../domain/repositories/chat_repository.dart';
 import '../models/chat_proposal_model.dart';
+import '../models/transcription_model.dart';
 
 class ChatRepositoryImpl implements ChatRepository {
   const ChatRepositoryImpl(this._client);
@@ -20,6 +24,49 @@ class ChatRepositoryImpl implements ChatRepository {
     try {
       await _client.functions.invoke('ingest', body: {'content': content});
       return const Right(unit);
+    } catch (error) {
+      return Left(failureFromException(error));
+    }
+  }
+
+  Failure? _transcriptionFailure(FunctionException error) {
+    final details = error.details;
+    if (details is! Map) return null;
+    final errorBody = details['error'];
+    if (errorBody is! Map) return null;
+    return switch (errorBody['code']) {
+      'audio_not_understood' => const ValidationFailure(
+        'Não entendi o áudio. Tente novamente.',
+      ),
+      'audio_too_large' => const ValidationFailure(
+        'O áudio é grande demais. Grave uma mensagem mais curta.',
+      ),
+      _ => null,
+    };
+  }
+
+  @override
+  Future<Either<Failure, String>> transcribe(AudioRecording recording) async {
+    try {
+      final response = await _client.functions.invoke(
+        'transcribe',
+        body: {
+          'audio_base64': base64Encode(recording.bytes),
+          'mime_type': recording.mimeType,
+        },
+      );
+      final data = response.data;
+      if (data is! Map) {
+        return const Left(
+          ValidationFailure('Resposta de transcrição em formato inesperado.'),
+        );
+      }
+      return TranscriptionModel.transcriptFromMap(
+        Map<String, dynamic>.from(data),
+      );
+    } on FunctionException catch (error) {
+      final failure = _transcriptionFailure(error);
+      return Left(failure ?? failureFromException(error));
     } catch (error) {
       return Left(failureFromException(error));
     }

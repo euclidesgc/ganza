@@ -8,7 +8,7 @@ export interface EnvFonte {
   PLUGGY_CLIENT_SECRET?: string;
 }
 
-const FUNCOES_COM_SERVICE_ROLE = new Set(['ai-credentials', 'ingest']);
+const FUNCOES_COM_SERVICE_ROLE = new Set(['ai-credentials', 'ingest', 'transcribe']);
 const FUNCOES_COM_PLUGGY = new Set(['bank-connections']);
 
 export function envVarsFor(nome: string, fonte: EnvFonte): [string, string][] {

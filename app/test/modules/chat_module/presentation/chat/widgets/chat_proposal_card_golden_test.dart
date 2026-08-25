@@ -6,9 +6,13 @@ import 'package:fpdart/fpdart.dart';
 import 'package:ganza/core/theme/theme.dart';
 import 'package:ganza/modules/chat_module/domain/entities/chat_proposal.dart';
 import 'package:ganza/modules/chat_module/domain/usecases/cancel_proposal.dart';
+import 'package:ganza/modules/chat_module/domain/usecases/cancel_audio_recording.dart';
 import 'package:ganza/modules/chat_module/domain/usecases/confirm_proposal.dart';
 import 'package:ganza/modules/chat_module/domain/usecases/ingest_message.dart';
 import 'package:ganza/modules/chat_module/domain/usecases/list_pending_proposals.dart';
+import 'package:ganza/modules/chat_module/domain/usecases/start_audio_recording.dart';
+import 'package:ganza/modules/chat_module/domain/usecases/stop_audio_recording.dart';
+import 'package:ganza/modules/chat_module/domain/usecases/transcribe_audio.dart';
 import 'package:ganza/modules/chat_module/presentation/chat/chat_cubit.dart';
 import 'package:ganza/modules/chat_module/presentation/chat/chat_page.dart';
 import 'package:ganza/modules/chat_module/presentation/chat/widgets/chat_proposal_card.dart';
@@ -22,6 +26,14 @@ class MockListPendingProposals extends Mock implements ListPendingProposals {}
 class MockConfirmProposal extends Mock implements ConfirmProposal {}
 
 class MockCancelProposal extends Mock implements CancelProposal {}
+
+class MockStartAudioRecording extends Mock implements StartAudioRecording {}
+
+class MockStopAudioRecording extends Mock implements StopAudioRecording {}
+
+class MockCancelAudioRecording extends Mock implements CancelAudioRecording {}
+
+class MockTranscribeAudio extends Mock implements TranscribeAudio {}
 
 Future<void> _carregarFontes() async {
   await (FontLoader(
@@ -61,6 +73,10 @@ void main() {
       MockListPendingProposals(),
       MockConfirmProposal(),
       MockCancelProposal(),
+      MockStartAudioRecording(),
+      MockStopAudioRecording(),
+      MockCancelAudioRecording(),
+      MockTranscribeAudio(),
     );
 
     await tester.pumpWidget(
@@ -91,6 +107,10 @@ void main() {
       listPending,
       MockConfirmProposal(),
       MockCancelProposal(),
+      MockStartAudioRecording(),
+      MockStopAudioRecording(),
+      MockCancelAudioRecording(),
+      MockTranscribeAudio(),
     );
     await cubit.load();
 
