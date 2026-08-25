@@ -5,10 +5,9 @@ contrato do pronto em [`01_prd.md`](01_prd.md), as decisões desta feature em
 [`decisions.md`](decisions.md), os desvios em [`changes.md`](changes.md), e o
 item canônico está no [`docs/roadmap.md`](../roadmap.md).
 
-Estado: **pronta para PR** · branch `feature/GZ-50-transcrever` · as Fases 1 e
-2 estão concluídas e validadas localmente. CHG-001 regenerou exclusivamente os
-dois baselines golden preexistentes de rotinas; CI remoto e merge em `develop`
-continuam pendentes.
+Estado: **concluída** · PR #53 mergeada em `develop` com CI verde. As Fases 1 e
+2 estão concluídas e validadas. CHG-001 regenerou exclusivamente os dois
+baselines golden preexistentes de rotinas.
 
 ---
 
@@ -88,7 +87,7 @@ texto, reutilizando a camada de IA da 002.
 **DoD da Fase 1**
 
 - [x] `cd supabase/functions && /tmp/ganza-deno.dhMmjt/deno task test` verde, incluindo `transcribe/handler_test.ts` (`159 passed`, 2026-08-25).
-- [ ] Job "Edge Functions" verde no CI do PR.
+- [x] Job "Edge Functions" verde no CI do PR #53.
 
 ---
 
@@ -129,7 +128,7 @@ com o provedor de IA.
 - [x] `cd supabase/functions && /tmp/ganza-deno.dhMmjt/deno task test` sai `0` (`159 passed`), incluindo `/transcribe`.
 - [x] O teste focal dos dois goldens de `routines_module` passou após regenerar exclusivamente os dois PNGs sob Flutter 3.44.9 (CHG-001), sem alteração de código de rotina.
 - [x] `cd app && flutter test -r compact` sai `0` (`201 passed`) após a regeneração dos baselines.
-- [ ] O CI do PR está verde; após o merge, `docs/roadmap.md` muda a feature 006 para `[x]`.
+- [x] O CI do PR #53 ficou verde e a feature foi mergeada em `develop`; `docs/roadmap.md` está em `[x]`.
 
 ---
 
@@ -144,8 +143,8 @@ com o provedor de IA.
 
 ## 6. Progresso
 
-Legenda das fases: `[ ]` não iniciada · `[-]` em andamento · `[x]` concluída;
-o merge em `develop` só ocorre após CI verde.
+Legenda das fases: `[ ]` não iniciada · `[-]` em andamento · `[x]` concluída
+(CI verde e merge em `develop`).
 
-- [x] **Fase 1** — Transcrição (`/transcribe`) · PR 1 · testes e cancelas Deno locais concluídos; CI remoto pendente
-- [x] **Fase 2** — App: captura de áudio e fechamento · PR 2 · testes locais concluídos; CI remoto pendente
+- [x] **Fase 1** — Transcrição (`/transcribe`) · PR #53 · testes e CI concluídos; mergeada em `develop`
+- [x] **Fase 2** — App: captura de áudio e fechamento · PR #53 · testes e CI concluídos; mergeada em `develop`
