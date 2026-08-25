@@ -31,8 +31,8 @@ cego ao plano.
 **Limites:** no máximo 3 rodadas e 45 minutos **por fase**; no nível da tarefa,
 duas devoluções `NÃO CUMPRIDO` e a terceira escala ao humano.
 
-**Evidência de interface:** o escopo automatizado é unitário, widget e golden;
-E2E está suspenso e não é requisito desta feature.
+**Evidência E2E:** está suspensa e não é pré-requisito desta feature; o escopo
+automatizado é unitário, widget e golden.
 
 ---
 
