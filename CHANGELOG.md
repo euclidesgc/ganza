@@ -8,6 +8,8 @@ A seção `Unreleased` é atualizada **no mesmo PR** da mudança; o `release/*` 
 
 ### Added
 
+- **Login biométrico local e atalho de criação de transação** (`app/lib/modules/auth_module/`, `app/lib/modules/transactions_module/`): a pessoa pode optar por guardar somente o refresh token cifrado pelo cofre nativo e entrar com biometria. A credencial leva também o ID da conta; ao entrar por senha em outra conta sem consentir a biometria, a credencial anterior é descartada. Em Transações, o botão flutuante abre a escolha entre Despesa e Receita e pré-seleciona a direção no formulário; o menu lateral ganhou o destino **Início**.
+
 - **Recursos multimodais — Fase 2 da feature 006** (`app/lib/modules/chat_module/`): o compositor do chat passa a gravar, parar e cancelar áudio, envia a gravação a `/transcribe` e entrega somente o transcript ao `/ingest`, preservando os cards de confirmação existentes. Estados de gravação, áudio não compreendido e falha de transcrição têm resposta visível; a cadeia é coberta por testes unitários, de widget e golden.
 - **Transcrição de áudio — Fase 1 da feature 006** (`supabase/functions/transcribe/`): a Edge Function `/transcribe` recebe áudio inline em base64 com MIME fechado e teto em bytes decodificados, chama `transcribe_audio` via Gemini `inline_data`, persiste apenas `messages` com `origin='transcript'` e registra `ai_usage`. Áudio sem fala retorna erro explícito sem criar mensagem, proposta ou transação.
 - **Fechamento da feature 005 — sincronização OFX e bateria** (`docs/005_financas/`): `_shared/ofx.ts` (parser determinístico de OFX, SGML/XML) e `supabase/functions/import-ofx/` (importa o extrato criando os movimentos `bank_sync`, deduplicados por `external_id` via migration `0016`); goldens do card de compromisso; 005 sai do roadmap como concluída (`docs/roadmap.md` `[x]`). Faturas/cartão-benefício/telas de correção ficam para depois (CHG-001).
@@ -81,6 +83,8 @@ A seção `Unreleased` é atualizada **no mesmo PR** da mudança; o `release/*` 
 - `supabase/functions/main/index.ts` passou a devolver erro no mesmo formato `{"error":{"code","message"}}` das funções (antes era `{"error":"string"}`), para a camada `data` do app poder ler `error.code` também nos erros que o roteador emite antes de chegar à função — inclusive o `401` de sessão ausente.
 
 ### Fixed
+
+- **Logout global deixa de depender da limpeza do cofre biométrico** (`app/lib/modules/auth_module/domain/usecases/sign_out.dart`): depois de o Supabase invalidar a sessão globalmente, uma falha local ao apagar a credencial biométrica não transforma o logout em erro nem prende a saída da recuperação de senha.
 
 - **Abrir a tela do código de recuperação disparava `setState() or markNeedsBuild() called during build`.** O construtor do `PasswordRecoveryCodeCubit` chama `begin()` no `PasswordRecoveryScope`, e o `create` do `BlocProvider` é **lazy**: ele roda durante o build da árvore de rotas, de modo que o `notifyListeners` síncrono reentrava no `GoRouter` — que escuta o escopo pelo `refreshListenable` — no meio do build dele. Em release a exceção fica dentro de um `assert`, ou seja, a falha existia sem aparecer. `_isActive` continua mudando de forma síncrona, para o `redirect` do mesmo frame ler o valor novo; só a notificação é adiada para depois do frame quando a chamada acontece em fase de build.
 

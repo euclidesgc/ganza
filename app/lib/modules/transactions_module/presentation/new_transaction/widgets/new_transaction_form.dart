@@ -14,7 +14,9 @@ import 'occurred_at_field.dart';
 import 'register_button.dart';
 
 class NewTransactionForm extends StatefulWidget {
-  const NewTransactionForm({super.key});
+  const NewTransactionForm({super.key, this.initialDirection});
+
+  final TransactionDirection? initialDirection;
 
   @override
   State<NewTransactionForm> createState() => _NewTransactionFormState();
@@ -22,7 +24,9 @@ class NewTransactionForm extends StatefulWidget {
 
 class _NewTransactionFormState extends State<NewTransactionForm> {
   final _descriptionController = TextEditingController();
-  final _direction = ValueNotifier(TransactionDirection.outgoing);
+  late final _direction = ValueNotifier(
+    widget.initialDirection ?? TransactionDirection.outgoing,
+  );
   final _occurredAt = ValueNotifier(DateTime.now());
   final _isValid = ValueNotifier(false);
 

@@ -367,6 +367,28 @@ void main() {
     expect(find.byType(AreasBody), findsOneWidget);
   });
 
+  testWidgets('drawer > Início volta à raiz do app', (tester) async {
+    final router = createRouter();
+    await tester.pumpWidget(envolver(router));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('Abrir menu'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Transações'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('Abrir menu'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Início'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(AreasBody), findsOneWidget);
+    expect(
+      GoRouterState.of(tester.element(find.byType(AreasBody))).uri.toString(),
+      AreasRoutes.path,
+    );
+  });
+
   testWidgets('trocar a senha logado não desloga nem navega', (tester) async {
     final changePassword = getIt<ChangePassword>();
     when(

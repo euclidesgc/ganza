@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../../core/theme/theme.dart';
+import '../../../../../core/widgets/forms/password_field.dart';
 import '../password_recovery_code_cubit.dart';
 import 'failure_banner.dart';
 import 'sign_out_without_changing_password_link.dart';
@@ -42,21 +43,19 @@ class _NewPasswordStepFormState extends State<NewPasswordStepForm> {
           style: context.texts.bodyMedium,
         ),
         const SizedBox(height: AppSpacing.xl),
-        TextField(
+        PasswordField(
           controller: _passwordController,
-          obscureText: true,
           autofillHints: const [AutofillHints.newPassword],
           textInputAction: TextInputAction.next,
-          decoration: const InputDecoration(labelText: 'Nova senha'),
+          label: 'Nova senha',
         ),
         const SizedBox(height: AppSpacing.md),
-        TextField(
+        PasswordField(
           controller: _confirmController,
-          obscureText: true,
           autofillHints: const [AutofillHints.newPassword],
           textInputAction: TextInputAction.done,
           onSubmitted: (_) => _submit(),
-          decoration: const InputDecoration(labelText: 'Confirme a nova senha'),
+          label: 'Confirme a nova senha',
         ),
         const SizedBox(height: AppSpacing.md),
         BlocSelector<

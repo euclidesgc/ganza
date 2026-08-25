@@ -9,3 +9,4 @@ export 'domain/entities/authenticated_user.dart';
 export 'domain/usecases/get_current_user.dart';
 export 'domain/usecases/observe_current_user.dart';
 export 'domain/usecases/sign_out.dart';
+export 'domain/usecases/sign_out_locally.dart';

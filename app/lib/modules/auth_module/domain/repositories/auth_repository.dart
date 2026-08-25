@@ -15,6 +15,11 @@ abstract interface class AuthRepository {
 
   Future<Either<Failure, Unit>> signOut();
 
+  /// Remove a sessão deste aparelho sem invalidar o token de renovação que
+  /// está protegido pela biometria local. O logout global continua em
+  /// [signOut], usado em fluxos sensíveis como recuperação de senha.
+  Future<Either<Failure, Unit>> signOutLocally();
+
   Future<Either<Failure, Unit>> signUp({
     required String email,
     required String password,

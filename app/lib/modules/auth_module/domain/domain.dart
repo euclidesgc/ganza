@@ -6,6 +6,7 @@ export 'usecases/observe_current_user.dart';
 export 'usecases/reset_password_for_email.dart';
 export 'usecases/sign_in.dart';
 export 'usecases/sign_out.dart';
+export 'usecases/sign_out_locally.dart';
 export 'usecases/sign_up.dart';
 export 'usecases/update_password.dart';
 export 'usecases/verify_recovery_code.dart';

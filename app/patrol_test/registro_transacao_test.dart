@@ -237,8 +237,10 @@ Future<void> _irParaTransacoes(WidgetTester tester) async {
 }
 
 Future<void> _abrirFormulario(WidgetTester tester) async {
-  await _aguardar(tester, find.byTooltip('Registrar transação'));
-  await tester.tap(find.byTooltip('Registrar transação'));
+  await _aguardar(tester, find.byTooltip('Adicionar transação'));
+  await tester.tap(find.byTooltip('Adicionar transação'));
+  await _aguardar(tester, find.text('Despesa'));
+  await tester.tap(find.text('Despesa'));
   await _aguardar(tester, find.byType(NewTransactionForm));
   await tester.pump(const Duration(milliseconds: 400));
 
