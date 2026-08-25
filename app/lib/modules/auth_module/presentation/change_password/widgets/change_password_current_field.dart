@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../../../core/widgets/forms/password_field.dart';
+
 class ChangePasswordCurrentField extends StatelessWidget {
   const ChangePasswordCurrentField({required this.controller, super.key});
 
@@ -7,13 +9,12 @@ class ChangePasswordCurrentField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return TextField(
-      key: const Key('change-password-current-field'),
+    return PasswordField(
+      fieldKey: const Key('change-password-current-field'),
       controller: controller,
-      obscureText: true,
       autofillHints: const [AutofillHints.password],
       textInputAction: TextInputAction.next,
-      decoration: const InputDecoration(labelText: 'Senha atual'),
+      label: 'Senha atual',
     );
   }
 }

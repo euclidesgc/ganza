@@ -53,6 +53,29 @@ void main() {
     expect(find.text('Registrar'), findsOneWidget);
   });
 
+  testWidgets('direção inicial Receita deixa Receita selecionada', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        home: BlocProvider<NewTransactionCubit>.value(
+          value: cubit,
+          child: const Scaffold(
+            body: NewTransactionForm(
+              initialDirection: TransactionDirection.incoming,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    final selector = tester.widget<SegmentedButton<TransactionDirection>>(
+      find.byType(SegmentedButton<TransactionDirection>),
+    );
+    expect(selector.selected, {TransactionDirection.incoming});
+  });
+
   testWidgets('botão desabilitado e rótulo Registrando… durante o envio', (
     tester,
   ) async {

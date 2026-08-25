@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../../core/widgets/forms/password_field.dart';
 import '../sign_up_validation.dart';
 
 class SignUpPasswordField extends StatelessWidget {
@@ -15,17 +16,14 @@ class SignUpPasswordField extends StatelessWidget {
         final text = controller.text;
         final showError =
             text.isNotEmpty && !SignUpValidation.isPasswordValid(text);
-        return TextField(
+        return PasswordField(
           controller: controller,
-          obscureText: true,
           autofillHints: const [AutofillHints.newPassword],
           textInputAction: TextInputAction.next,
-          decoration: InputDecoration(
-            labelText: 'Senha',
-            errorText: showError
-                ? 'A senha precisa ter pelo menos 6 caracteres.'
-                : null,
-          ),
+          label: 'Senha',
+          errorText: showError
+              ? 'A senha precisa ter pelo menos 6 caracteres.'
+              : null,
         );
       },
     );

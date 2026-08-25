@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../../../core/widgets/forms/password_field.dart';
+
 class SignUpConfirmPasswordField extends StatelessWidget {
   const SignUpConfirmPasswordField({
     required this.controller,
@@ -17,15 +19,12 @@ class SignUpConfirmPasswordField extends StatelessWidget {
       builder: (context, _) {
         final text = controller.text;
         final showError = text.isNotEmpty && text != passwordController.text;
-        return TextField(
+        return PasswordField(
           controller: controller,
-          obscureText: true,
           autofillHints: const [AutofillHints.newPassword],
           textInputAction: TextInputAction.done,
-          decoration: InputDecoration(
-            labelText: 'Confirmar senha',
-            errorText: showError ? 'As senhas não coincidem.' : null,
-          ),
+          label: 'Confirmar senha',
+          errorText: showError ? 'As senhas não coincidem.' : null,
         );
       },
     );

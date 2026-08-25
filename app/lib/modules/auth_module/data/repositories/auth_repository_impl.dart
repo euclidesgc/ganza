@@ -57,6 +57,16 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<Either<Failure, Unit>> signOutLocally() async {
+    try {
+      await _client.auth.signOut(scope: SignOutScope.local);
+      return const Right(unit);
+    } catch (error) {
+      return Left(failureFromException(error));
+    }
+  }
+
+  @override
   Future<Either<Failure, Unit>> signUp({
     required String email,
     required String password,

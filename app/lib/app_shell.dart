@@ -6,6 +6,7 @@ import 'core/session/session.dart';
 import 'core/theme/theme.dart';
 import 'core/widgets/widgets.dart';
 import 'injection.dart';
+import 'modules/areas_module/areas_module.dart';
 import 'modules/auth_module/auth_module.dart';
 import 'modules/chat_module/chat_module.dart';
 import 'modules/commitments_module/commitments_module.dart';
@@ -36,6 +37,11 @@ class AppShell extends StatelessWidget {
         drawer: GanzaDrawer(
           items: [
             DrawerNavigationItem(
+              label: 'Início',
+              icon: AppIcons.home,
+              onSelected: () => AreasRoutes.goNamed(context),
+            ),
+            DrawerNavigationItem(
               label: 'Transações',
               icon: AppIcons.transactions,
               onSelected: () => TransactionsRoutes.pushNamed(context),
@@ -61,7 +67,7 @@ class AppShell extends StatelessWidget {
             DrawerNavigationItem(
               label: 'Sair',
               icon: AppIcons.signOut,
-              onSelected: () => getIt<SignOut>()(),
+              onSelected: () => getIt<SignOutLocally>()(),
             ),
           ],
         ),
