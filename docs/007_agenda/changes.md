@@ -52,6 +52,69 @@ estado final, sem preservar neles uma versão obsoleta do planejamento.
   FD-007; `03_plan.md` ajusta invariantes, T1.1/T2.1 e DoD para exigir essas
   provas. A migration só será corrigida depois deste registro.
 
+### CHG-002 - Agendar o purge e criar o teste de banco que o DoD de T1.1 não cobrava
+
+- **Data:** 2026-08-27
+- **Fase/PR:** Fase 1 · PR 1 · T1.1 (migration `0017`).
+- **Planejado originalmente:** o CHG-001 decidiu que autorizações vencidas
+  seriam removidas por **rotina de purge agendada no banco**, também acionável
+  antes de iniciar novo OAuth. O bloco de DoD de T1.1 em `03_plan.md`, porém,
+  exigia apenas "teste em banco descartável" e "teste de autorização", sem
+  nomear agendamento, arquivo de teste ou comando que os executasse.
+- **Por que não foi possível prosseguir:** a auditoria do bloco devolveu
+  `DOD INVÁLIDO` por dois defeitos de critério. Primeiro, o DoD ficou mais
+  fraco que o CHG-001: `supabase/migrations/0017_criar_vinculo_google_calendar.sql`
+  entregou `public.google_oauth_authorizations_purge_expired()` e a chamada no
+  início do OAuth, mas nenhum `cron.schedule` — e purge disparado no
+  `authorize` é exatamente a alternativa (3) que o CHG-001 rejeitou, "limpar
+  somente no handler". Sem agendamento, quem vincula uma vez e não volta deixa
+  state vencido e segredo PKCE no Vault indefinidamente. Segundo, os dois
+  critérios não nomeavam artefato: o supervisor é cego ao plano e não tem como
+  julgar "teste em banco descartável" sem caminho nem comando, e o repositório
+  não tinha nenhum teste de banco — todos os `*_test.ts` são Deno contra
+  handlers de Edge Function.
+- **Alternativas consideradas:** (1) aceitar o purge só no `authorize`; é a
+  alternativa já rejeitada no CHG-001 e deixa segredo vivo sem tráfego.
+  (2) agendar a limpeza fora do banco, por cron de infraestrutura ou job de
+  CI; move para outro sistema uma garantia que o schema deve sustentar sozinho
+  e não é provável pela própria migration. (3) escrever o teste de banco em
+  Deno, como os demais; exigiria expor o Postgres em rede e duplicar o
+  bootstrap do schema `auth`, que hoje só existe no job `migrations`.
+  (4) adiar o teste de banco para a fase de bateria automatizada; separaria a
+  prova da migration do PR que a introduz e deixaria a Fase 1 sem cancela.
+- **Decisão tomada:** o DoD passa a exigir por extenso o agendamento da rotina
+  de purge por `cron.schedule`, com o job correspondente presente em
+  `cron.job`. `pg_cron` já está habilitado em
+  `supabase/migrations/0001_habilitar_extensoes.sql` e o job `migrations` sobe
+  o Postgres com `shared_preload_libraries=pg_cron` e
+  `cron.database_name=postgres`, então não há impedimento técnico. As provas
+  de comportamento passam a morar em
+  `supabase/tests/0017_vinculo_google_calendar.sql`, executado por um passo
+  novo do job `migrations` de `.github/workflows/ci.yml`, depois de "Aplicar
+  migrations em ordem", com
+  `docker exec -i pg psql -U supabase_admin -d postgres -v ON_ERROR_STOP=1 -q`.
+  É o único ponto do repositório que já tem Postgres descartável com
+  0001--0017 aplicadas, e é prova da própria migration — não é app nem
+  backend, portanto cabe no PR 1, que segue contendo exclusivamente a
+  migration e suas provas.
+- **Resumo da resolução:** **planejada; sem alteração de código nesta
+  entrada.** Os bullets 4 e 5 do bloco de T1.1 foram reescritos para nomear o
+  caminho completo do teste e o comando que o roda, preservando todas as
+  condições que já exigiam e somando o agendamento. O bloco estava com sete
+  linhas desde 86ca480, acima do limite de três a seis: os dois primeiros
+  bullets viraram um só comando encadeado por `set -eu`, que já os conjugava,
+  sem perder nenhuma verificação; agora são seis. Cabe ao executor de T1.1 acrescentar o `cron.schedule` à migration,
+  criar `supabase/tests/0017_vinculo_google_calendar.sql` e o passo de CI que
+  o executa. Nenhuma exigência foi afrouxada.
+- **Reconciliação documental:** `01_prd.md` não muda, pois produto e DoD de
+  produto seguem iguais. `02_specs.md` §3 já dizia que "o purge roda agendado
+  e também antes de iniciar novo OAuth", de modo que não contradiz esta
+  entrada e não foi alterado. `03_plan.md` recebe o veredito `DOD INVÁLIDO` na
+  linha de T1.1, os bullets 4 e 5 reescritos, o `-U` nos sete comandos `rg`
+  multilinha, o estado do topo e a tabela "Progresso". `decisions.md` não
+  muda: FD-004 já fixa que o trigger elimina o segredo Vault ao remover a
+  linha, e o agendamento é execução dessa decisão, não decisão nova.
+
 ## Modelo de registro
 
 ### CHG-NNN - Título objetivo
