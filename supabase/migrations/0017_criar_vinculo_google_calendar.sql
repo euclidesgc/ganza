@@ -77,6 +77,17 @@ $$;
 revoke all on function public.google_oauth_authorizations_purge_expired() from public, anon, authenticated;
 grant execute on function public.google_oauth_authorizations_purge_expired() to service_role;
 
+-- O purge no início de `google_oauth_authorization_start` só roda quando
+-- alguém volta a autorizar; sem agendamento, quem vincula uma vez e nunca
+-- mais volta deixa state e segredo PKCE no Vault sem limite de tempo (CHG-002
+-- em docs/007_agenda/changes.md). `cron.schedule` com nome fixo substitui o
+-- job existente em vez de duplicá-lo, então reaplicar esta migration é seguro.
+select cron.schedule(
+  'google_oauth_authorizations_purge_expired',
+  '*/5 * * * *',
+  $$select public.google_oauth_authorizations_purge_expired();$$
+);
+
 create function public.google_oauth_authorization_start(
   p_state_sha256 bytea,
   p_secret_value text,
