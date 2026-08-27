@@ -1,10 +1,11 @@
 # RETOMADA
 
-- **001 e 002 — FECHADAS** (PRs #37, #38, #39 mergeados). `docs/roadmap.md`: 001 `[x]`, 002 `[x]`.
-- **Item em curso**: **003 — Chat de texto e confirmação** · branch `feature/GZ-37-ingest` (de `develop`, commit `d2b7efa` com o planejamento). PRD (`01_prd.md`), specs (`02_specs.md`), plano (`03_plan.md` com Gauntlet + Fase 1 detalhada), `decisions.md` e `changes.md` criados. `verify-gauntlet.sh` verde.
-- **Primeira ação da retomada**: implementar a **Fase 1 — Edge Function `/ingest`** (T1.1): `supabase/functions/ingest/{index,handler}.ts` + a camada de IA abstraída (`execute(taskType, input)` que resolve `ai_routes`/`ai_providers` e chama o provedor) + `ingest` na task `check` do `deno.json` + `handler_test.ts`. O pipeline `_shared/` (`parseProposals`, `writeProposals`, `buildEnvelope`, `assertWithinLimits`, `logAiEvent`) já está pronto na 002.
-- **Ambiente**: sandbox `danger-full-access`, aprovação `never`. `deno` em `~/.deno/bin/deno`. Docker/psql OK. **Sub-agentes travam** — escrever na conversa principal.
-- **Depois da 003**: 004 rotina → **005 finanças/juros/empréstimos (objetivo principal)** → 006 áudio.
-- **Fios soltos**: branches `chore/GZ-32/33/34` (docs de processo não mergeadas).
-- **Pendências do humano**: rotacionar o par de credenciais da Pluggy (P13).
-- **Ponteiros**: `docs/003_chat_texto/03_plan.md` (Fase 1) · `supabase/functions/_shared/ai/` (pipeline pronto) · `supabase/functions/transactions/handler.ts` (gabarito de função).
+- **Item em curso**: **007 - Agenda e Google Calendar** — Fase 1 (schema seguro) concluída; T1.1 é a única tarefa da fase e está `CUMPRIDO`.
+- **Branch / PR**: `feature/007-agenda-google-calendar` → `develop`, PR #56 (aberto). CI: `migrations`, `functions`, `harness`, `changes` e GitGuardian **verdes**; job `App` **falha** por causa alheia — ver "Bloqueio" abaixo.
+- **Último gate/veredito**: `supervisor-dod` cego ao plano deu **`DoD: CUMPRIDO`** em T1.1, após três `DOD INVÁLIDO` (nenhum consumiu cota) registrados na linha da tarefa e no `CHG-002`.
+- **Primeira ação da retomada**: decidir o bloqueio do golden (abaixo). Só depois disso o PR #56 pode mergear; **não abra a Fase 2 antes do merge** (1 fase = 1 PR).
+- **Bloqueio do PR #56**: os goldens `routine_occurrence_card_golden_test.dart` (feature 004) falham com 0,33%/301px e 0,27%/247px porque a **imagem do runner** mudou (`20260729.566` → `20260819.586`); Flutter fixado em 3.44.9, e o PR não toca `app/`. Reproduz em `develop`. Conserto pertence a um **bugfix próprio** — tolerância no comparador ou golden em container —, não a este PR. Diagnóstico completo no comentário do PR #56.
+- **Depois**: Fase 2 — OAuth, leitura e confirmação no backend (T2.1/T2.2, paralelas, worktree), com o `auditor-de-criterios` sobre cada bloco antes do despacho.
+- **Pendências do humano**: **P1** — projeto Google Cloud, consent screen, redirect HTTPS e conta de teste. Bloqueia **apenas** a prova real contra o Google; as fases 1 a 3 seguem sem ela.
+- **Nota de processo**: a ressalva antiga "sub-agentes travam" **não se confirmou** — `tech-lead`, `auditor-de-criterios`, `especialista-backend` e `supervisor-dod` completaram nesta rodada, o supervisor inclusive aceitou refutação com evidência e se corrigiu.
+- **Ponteiros**: `docs/007_agenda/03_plan.md` (fases, DoD, Progresso) · `docs/007_agenda/changes.md` (CHG-001, CHG-002) · `docs/007_agenda/decisions.md` (FD-004, FD-007) · `supabase/tests/0017_vinculo_google_calendar.sql` (primeiro teste de banco do repo) · `docs/decisions.md` (D34 suspende E2E).
