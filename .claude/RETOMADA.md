@@ -8,4 +8,5 @@
 - **Depois**: Fase 2 — OAuth, leitura e confirmação no backend (T2.1/T2.2, paralelas, worktree), com o `auditor-de-criterios` sobre cada bloco antes do despacho.
 - **Pendências do humano**: **P1** — projeto Google Cloud, consent screen, redirect HTTPS e conta de teste. Bloqueia **apenas** a prova real contra o Google; as fases 1 a 3 seguem sem ela.
 - **Nota de processo**: a ressalva antiga "sub-agentes travam" **não se confirmou** — `tech-lead`, `auditor-de-criterios`, `especialista-backend` e `supervisor-dod` completaram nesta rodada, o supervisor inclusive aceitou refutação com evidência e se corrigiu.
+- **Fios soltos (pré-007)**: `chore/GZ-34-hooks-formato` tem 1 commit não integrado (worktree `.claude/worktrees/wt-hooks`, limpa); worktree `.claude/worktrees/wt-lint` tem 1 arquivo modificado não commitado. Nenhum é da 007 — decidir integrar ou descartar.
 - **Ponteiros**: `docs/007_agenda/03_plan.md` (fases, DoD, Progresso) · `docs/007_agenda/changes.md` (CHG-001, CHG-002) · `docs/007_agenda/decisions.md` (FD-004, FD-007) · `supabase/tests/0017_vinculo_google_calendar.sql` (primeiro teste de banco do repo) · `docs/decisions.md` (D34 suspende E2E).
