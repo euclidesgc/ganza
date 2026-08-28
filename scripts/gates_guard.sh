@@ -10,6 +10,11 @@
 # core/theme/). Padrão ancorado (^|[^A-Za-z])Icons\. para não acusar
 # AppIcons.<nome>, que é o token exigido.
 #
+# GOLDEN SEM RELÓGIO — nenhum app/test/**/*_golden_test.dart lê o relógio
+# (DateTime.now/timestamp, clock.now): golden compara pixels, e fixture
+# relativa a "hoje" faz a imagem mudar de texto a cada dia. Escape na própria
+# linha: // golden-relogio-ok: <motivo>.
+#
 # ROTA ÓRFÃ — toda constante `static const <ident>Name = '...'` declarada
 # em app/lib/**/*_routes.dart precisa de pelo menos uma referência de
 # navegação por nome (goNamed/pushNamed/replaceNamed/pushReplacementNamed
@@ -193,10 +198,29 @@ for rf in "${ROUTE_FILES[@]}"; do
   ' "$rf")
 done
 
+# GOLDEN SEM RELÓGIO — golden compara pixels e a tela imprime datas: fixture
+# derivada de DateTime.now() muda o texto renderizado a cada dia e quebra a
+# imagem sozinha, sem ninguém ter tocado no app. É o que derrubou os dois
+# goldens do card de ocorrência — o mestre trazia "24/08, segunda" e o teste
+# passou a desenhar "26/08, quarta". Fixture de golden é data fixa e distante
+# o bastante para que vencida/futura valham em qualquer dia de execução.
+# Escape: // golden-relogio-ok: <motivo> na própria linha.
+if [ -d "app/test" ]; then
+  mapfile -t GOLDEN_TESTS < <(find app/test -name '*_golden_test.dart' | sort)
+  for f in "${GOLDEN_TESTS[@]}"; do
+    while IFS=$'\t' read -r line content; do
+      [ -z "${line:-}" ] && continue
+      case "$content" in *"// golden-relogio-ok"*) continue ;; esac
+      emit "GOLDEN" "$f:$line" "$(printf '%s' "$content" | sed 's/^[[:space:]]*//')"
+    done < <(grep -nE 'DateTime\.(now|timestamp)\(\)|clock\.now\(\)' "$f" \
+               | sed -E 's/^([0-9]+):/\1\t/')
+  done
+fi
+
 echo ""
 if [ "$fail" -ne 0 ]; then
-  echo "✗ gates_guard: violação(ões) acima. Tokenize em app/lib/core/theme/, ligue a rota a um goNamed/pushNamed/replaceNamed real, ou justifique com // gateN-ok / // rota-sem-consumidor-ok: <motivo>."
+  echo "✗ gates_guard: violação(ões) acima. Tokenize em app/lib/core/theme/, ligue a rota a um goNamed/pushNamed/replaceNamed real, troque a fixture de golden por data fixa, ou justifique com // gateN-ok / // rota-sem-consumidor-ok / // golden-relogio-ok: <motivo>."
   exit 1
 fi
-echo "✓ gates_guard: Gates 1 e 4 e a checagem de rota órfã limpos em ${TARGET_LIBS[*]}."
+echo "✓ gates_guard: Gates 1 e 4, a checagem de rota órfã e os goldens sem relógio limpos em ${TARGET_LIBS[*]} e app/test."
 exit 0
