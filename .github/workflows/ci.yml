@@ -60,6 +60,7 @@ jobs:
             migrations:
               - 'supabase/migrations/**'
               - 'supabase/ci-bootstrap.sql'
+              - 'supabase/tests/**'
               - '.github/workflows/ci.yml'
             harness:
               - '.claude/**'
@@ -163,9 +164,12 @@ jobs:
       - uses: actions/checkout@v4
 
       # `services:` não deixa passar argumentos ao processo do Postgres, e
-      # pg_cron precisa estar em shared_preload_libraries. Daí o docker run.
-      # A imagem é a MESMA de produção: testar contra `postgres:15` puro
-      # validaria um banco que não é o nosso.
+      # pg_cron/pg_net/pgsodium/supabase_vault precisam estar em
+      # shared_preload_libraries — a flag substitui a lista do postgresql.conf
+      # em vez de somar a ela, e sem pgsodium o Vault derruba qualquer
+      # `vault.create_secret` com "no server secret key defined". A imagem é a
+      # MESMA de produção: testar contra `postgres:15` puro validaria um
+      # banco que não é o nosso.
       #
       # Senha aleatória e nenhuma porta publicada: tudo fala por `docker exec`.
       - name: Subir o Postgres do Supabase
@@ -173,7 +177,7 @@ jobs:
           docker run -d --name pg \
             -e POSTGRES_PASSWORD="$(openssl rand -hex 24)" \
             supabase/postgres:15.8.1.085 \
-            postgres -c shared_preload_libraries=pg_cron,pg_net -c cron.database_name=postgres
+            postgres -c shared_preload_libraries=pg_cron,pg_net,pgsodium,supabase_vault -c cron.database_name=postgres
           # A imagem sobe um Postgres TEMPORÁRIO para rodar os init scripts e
           # só então reinicia no definitivo. Um `pg_isready` isolado pega o
           # temporário e o passo seguinte esbarra em "the database system is
@@ -214,6 +218,13 @@ jobs:
             echo "→ $f"
             docker exec -i pg psql -U supabase_admin -d postgres -v ON_ERROR_STOP=1 -q < "$f"
           done
+
+      # Única prova de comportamento (não só de schema) da migration 0017: o
+      # arquivo aborta por `raise exception` se o consumo/purge do state OAuth
+      # não limpar linha e segredo PKCE, se o purge não estiver agendado, ou
+      # se a fronteira JWT/RLS deixar alcançar relação de outro usuário.
+      - name: Testar vínculo Google Calendar (migration 0017)
+        run: docker exec -i pg psql -U supabase_admin -d postgres -v ON_ERROR_STOP=1 -q < supabase/tests/0017_vinculo_google_calendar.sql
 
       # Tabela sem RLS é a falha que não dá erro nem no deploy nem no teste
       # manual: tudo funciona, e o dado fica exposto.

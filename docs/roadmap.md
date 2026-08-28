@@ -12,7 +12,7 @@ Status: `[ ]` não iniciada · `[-]` em andamento · `[x]` concluída.
 - [x] 004 - Rotinas e ocorrências (`docs/004_rotinas/`)
 - [x] 005 - Finanças e conciliação (`docs/005_financas/`)
 - [x] 006 - Recursos multimodais (`docs/006_multimodal/`) — PR #53 mergeada em `develop` com CI verde
-- [ ] 007 - Agenda e Google Calendar (`docs/007_agenda/`)
+- [-] 007 - Agenda e Google Calendar (`docs/007_agenda/`)
 - [ ] 008 - Organização por áreas (`docs/008_organizacao/`)
 - [ ] 009 - Controle de IA e custos (`docs/009_controle_ia/`)
 - [ ] 010 - Web responsiva (`docs/010_web/`)
