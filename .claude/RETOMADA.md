@@ -1,12 +1,11 @@
 # RETOMADA
 
-- **Item em curso**: **007 - Agenda e Google Calendar** — Fase 1 (schema seguro) concluída; T1.1 é a única tarefa da fase e está `CUMPRIDO`.
-- **Branch / PR**: `feature/007-agenda-google-calendar` → `develop`, PR #56 (aberto). CI: `migrations`, `functions`, `harness`, `changes` e GitGuardian **verdes**; job `App` **falha** por causa alheia — ver "Bloqueio" abaixo.
-- **Último gate/veredito**: `supervisor-dod` cego ao plano deu **`DoD: CUMPRIDO`** em T1.1, após três `DOD INVÁLIDO` (nenhum consumiu cota) registrados na linha da tarefa e no `CHG-002`.
-- **Primeira ação da retomada**: decidir o bloqueio do golden (abaixo). Só depois disso o PR #56 pode mergear; **não abra a Fase 2 antes do merge** (1 fase = 1 PR).
-- **Bloqueio do PR #56**: os goldens `routine_occurrence_card_golden_test.dart` (feature 004) falham porque **dependem do relógio** — o teste usa `DateTime.now()` (linhas 73 e 87) e o widget também (`routine_occurrence_card.dart:20` e `:39`). O golden foi gerado em 25/08 e quebra em qualquer outro dia; falha sozinho desde 26/08, antes do PR #56. Não é imagem de runner nem antialiasing — a primeira análise, no primeiro comentário do PR, errou; o segundo comentário corrige. Conserto = injetar a data de referência, em bugfix próprio.
-- **Depois**: Fase 2 — OAuth, leitura e confirmação no backend (T2.1/T2.2, paralelas, worktree), com o `auditor-de-criterios` sobre cada bloco antes do despacho.
-- **Pendências do humano**: **P1** — projeto Google Cloud, consent screen, redirect HTTPS e conta de teste. Bloqueia **apenas** a prova real contra o Google; as fases 1 a 3 seguem sem ela.
-- **Nota de processo**: a ressalva antiga "sub-agentes travam" **não se confirmou** — `tech-lead`, `auditor-de-criterios`, `especialista-backend` e `supervisor-dod` completaram nesta rodada, o supervisor inclusive aceitou refutação com evidência e se corrigiu.
-- **Fios soltos (pré-007)**: `chore/GZ-34-hooks-formato` tem 1 commit não integrado (worktree `.claude/worktrees/wt-hooks`, limpa); worktree `.claude/worktrees/wt-lint` tem 1 arquivo modificado não commitado. Nenhum é da 007 — decidir integrar ou descartar.
-- **Ponteiros**: `docs/007_agenda/03_plan.md` (fases, DoD, Progresso) · `docs/007_agenda/changes.md` (CHG-001, CHG-002) · `docs/007_agenda/decisions.md` (FD-004, FD-007) · `supabase/tests/0017_vinculo_google_calendar.sql` (primeiro teste de banco do repo) · `docs/decisions.md` (D34 suspende E2E).
+- **Item em curso**: **007 - Agenda e Google Calendar** — Fase 1 (schema seguro) **fechada e mergeada**; T1.1 `CUMPRIDO`. Próxima é a Fase 2.
+- **Branch / PR**: nenhum aberto da 007. PR #56 **mergeado** em `develop` (CI inteiro verde); a branch da fase foi apagada.
+- **Último gate/veredito**: DoD da **fase** verificado rodando antes do merge — teste de banco exit 0 com 15 asserções, e falha-sem-a-mudança comprovada removendo o `cron.schedule`. Cancela de máquina: 212 testes do app e 159 do Deno verdes.
+- **Primeira ação da retomada**: abrir a **Fase 2** — despachar o `auditor-de-criterios` sobre os blocos DoD de T2.1 e T2.2 em `docs/007_agenda/03_plan.md` antes de qualquer execução; T2.1 e T2.2 são `[paralela]` e pedem worktree própria cada.
+- **Depois**: Fase 3 (agenda e cards no Flutter) e Fase 4 (bateria, docs, fechamento).
+- **Pendências do humano**: **P1** — projeto Google Cloud, consent screen, redirect HTTPS e conta de teste. Bloqueia **apenas** a prova real contra o Google; as fases 2 e 3 seguem com stub.
+- **Aprendizado de processo (vale para a Fase 2)**: comando `rg -P` em bloco DoD precisa de `-U` quando o padrão cruza linhas, caminho a partir da raiz do repo (nunca `$HOME`), e escape triplo (`\\\$`) para casar `$` literal — três `DOD INVÁLIDO` de T1.1 saíram disso. Ver a linha da T1.1 e o `CHG-002`.
+- **Fios soltos (pré-007)**: `chore/GZ-34-hooks-formato` com 1 commit não integrado (worktree `.claude/worktrees/wt-hooks`, limpa); worktree `.claude/worktrees/wt-lint` com 1 arquivo modificado. Decidir integrar ou descartar.
+- **Ponteiros**: `docs/007_agenda/03_plan.md` (Fase 2 em diante) · `docs/007_agenda/changes.md` (CHG-001, CHG-002) · `docs/007_agenda/decisions.md` · `supabase/tests/0017_vinculo_google_calendar.sql` (gabarito de teste de banco) · `docs/decisions.md` (D34 suspende E2E; D37 goldens sem relógio).
