@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:ganza/core/format/format.dart';
 import 'package:ganza/core/theme/theme.dart';
 import 'package:ganza/modules/routines_module/domain/entities/occurrence_status.dart';
 import 'package:ganza/modules/routines_module/domain/entities/routine_occurrence.dart';
@@ -19,6 +20,18 @@ class MockListPendingOccurrences extends Mock
 class MockListRoutineSummaries extends Mock implements ListRoutineSummaries {}
 
 class MockResolveOccurrence extends Mock implements ResolveOccurrence {}
+
+/// O card imprime a data da ocorrência, e o golden compara pixels: fixture
+/// derivada do relógio (`hoje - 1 dia`) muda o texto renderizado a cada dia e
+/// quebra a imagem sozinha, sem ninguém ter tocado no app. Estas duas datas
+/// são fixas e ficam longe o bastante do presente para que "vencida" e
+/// "futura" continuem verdadeiras em qualquer dia de execução — o que o teste
+/// `as datas de referência não dependem do dia da execução` cobra.
+final dataVencida = DateTime(2024, 3, 11);
+final dataFutura = DateTime(2099, 3, 13);
+
+const textoDataVencida = '11/03/2024, segunda';
+const textoDataFutura = '13/03/2099, sexta';
 
 Future<void> _carregarFontes() async {
   await (FontLoader(
@@ -66,12 +79,29 @@ void main() {
     status: OccurrenceStatus.pending,
   );
 
+  test('as datas de referência não dependem do dia da execução', () {
+    final relogiosPossiveis = [
+      DateTime(2026, 1, 1),
+      DateTime(2026, 8, 27),
+      DateTime(2050, 6, 15),
+      DateTime(2098, 12, 31),
+    ];
+
+    for (final hoje in relogiosPossiveis) {
+      expect(ocorrencia(dataVencida).isOverdueOn(hoje), isTrue);
+      expect(ocorrencia(dataFutura).isOverdueOn(hoje), isFalse);
+      expect(formatTransactionDate(dataVencida, now: hoje), textoDataVencida);
+      expect(formatTransactionDate(dataFutura, now: hoje), textoDataFutura);
+    }
+  });
+
   testWidgets('golden do card atrasado', (tester) async {
     await tester.binding.setSurfaceSize(const Size(420, 220));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
-    final ontem = DateTime.now().subtract(const Duration(days: 1));
-    await tester.pumpWidget(montar(ocorrencia(ontem), completionRate: 0.67));
+    await tester.pumpWidget(
+      montar(ocorrencia(dataVencida), completionRate: 0.67),
+    );
     await tester.pumpAndSettle();
 
     await expectLater(
@@ -84,8 +114,7 @@ void main() {
     await tester.binding.setSurfaceSize(const Size(420, 220));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
-    final amanha = DateTime.now().add(const Duration(days: 1));
-    await tester.pumpWidget(montar(ocorrencia(amanha)));
+    await tester.pumpWidget(montar(ocorrencia(dataFutura)));
     await tester.pumpAndSettle();
 
     await expectLater(
