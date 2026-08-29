@@ -214,6 +214,49 @@ Deno.test(
   },
 );
 
+Deno.test(
+  'log de falha parcial não grava o e-mail do calendário primary em claro',
+  async () => {
+    const emailDaConta = 'pessoa@gmail.com';
+    const originalConsoleError = console.error;
+    const logs: string[] = [];
+    console.error = (...args: unknown[]) => {
+      logs.push(args.map((arg) => String(arg)).join(' '));
+    };
+
+    try {
+      await withFetchStub(
+        (call) => {
+          if (call.url.includes('/users/me/calendarList')) {
+            return calendarListPage([
+              { id: emailDaConta, summary: 'Principal' },
+              { id: 'trabalho', summary: 'Trabalho' },
+            ]);
+          }
+          if (call.url.includes(`/calendars/${encodeURIComponent(emailDaConta)}/events`)) {
+            return Response.json({ error: 'gone' }, { status: 403 });
+          }
+          return eventsPage([{
+            id: 'ev-1',
+            summary: 'Reunião',
+            start: { dateTime: '2026-08-28T10:00:00-03:00', timeZone: 'America/Sao_Paulo' },
+            end: { dateTime: '2026-08-28T11:00:00-03:00', timeZone: 'America/Sao_Paulo' },
+          }]);
+        },
+        () => listAllEvents(ACCESS_TOKEN, '2026-08-01T00:00:00Z', '2026-09-01T00:00:00Z'),
+      );
+    } finally {
+      console.error = originalConsoleError;
+    }
+
+    assertEquals(logs.length > 0, true);
+    for (const log of logs) {
+      assertEquals(log.includes(emailDaConta), false);
+    }
+    assertEquals(logs.some((log) => log.includes('calendar_id_hash')), true);
+  },
+);
+
 Deno.test('todos os calendários indisponíveis ainda propagam o erro', async () => {
   await assertRejects(
     () =>

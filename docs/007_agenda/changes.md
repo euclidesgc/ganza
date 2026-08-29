@@ -258,6 +258,37 @@ estado final, sem preservar neles uma versão obsoleta do planejamento.
   tolerante de `GET /calendar/events` diante de falha parcial — nenhuma das
   duas mudanças é deste registro, que é só código.
 
+#### Adendo (2026-08-29) - o log de falha parcial vazava e-mail em claro
+
+- **Encontrado por:** o crítico integrador da Fase 2, ao revalidar CHG-005
+  falsificando as duas correções por conta própria — achado nasceu depois do
+  gate do CISO, então nenhum outro agente tinha olhado para o log ainda.
+- **Por que `calendar_id` é dado pessoal:** para o calendário `primary`, o
+  `id` que `calendarList.list` devolve **é o próprio e-mail da conta Google**
+  — comportamento documentado da API, não depende da pendência humana P1. O
+  log de `calendar_events_partial_failure` gravava `calendar_id:
+  failure.calendarId` em claro; como `primary` é o calendário mais comum e o
+  mais provável de falhar primeiro, na prática o log gravava o e-mail da
+  pessoa toda vez que o calendário principal caía. O padrão do projeto já
+  proíbe isso — `calendar_credentials.ts:27-29` loga só `{ code }`, nunca
+  identificador — e o log novo de T2.2 tinha ficado fora dele.
+- **Correção:** `google_calendar.ts` ganhou `hashCalendarId`, uma função
+  local (SHA-256 truncado a 12 hex, via `crypto.subtle`) que substitui
+  `calendar_id` por `calendar_id_hash` no log de falha parcial. Não reusa o
+  `hashContent` de `_shared/observability/ai_event.ts` — o crítico já tinha
+  apontado esse módulo, nomeado para telemetria de IA, como cheiro por
+  concentrar utilidades genéricas; duplicar a função localmente evita um
+  segundo import desse caminho sem abrir essa discussão à parte. O hash ainda
+  responde "qual calendário falhou, com que tipo de erro" para correlacionar
+  falhas repetidas, sem carregar identidade.
+- **Prova:** `supabase/functions/calendar/google_calendar_test.ts` ganhou o
+  caso "log de falha parcial não grava o e-mail do calendário primary em
+  claro", que stuba `console.error` e falha se qualquer linha logada contiver
+  o e-mail cru. Falsificado antes do commit (revertendo `calendar_id_hash`
+  para `calendar_id`, o caso sai vermelho) e restaurado.
+- **Não simplifique de volta:** se o hash parecer ruído numa limpeza futura,
+  a razão de ele existir é esta entrada — o valor cru é o e-mail da pessoa.
+
 ## Modelo de registro
 
 ### CHG-NNN - Título objetivo

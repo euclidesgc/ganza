@@ -39,6 +39,21 @@ export interface NormalizedCalendarEvent {
   time_zone: string | null;
 }
 
+// O `id` do calendário `primary` é o e-mail da conta Google (comportamento
+// documentado da API, não só da P1 pendente): gravar `calendarId` cru no log
+// de falha parcial vazaria esse e-mail toda vez que o calendário principal
+// cair, que é o caso mais provável de acontecer. O hash correlaciona falhas
+// repetidas do mesmo calendário sem carregar identidade — não simplifique de
+// volta para o valor cru achando que é só ruído de log.
+async function hashCalendarId(calendarId: string): Promise<string> {
+  const bytes = new TextEncoder().encode(calendarId);
+  const digest = await crypto.subtle.digest('SHA-256', bytes);
+  return Array.from(new Uint8Array(digest))
+    .map((byte) => byte.toString(16).padStart(2, '0'))
+    .join('')
+    .slice(0, 12);
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
@@ -226,7 +241,7 @@ export async function listAllEvents(
     console.error(
       JSON.stringify({
         type: 'calendar_events_partial_failure',
-        calendar_id: failure.calendarId,
+        calendar_id_hash: await hashCalendarId(failure.calendarId),
         error: failure.error instanceof Error ? failure.error.constructor.name : 'unknown',
       }),
     );
