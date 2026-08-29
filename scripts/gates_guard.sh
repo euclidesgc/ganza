@@ -29,6 +29,15 @@
 # `static const fooName =` + `'valor';` por passar de 80 colunas — sem
 # isso o formatador apagaria a checagem sem tocar em nenhum escape.
 #
+# FUNÇÃO ÓRFÃ — toda pasta de primeiro nível em supabase/functions/ (exceto
+# main, _shared e health) precisa aparecer em app/lib ou em
+# supabase/migrations; senão é Edge Function alcançável por HTTP e sem
+# nenhum chamador (D38 — o caso real foi conciliate e import-ofx, prontas e
+# testadas, mas sem tela nem job que as invoque). Escape:
+# // funcao-sem-consumidor-ok: <motivo> em qualquer arquivo da própria
+# pasta da função, para função chamada só por outra função ou por
+# agendador externo.
+#
 # Sai 0 se limpo, 1 se achar violação. Plugado no .github/workflows/ci.yml.
 #
 # Escapes pontuais (com justificativa):
@@ -51,6 +60,11 @@
 #     toque — ex.: a rota raiz, que só é atingida pelo initialLocation e
 #     pelo fallback do redirect.
 #
+#   // funcao-sem-consumidor-ok: <motivo> — em qualquer arquivo dentro de
+#     supabase/functions/<nome>/, para a função inteira (não há linha
+#     única representativa de "a função existe" como há para uma
+#     declaração de rota).
+#
 # Isenções por caminho:
 #   - app/lib/core/theme/   é a FONTE dos tokens (Color(0x) vive aqui). A
 #                           isenção é do caminho exato, não de qualquer pasta
@@ -61,6 +75,15 @@
 #                           roda sobre todo app/lib, inclusive core/theme.
 #   - test/                 testes podem usar literais.
 #   - patrol_test/          idem.
+#   - supabase/functions/main/    é o roteador que despacha por nome de
+#                                  pasta — não é, ele mesmo, uma função
+#                                  chamável por nome.
+#   - supabase/functions/_shared/ é biblioteca importada pelas funções,
+#                                  sem handler nem rota própria.
+#   - supabase/functions/health/  sonda de infraestrutura chamada pelo
+#                                  orquestrador (Coolify), não pelo app nem
+#                                  por pg_cron — por desenho nunca vai
+#                                  aparecer em app/lib nem em migrations.
 
 set -uo pipefail
 
@@ -198,6 +221,25 @@ for rf in "${ROUTE_FILES[@]}"; do
   ' "$rf")
 done
 
+# FUNÇÃO ÓRFÃ — Edge Function alcançável por HTTP (o roteador de
+# supabase/functions/main despacha por nome de pasta, sem allowlist) e sem
+# nenhum consumidor: nem tela do app nem migration/pg_cron a chamam. É o
+# análogo de backend da checagem de rota órfã acima (D38).
+if [ -d "supabase/functions" ]; then
+  mapfile -t FUNCTION_DIRS < <(find supabase/functions -mindepth 1 -maxdepth 1 -type d \
+    ! -name main ! -name _shared ! -name health | sort)
+  for fd in "${FUNCTION_DIRS[@]}"; do
+    fname="$(basename "$fd")"
+    if grep -rq -- "$fname" app/lib supabase/migrations 2>/dev/null; then
+      continue
+    fi
+    if grep -rq -- '// funcao-sem-consumidor-ok' "$fd" 2>/dev/null; then
+      continue
+    fi
+    emit "FUNCAO" "$fd" "sem referência em app/lib nem em supabase/migrations"
+  done
+fi
+
 # GOLDEN SEM RELÓGIO — golden compara pixels e a tela imprime datas: fixture
 # derivada de DateTime.now() muda o texto renderizado a cada dia e quebra a
 # imagem sozinha, sem ninguém ter tocado no app. É o que derrubou os dois
@@ -219,8 +261,8 @@ fi
 
 echo ""
 if [ "$fail" -ne 0 ]; then
-  echo "✗ gates_guard: violação(ões) acima. Tokenize em app/lib/core/theme/, ligue a rota a um goNamed/pushNamed/replaceNamed real, troque a fixture de golden por data fixa, ou justifique com // gateN-ok / // rota-sem-consumidor-ok / // golden-relogio-ok: <motivo>."
+  echo "✗ gates_guard: violação(ões) acima. Tokenize em app/lib/core/theme/, ligue a rota a um goNamed/pushNamed/replaceNamed real, dê um consumidor à Edge Function, troque a fixture de golden por data fixa, ou justifique com // gateN-ok / // rota-sem-consumidor-ok / // funcao-sem-consumidor-ok / // golden-relogio-ok: <motivo>."
   exit 1
 fi
-echo "✓ gates_guard: Gates 1 e 4, a checagem de rota órfã e os goldens sem relógio limpos em ${TARGET_LIBS[*]} e app/test."
+echo "✓ gates_guard: Gates 1 e 4, as checagens de rota órfã e de função órfã, e os goldens sem relógio limpos em ${TARGET_LIBS[*]}, supabase/functions e app/test."
 exit 0
