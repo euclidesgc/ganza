@@ -43,7 +43,7 @@ Ela não cria entidade nem espelho de evento.
 
 | Tabela | Campos mínimos | Regras |
 |---|---|---|
-| `public.google_calendar_connections` | `id`, `user_id`, `google_subject`, `primary_calendar_id`, `refresh_secret_ref`, `status`, `created_at`, `updated_at`, `last_connected_at` | Uma conexão por usuário; `status` fechado em `active/reconnect_required`; RLS `user_id = auth.uid()`; operações interativas derivam esse campo no banco, nunca de request/body; o app nunca seleciona `refresh_secret_ref`. |
+| `public.google_calendar_connections` | `id`, `user_id`, `google_subject`, `primary_calendar_id`, `refresh_secret_ref`, `status`, `created_at`, `updated_at`, `last_connected_at` | Uma conexão por usuário; `status` fechado em `active/reconnect_required`, e nesta fase nenhuma rota grava `reconnect_required`: o estado é derivado na leitura de `GET /calendar/connection` (FD-008); RLS `user_id = auth.uid()`; operações interativas derivam esse campo no banco, nunca de request/body; o app nunca seleciona `refresh_secret_ref`. |
 | `public.google_oauth_authorizations` | `id`, `user_id`, `state_sha256`, `pkce_secret_ref`, `redirect_uri`, `expires_at`, `created_at` | State opaco tem uso único e expira em 10 minutos; só o hash é persistido e o verificador fica no Vault. Não há histórico `consumed_at`: consumo e expiração removem a linha e o segredo físico correspondente. |
 | `public.proposed_actions` | novos `kind`: `create_calendar_event`, `reschedule_calendar_event`; payload Calendar fechado | Ação continua `pending` até confirmação e recebe `resulting_id`/`resulting_type` só após resposta de sucesso do Google. |
 

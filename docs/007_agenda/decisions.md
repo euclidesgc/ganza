@@ -74,6 +74,15 @@ valem para esta feature. Decisões transversais pertencem a
 - **Decisão:** endpoints iniciados pelo usuário usam o cliente Supabase com o JWT, RLS e RPCs que derivam `user_id = auth.uid()` sem parâmetro de dono. Não há CRUD direto de `service_role` nas tabelas Calendar nem RPC interativa com `p_user_id`. O callback público aceita somente o state OAuth; sua ponte interna resolve o dono a partir do state consumido e não recebe identidade do chamador.
 - **Impacto:** a ligação pertence ao sujeito autenticado que iniciou o fluxo; a única exceção sem JWT permanece limitada à capacidade opaca, única e expirável concedida pelo state.
 
+### FD-008 - Estado de reconexão derivado na leitura, não persistido
+
+- **Data:** 2026-08-29
+- **Contexto:** a migration `0017_criar_vinculo_google_calendar.sql` revoga CRUD das tabelas Calendar de `service_role` e de `authenticated`, e nenhuma das suas RPCs escreve `status`: `google_calendar_connection_save` e `google_oauth_authorization_complete_callback` só gravam `'active'`. Não existe, portanto, caminho para marcar `reconnect_required` no banco — e o refresh do modo Testing do Google expira em sete dias, então o estado precisa aparecer para a pessoa de algum jeito.
+- **Alternativas:** criar migration nova com RPC de marcação de `status`, chamada quando a renovação falha; descartada porque acrescenta a família de prova migration/SQL a uma fase que hoje é só Edge Function/Deno, contrariando a regra de corte de entrega do `CLAUDE.md`, e porque estado persistido fica obsoleto quando a pessoa reconecta por fora do app, sem nada no ganzá para limpá-lo. Persistir passa a ser necessário só quando existir notificação proativa de "reconecte", que não é escopo desta feature.
+- **Decisão:** nesta fase o estado de reconexão não é persistido. O adaptador de credenciais devolve resultado tipado `reconnect_required` quando o Google recusa a renovação do refresh token, e `GET /calendar/connection` deriva o estado na própria leitura, sem gravar em `public.google_calendar_connections`. A coluna `status` continua existindo e permanece `'active'` enquanto o vínculo existir.
+- **Impacto:** `GET /calendar/connection` paga uma tentativa de renovação por leitura, custo aceito. `supabase/functions/calendar/calendar_credentials.ts` e `handler.ts` não escrevem `status`, e o DoD de T2.1 e T2.3 em `03_plan.md` cobra o estado derivado, não a escrita. Introduzir notificação proativa de reconexão reabre esta decisão e exige migration própria.
+
+
 ## Conflito do PRD reconciliado sem alterar o PRD
 
 Não há conflito material no PRD: a frase sobre guardar "o calendário primário"
