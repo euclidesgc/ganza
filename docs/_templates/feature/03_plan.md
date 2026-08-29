@@ -39,7 +39,7 @@ fechou> · **próximo passo: <ação concreta>**.
 `CLAUDE.md` e as decisões transversais em [`docs/decisions.md`](../decisions.md).
 
 **Rubrica binária:** cada fase só passa quando contrato/DoD, arquitetura,
-invariantes de produto, segurança e evidência E2E aplicável estiverem `pass`.
+invariantes de produto e segurança estiverem `pass`.
 Resultado subjetivo, impressão geral ou nota não são critérios de aprovação.
 
 **Invariantes bloqueantes:** <as invariantes do `CLAUDE.md` que esta feature
@@ -58,9 +58,11 @@ volta ao tech-lead, não reprova a tarefa e não consome essa cota. Depois de
 consolidar tarefas paralelas, o crítico integrador revisa as dependências
 cruzadas antes do fechamento.
 
-**Evidência E2E:** fica em `e2e/round_NN/`. Cada `report.md` liga cada passo a
-um print, log ou saída de comando. O E2E roda somente contra a stack local, por
-`patrol test`.
+**Evidência E2E:** não é escopo automatizado e não entra em DoD nenhum. Quem o
+roda é o humano, quando quer revisar de fato (**D34** de `docs/decisions.md`, de
+20/08/2026, revista em 21/08/2026). O automatizado do ganza é **unit + widget +
+golden**. Não escreva linha de DoD que dependa de E2E, nem trate revisão humana
+como etapa de rotina.
 
 ---
 
@@ -147,10 +149,9 @@ toda fase.
 > working directory se atropelam, e o custo do worktree nem sempre se paga.
 >
 > **A decomposição por frente vale nas fases finais também.** Teste
-> automatizado, documentação e validação/E2E se fatiam por frente disjunta como
+> automatizado, documentação e validação se fatiam por frente disjunta como
 > qualquer outra fase. Fase de fechamento escrita como uma tarefa só, de um
-> agente só, é fatiamento que não foi feito. No E2E, separe **instrumentar**
-> (escrever o driver — trabalho de código) de **executar** (rodar contra o
+> agente só, é fatiamento que não foi feito.
 > ambiente — espera de parede); se as duas viram tarefas do mesmo agente ou de
 > agentes diferentes, escreva a razão aqui, porque quem escreve o driver é quem
 > melhor o depura quando a rodada falha.
@@ -184,7 +185,7 @@ toda fase.
 >    "o formatador".
 > 2. **Cada linha diz como se prova**, num dos três tipos do `CLAUDE.md`: teste
 >    automatizado que **falha sem a mudança** (verificado revertendo), saída de
->    comando **literal**, ou evidência de E2E em `e2e/round_NN/`.
+>    comando **literal**. São dois tipos de prova, não três.
 > 3. **Critério observável já ao fim da tarefa.** Nada que dependa de fase
 >    futura, de merge, de CI do PR ou de aceite humano posterior — isso é DoD de
 >    fase, e no bloco da tarefa vira `DOD INVÁLIDO`.
@@ -202,6 +203,17 @@ toda fase.
 - [ ] **T1.1** — Criar `supabase/migrations/0007_criar_lembretes.sql` com a tabela `public.lembretes`, RLS ligada e política de dono, via skill `criar-migration`. · camada **migration** · `especialista-backend`
 
   **DoD da tarefa**
+
+> **Não escreva linha de `dart format`, `flutter analyze` ou `gates_guard.sh`
+> num bloco de tarefa.** Desde 21/08/2026 higiene de código é **DoD geral** —
+> formatação aplicada e console limpo valem para toda entrega, sem estar escritos
+> em lugar nenhum —, e a cancela roda na skill `fechar-etapa`, com o mesmo alvo
+> que o `.github/workflows/ci.yml` usa. Gastar uma das três a seis linhas do
+> bloco com isso tem dois custos: rouba a linha de uma prova que só aquela tarefa
+> produz, e cria um alvo que **diverge** do CI — foi assim que a Fase 5 da
+> feature 002 chegou ao gate final com dois arquivos de `test/` desformatados,
+> invisíveis para seis supervisores que mediam só `lib/`.
+
   - `supabase/migrations/0007_criar_lembretes.sql` aplica limpo num Postgres vazio: `psql -v ON_ERROR_STOP=1 -f supabase/migrations/0007_criar_lembretes.sql; echo $?` imprime `0`. O `psql -q` do CI não imprime nada — quem prova é o código de saída, não a saída.
   - `psql -tAc "select rowsecurity from pg_tables where schemaname='public' and tablename='lembretes'"` devolve `t`.
   - `psql -tAc "select qual, with_check from pg_policies where tablename='lembretes'"` devolve exatamente uma linha, com `user_id = auth.uid()` nas duas colunas.
@@ -215,7 +227,7 @@ toda fase.
   **DoD da tarefa**
   - `app/lib/modules/lembretes_module/presentation/lembretes_list/lembretes_list_cubit.dart` existe, declara `sealed class LembretesListState` no mesmo arquivo via `part of`, com os quatro estados como `final class`, e nenhum `import` de `.../data/` aparece no arquivo.
   - Todo `emit` posterior a um `await` é precedido de `if (isClosed) return;` — conferir com `rtk proxy grep -n 'await\|isClosed\|emit' app/lib/modules/lembretes_module/presentation/lembretes_list/lembretes_list_cubit.dart`.
-  - `cd app && dart format --set-exit-if-changed lib/modules/lembretes_module` e `flutter analyze lib/modules/lembretes_module` terminam com código de saída `0`.
+  - O `switch` sobre o estado cobre os quatro casos sem cláusula `default` — remover um `final class` do `sealed` faz `flutter analyze` acusar `non_exhaustive_switch`; provar rodando e restaurando.
   - Da raiz do repositório, `scripts/gates_guard.sh; echo $?` imprime `0`: nenhum literal de cor, espaçamento ou tipografia fora de `app/lib/core/theme/`, e nenhum método que retorne `Widget`.
   - O `switch` sobre o estado é exaustivo sem cláusula `default` — remover um `final class` do `sealed` faz `flutter analyze` acusar `non_exhaustive_switch`; provar rodando e restaurando.
 

@@ -13,8 +13,24 @@
 #
 # Escape consciente, quando o achado for comprovadamente falso positivo:
 #   GANZA_ALLOW_SECRET=1 git commit ...
+#
+# Formatação (CHG-041): o CI roda `dart format --output=none
+# --set-exit-if-changed .` em app/, `test/` incluído — um `.dart` staged
+# desformatado é reprovado aqui, antes de chegar lá. Escape consciente,
+# quando a formatação for aceitável mesmo assim:
+#   GANZA_ALLOW_UNFORMATTED=1 git commit ...
 
 set -uo pipefail
+
+# git injeta GIT_DIR/GIT_INDEX_FILE/GIT_WORK_TREE ao invocar o hook, e eles
+# vazam para qualquer subprocesso. O `dart` deste ambiente é um wrapper puro
+# que roda `git show` contra o próprio checkout do SDK — herdando o GIT_DIR
+# do ganza, ele mira o repositório errado, crasha e `dart format` sai != 0
+# por um erro que nada tem a ver com formatação (falso "desformatado"). O
+# git já ancorou o cwd na raiz certa antes de chamar o hook, então os
+# comandos abaixo continuam resolvendo o repositório certo sem essas
+# variáveis.
+unset GIT_DIR GIT_INDEX_FILE GIT_WORK_TREE
 
 [ "${GANZA_ALLOW_SECRET:-0}" = "1" ] && exit 0
 
@@ -77,12 +93,43 @@ for arquivo in $arquivos; do
   done < <(grep -nE "$MARCA_ATRIBUICAO" "$arquivo" 2>/dev/null)
 done
 
+formato_invalido=0
+
+if [ "${GANZA_ALLOW_UNFORMATTED:-0}" != "1" ] && command -v dart >/dev/null 2>&1; then
+  for arquivo in $arquivos; do
+    [ -f "$arquivo" ] || continue
+    case "$arquivo" in
+      *.dart) ;;
+      *) continue ;;
+    esac
+    if ! dart format --output=none --set-exit-if-changed "$arquivo" >/dev/null 2>&1; then
+      printf '\n  ✗ %s — desformatado (rode: dart format %s)\n' "$arquivo" "$arquivo"
+      formato_invalido=1
+    fi
+  done
+fi
+
 # Workflow com job duplicado passa em qualquer parser YAML e é recusado pelo
 # GitHub sem gerar log. Barrar aqui é mais barato que descobrir em develop.
 if printf '%s\n' $arquivos | grep -q '^\.github/workflows/'; then
   if ! bash "$(dirname "${BASH_SOURCE[0]}")/../validar-workflows.sh"; then
     achados=1
   fi
+fi
+
+if [ "$formato_invalido" -ne 0 ]; then
+  cat <<'FIM'
+
+✗ pre-commit: arquivo .dart desformatado acima.
+
+  O CI roda `dart format --output=none --set-exit-if-changed .` em app/,
+  test/ incluído, e falha na mesma situação — formatar agora custa um
+  comando, descobrir isso no gate da fase custa reabrir tarefa já fechada.
+
+    • formate e reestagie: dart format <arquivo> && git add <arquivo>;
+    • aceitável mesmo assim? GANZA_ALLOW_UNFORMATTED=1 git commit ...
+
+FIM
 fi
 
 if [ "$achados" -ne 0 ]; then
@@ -98,6 +145,9 @@ if [ "$achados" -ne 0 ]; then
     • falso positivo comprovado? GANZA_ALLOW_SECRET=1 git commit ...
 
 FIM
+fi
+
+if [ "$achados" -ne 0 ] || [ "$formato_invalido" -ne 0 ]; then
   exit 1
 fi
 

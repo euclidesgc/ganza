@@ -309,9 +309,10 @@ quando se descobre no meio da fase.
   barrel, e o barrel raiz `widgets.dart`. **Não existe `navigation/` nem
   `forms/`.**
 - Testes de aparelho: `app/patrol_test/` existe com os roteiros herdados da
-  feature 001, mas **deixou de ser mantido** em 20/08/2026 (**D34**) e é removido
-  pela **TL.4** da §9. Nada novo se escreve ali, e o que ele provava está
-  redistribuído na §9.
+  feature 001, mas **deixou de ser mantido** em 20/08/2026 (**D34**) e **fica
+  onde está**: a **TL.4**, que mandava removê-lo, foi **cancelada em 21/08/2026**
+  (`changes.md`, **CHG-042**), porque E2E voltou a ser ferramenta do humano, sob
+  demanda. Nada novo se escreve ali, e o que ele provava está redistribuído na §9.
 
 **Backend (`supabase/functions/`)**
 
@@ -762,9 +763,11 @@ morreu com eles.** `lista_transacoes_test.dart` e `registro_transacao_test.dart`
 procuravam a ação de transações na `AppBar`, que esta fase moveu para o drawer;
 consertá-los era a T2.6 e rodá-los era a T2.7. As duas saíram para o lote pela
 **D30** e caíram de vez com a **D34**, que suspendeu o E2E (`changes.md`,
-CHG-019): `app/patrol_test/` deixou de ser mantido e é removido pela **TL.4**. O
-risco **X3** foi extinto junto — não há roteiro vermelho invisível ao CI porque
-não há roteiro. **A exigência que sobreviveu** é navegar pelo drawer até
+CHG-019): `app/patrol_test/` deixou de ser mantido, mas **fica no repositório** —
+a **TL.4**, que mandava removê-lo, foi **cancelada em 21/08/2026** (`changes.md`,
+**CHG-042**). O risco **X3** foi extinto junto — nenhum roteiro é mantido pelo
+fluxo automatizado nem entra em DoD, então não há roteiro vermelho invisível ao
+CI cobrando conserto de ninguém. **A exigência que sobreviveu** é navegar pelo drawer até
 transações e voltar sem perder a pilha, hoje na **TL.2** da §9, como teste de
 cadeia.
 
@@ -1496,7 +1499,20 @@ stubado, e isso não é a mesma coisa que a sandbox respondendo — a §9 regist
 buraco em vez de deixá-lo implícito.
 
 ---
-### Fase 6 — Defesa do pipeline de IA · PR 6
+### Fase 6 — Defesa do pipeline de IA · PR 6a (migrations) + PR 6b
+
+> **Esta fase passa no critério de corte por família de prova, e é o contraste
+> exato da Fase 5.** São nove tarefas em **duas** famílias: migration/SQL
+> (**T6.1** e **T6.2**) e Edge Function/Deno (**T6.3** a **T6.8**), mais uma de
+> documentação (**T6.9**). Seis tarefas seguidas na mesma família significa que
+> o gabarito de critério da primeira serve às cinco seguintes — o oposto da
+> Fase 5, que teve seis famílias em seis tarefas e custou 2,67 correções de DoD
+> por tarefa contra 0,69 da Fase 1. **Espere custo baixo de critério aqui, e
+> desconfie se não for esse o caso.**
+>
+> **As migrations vão em PR próprio** (6a), como nas Fases 4 e 5: é família
+> distinta, o job "Banco" do CI só roda nelas, e separar mantém cada PR dentro
+> de uma família só. O restante vai no 6b, empilhado.
 
 Branch: `feature/GZ-32-defesa-pipeline-ia` (de `develop`; o número da issue se
 confirma ao abrir).
@@ -1796,7 +1812,7 @@ legitimamente precisa da chave coexiste com as que não precisam (X7).
 |---|---|---|---|
 | X1 | **O cadastro tranca calado se a confirmação for desligada sem o e-mail sair.** O risco mudou de forma em 20/08/2026: a **FD-022** desligou a confirmação automática, e com isso morreu o risco original — "qualquer endereço inventado vira conta confirmada". O que ficou é o inverso e é de ordem: com `GOTRUE_MAILER_AUTOCONFIRM: 'false'` e SMTP mudo, todo cadastro novo nasce não confirmado e **ninguém consegue entrar** — e nada no app acusa, porque o `signup` responde `200`. | Fase 1, e a virada da HML | As duas variáveis do GoTrue viram **no mesmo redeploy** das cinco de SMTP, nunca antes: a ordem está escrita em `docs/deploy/coolify.md`, seção "Ainda por fazer", e na **FD-022**. Na stack local o modo de falha não existe desde a T1.5 — o capturador recebe todo e-mail. Prova de que o caminho funciona antes de a HML virar: o E2E da Fase 1, que cria conta e confirma lendo o capturador. |
 | X2 | **O `Scaffold` com `drawer:` reintroduz o glifo do Material** pelo `DrawerButton` que ele injeta, e **nada no CI pega isso**: medido em 20/08/2026, `scripts/gates_guard.sh` **não tem checagem de ícone nenhuma** — `rtk proxy grep -n 'Icons' scripts/gates_guard.sh` não devolve nada, e o Gate 4 do script cobre `Color(0x`, `Colors.<nome>`, `fontSize`, `circular(` e `EdgeInsets`, mais nada. **A linha anterior desta célula dizia que o guard "procura o literal `Icons.`", e era falsa** — risco mitigado no papel por mecanismo inexistente. | Fase 2, e toda feature depois dela | Duas camadas, uma por fase e outra permanente: **hoje**, a linha de DoD da **T2.5** (`leading:` explícito com token de `AppIcons`) e a do DoD da Fase 2, ambas com `rtk proxy grep -rnE '(^|[^A-Za-z])Icons\.' app/lib` vazio — o padrão é ancorado porque sem a âncora ele casa `Icons.` dentro de `AppIcons.` e reprova as 13 linhas legítimas do repositório; **a partir da T2.9**, a checagem entra no próprio `scripts/gates_guard.sh`, que é o que faz a proteção valer nas features seguintes sem depender de alguém repetir a linha no DoD. |
-| ~~X3~~ | ~~**`flutter test` não cobre `app/patrol_test/`** e `flutter analyze` não pega string que deixou de casar, então a troca de navegação deixa o CI verde e o emulador vermelho.~~ **Extinto em 20/08/2026 pela D34** (`changes.md`, CHG-019). | ~~Fase 2, e daí até o lote de fechamento~~ | **O risco morreu com o objeto que o produzia:** o E2E foi suspenso por completo, os roteiros herdados da feature 001 deixaram de ser mantidos e `app/patrol_test/` é removido pela **TL.4** (§9). Não há mais roteiro vermelho invisível ao CI porque não há mais roteiro. **O que a extinção custou está na §9, dito por extenso:** a navegação pelo drawer até transações passou a ser provada por teste de widget (**TL.2**), e a integração real com a sandbox da Pluggy ficou **sem prova automatizada**. |
+| ~~X3~~ | ~~**`flutter test` não cobre `app/patrol_test/`** e `flutter analyze` não pega string que deixou de casar, então a troca de navegação deixa o CI verde e o emulador vermelho.~~ **Extinto em 20/08/2026 pela D34** (`changes.md`, CHG-019). | ~~Fase 2, e daí até o lote de fechamento~~ | **O risco morreu com o objeto que o produzia:** o E2E foi suspenso por completo, os roteiros herdados da feature 001 deixaram de ser mantidos e nenhum deles entra em DoD ou no CI. `app/patrol_test/` **fica no repositório** — a **TL.4**, que mandava removê-lo, foi **cancelada em 21/08/2026** (`changes.md`, **CHG-042**), porque E2E voltou a ser ferramenta do humano —, e nada ali cobra conserto de ninguém. **O que a extinção custou está na §9, dito por extenso:** a navegação pelo drawer até transações passou a ser provada por teste de widget (**TL.2**), e a integração real com a sandbox da Pluggy ficou **sem prova automatizada**. |
 | X4 | **A recuperação por OTP não cobre o clique no link do e-mail.** O GoTrue manda o link junto do código; quem clicar cai no navegador e não volta para o app. | Fase 1 | Limitação **conhecida e aceita**: o texto do e-mail e a tela de recuperação instruem a digitar o código. O deep link PKCE fica registrado em `docs/002_conta_e_configuracoes/decisions.md` como o passo seguinte, com o custo já levantado (source set de flavor + `GOTRUE_URI_ALLOW_LIST`). |
 | X5 | **A stack local diverge da de produção quanto à chave-mestra do Vault, e a divergência já produziu uma conclusão errada.** Em produção a chave mora em `/etc/postgresql-custom/pgsodium_root.key` **dentro do volume nomeado** `lqsjrqqs6r8rnggbvwpi4nuf_supabase-db-config`, medido em 21/08/2026 com comandos de leitura (**FD-032**; saídas coladas em `docs/deploy/coolify.md`). Em `infra/local/docker-compose.yml` o serviço `db` monta só `db-data:/var/lib/postgresql/data`, e **ali** recriar o contêiner de fato torna todo segredo do Vault indecifrável. **A versão anterior desta célula dizia que produção estava no mesmo estado da local, e era falsa:** ninguém tinha medido — a afirmação saiu da leitura do compose local mais a suposição de que a produção nascera do mesmo desenho. Enquanto os dois desenhos divergirem, a próxima medição feita na stack local volta a ser lida como verdade sobre produção. | Fase 4, e toda medição de Vault depois dela | **T4.15** replica `supabase-db-config:/etc/postgresql-custom` em `infra/local/docker-compose.yml` — mudança só no repositório, sem tocar a VPS e sem autorização a pedir. A medição de produção já está feita e colada (**T4.3**), e a regra que fica é: sobre produção cita-se a medição, nunca o compose local. |
 | X6 | **Exclusão de conta deixaria segredo órfão no Vault.** `public.ai_user_credentials` some por `on delete cascade`, mas `vault.secrets` não — o Vault não aceita FK para `auth.users`, e um segredo órfão é cifrado e eterno. | Fase 4 | Gatilho `before delete` em `public.ai_user_credentials`, na **T4.2**, que apaga o segredo junto. Resolvido por construção, com o DoD provando o caso pelo `delete` da própria conta e pela remoção temporária do gatilho. |
@@ -1825,15 +1841,17 @@ tarefa sem esse veredito **não** é marcada, mesmo que o código pareça pronto
 
 - [x] **Fase 1** — Auth completo: medir a sessão, cadastrar e recuperar senha · PR 1 (16 tarefas, todas no PR 1; a T1.16 saiu com a suspensão do E2E, §9) · PR **#26** mergeado
 - [x] **Fase 2** — Drawer e a casca das Configurações · PR 2 (7 tarefas, todas no PR 2, com a T2.8 do CHG-014 e a T2.9 do CHG-015; T2.6 e T2.7 saíram com a suspensão do E2E, §9) · PR **#27** mergeado
-- [-] **Fase 3** — Perfil do usuário · PR 3a + PR 3b (10 tarefas — 1 no PR 3a e 9 no PR 3b; T3.9 e T3.10 saíram com a suspensão do E2E, §9)
-- [ ] **Fase 4** — Configuração de IA e o gating · PR 4a + PR 4b (13 tarefas — 2 no PR 4a e 11 no PR 4b; T4.12 e T4.13 saíram com a suspensão do E2E, §9; a T4.14 nasceu ao partir a prova de isolamento da execução do E2E e **fica**, porque é `curl` e `psql`; a T4.15 nasceu da inversão do risco X5, `changes.md`, CHG-020)
-- [ ] **Fase 5** — Integração bancária · PR 5a + PR 5b (6 tarefas — 1 no PR 5a e 5 no PR 5b; T5.7 e T5.8 saíram com a suspensão do E2E, §9)
-- [ ] **Fase 6** — Defesa do pipeline de IA · PR 6 (9 tarefas)
-- [ ] **Lote de fechamento** — §9 (4 tarefas: TL.1 a TL.4), depois da Fase 6
+- [x] **Fase 3** — Perfil do usuário · PR 3a + PR 3b (10 tarefas — 1 no PR 3a e 9 no PR 3b; T3.9 e T3.10 saíram com a suspensão do E2E, §9) · PR **#29** + PR **#30** mergeados
+- [x] **Fase 4** — Configuração de IA e o gating · PR 4a + PR 4b (13 tarefas — 2 no PR 4a e 11 no PR 4b; T4.12 e T4.13 saíram com a suspensão do E2E, §9; a T4.14 nasceu ao partir a prova de isolamento da execução do E2E e **fica**, porque é `curl` e `psql`; a T4.15 nasceu da inversão do risco X5, `changes.md`, CHG-020) · PR **#32** mergeado
+- [x] **Fase 5** — Integração bancária · PR 5a + PR 5b (6 tarefas — 1 no PR 5a e 5 no PR 5b; T5.7 e T5.8 saíram com a suspensão do E2E, §9) · PR **#35** mergeado
+- [x] **Fase 6** — Defesa do pipeline de IA · PR 6a + PR 6b (9 tarefas) · PR **#38** mergeado
+- [x] **Lote de fechamento** — §9 (4 tarefas: TL.1 a TL.3 executadas e a TL.4 cancelada pela **CHG-042**), depois da Fase 6 · PR **#39** mergeado
 
 São **65 tarefas** na feature, contra as 69 de antes da **D34** e as 64 de antes
-da **CHG-020**: nove tarefas de
-E2E saíram e quatro do lote entraram (`changes.md`, CHG-019).
+da **CHG-020**: nove tarefas de E2E saíram e quatro do lote entraram
+(`changes.md`, CHG-019). **Todas as 65 estão com o veredito `CUMPRIDO`** — a
+TL.4 entre elas, por cancelamento (`changes.md`, **CHG-042**) —, e a feature está
+marcada como concluída em [`../roadmap.md`](../roadmap.md).
 
 ---
 
@@ -1855,11 +1873,7 @@ widget ou saída de comando**; e o que não couber em nenhum dos dois é dito po
 extenso como buraco aceito. A tabela abaixo é o resultado dessa passagem —
 **ela é o que resta do lote**, e cada linha tem dono, arquivos e bloco DoD.
 
-**`app/patrol_test/` deixa de ser mantido a partir de agora, e a remoção é a
-TL.4 — não é deste PR.** Enquanto o diretório existir, ele ainda precisa formatar
-e analisar limpo, porque `.github/workflows/ci.yml` roda `dart format` e
-`flutter analyze` sobre a pasta `app/` inteira. `docs/002_conta_e_configuracoes/e2e/round_01/`
-e `round_02/` **ficam**: são registro histórico, e apagá-los não devolve nada.
+**O diretório `app/patrol_test/` fica onde está** — a TL.4, que mandava removê-lo, foi **cancelada em 21/08/2026** (CHG-042): E2E voltou a ser ferramenta do humano, sob demanda. Enquanto o diretório existir, ele continua entrando no `dart format` e no `flutter analyze` do repositório, que é o estado em que o CI o encontra.
 
 **Tarefas do lote**
 
@@ -1887,9 +1901,13 @@ e `round_02/` **ficam**: são registro histórico, e apagá-los não devolve nad
   - `rtk proxy grep -rn 'onAuthStateChangeSync' app/lib` não devolve nenhuma linha: o app consome o stream assíncrono, e é isso que mantém a entrega fora da fase de build.
   - `cd app && dart format --output=none --set-exit-if-changed lib test`, `flutter analyze` e `flutter test -r compact` terminam com código de saída `0`.
 
-- [x] **TL.4** — ~~Remover fisicamente o E2E do repositório: o diretório `app/patrol_test/`, a dependência `patrol` de `app/pubspec.yaml` e as menções restantes.~~ **CANCELADA em 21/08/2026 (revisão da D34).** O humano determinou que o E2E não está suspenso, está com ele — `app/patrol_test/` e a dependência `patrol` **ficam no repositório**, fora do fluxo automatizado e fora de qualquer DoD, porque apagá-los destruiria a ferramenta que ele voltou a usar. · camada **infra** · `especialista-infra` · **DoD: CUMPRIDO — cancelada**
+- [x] **TL.4** — ~~Remover fisicamente o E2E do repositório: o diretório `app/patrol_test/`, a dependência `patrol` de `app/pubspec.yaml` e as menções restantes.~~ **CANCELADA em 21/08/2026** (`changes.md`, **CHG-042**; revisão da **D34** de [`../decisions.md`](../decisions.md)). O humano determinou que **E2E não está suspenso: está com ele, para rodar quando quiser revisar**. `app/patrol_test/` e `patrol: ^4.9.0` em `app/pubspec.yaml` **ficam no repositório**, fora do fluxo automatizado e fora de qualquer DoD, porque apagá-los destruiria a ferramenta que ele voltou a usar. · camada **infra** · `especialista-infra` · **DoD: CUMPRIDO — cancelada**
 
-  **DoD da tarefa**
+  **DoD da tarefa — ~~cancelado junto com a tarefa~~.** As linhas abaixo ficam
+  como registro do que a TL.4 teria exigido e **não devem ser executadas por
+  ninguém**: elas mandam apagar `app/patrol_test/` e a dependência `patrol`, que é
+  exatamente o que a **CHG-042** decidiu preservar.
+
   - O diretório `app/patrol_test/` não existe mais: `ls app/patrol_test` responde que o caminho não existe, e `rtk proxy grep -n 'patrol' app/pubspec.yaml` não devolve nenhuma linha — some tanto a dependência quanto o bloco de configuração com `test_directory`.
   - `rtk proxy grep -rn 'patrol' .github/workflows/ docs/002_conta_e_configuracoes/03_plan.md` não devolve nenhuma linha, inclusive a menção a `patrol_test` no comando de format do DoD da Fase 3 desse arquivo.
   - `cd app && flutter pub get` termina com código de saída `0`, e `cd app && dart format --output=none --set-exit-if-changed .`, `flutter analyze` e `flutter test -r compact` terminam com `0` — os mesmos comandos que `.github/workflows/ci.yml` roda.
@@ -1898,10 +1916,11 @@ e `round_02/` **ficam**: são registro histórico, e apagá-los não devolve nad
 
 **Os scripts de harness ficam, e a razão está escrita:** `scripts/e2e-local.sh`,
 `scripts/e2e-emulator.sh`, `scripts/capture-e2e-evidence.py` e
-`scripts/e2e-002-auth.sh` **não** entram na TL.4. Eles não rodam no CI, não
-custam tempo de ninguém e são o que torna barato reabrir a **D34** se o humano
-mudar de ideia; apagá-los junto trocaria uma economia inexistente por um
-recomeço do zero. Quem reabrir começa por eles.
+`scripts/e2e-002-auth.sh` **ficam**, e a TL.4, que poderia tê-los levado junto,
+foi **cancelada em 21/08/2026** (`changes.md`, **CHG-042**). Eles não rodam no CI
+e não custam tempo de ninguém: são o arranjo com que o humano roda E2E quando
+quer revisar de fato. Apagá-los trocaria uma economia inexistente por um recomeço
+do zero.
 
 **Onde cada exigência removida foi parar**
 
@@ -1931,7 +1950,7 @@ recomeço do zero. Quem reabrir começa por eles.
 | Onda | Tarefas | Por quê |
 |---|---|---|
 | 1 | **TL.1**, **TL.2** e **TL.3** `[paralelas]` | nenhuma depende da outra e as três escrevem em arquivos disjuntos sob `app/test/` — worktree próprio para cada uma, porque três agentes formatando `app/test` ao mesmo tempo se atropelam |
-| 2 | **TL.4** | vem por último de propósito: enquanto `app/patrol_test/` existir, as três acima rodam com o repositório no estado em que o CI o encontra, e a remoção não pode mascarar um `flutter analyze` que já estava vermelho |
+| 2 | ~~**TL.4**~~ | **onda esvaziada:** a TL.4 foi **cancelada em 21/08/2026** (`changes.md`, **CHG-042**) e nada sobrou para rodar depois da onda 1. `app/patrol_test/` continua no repositório, e por isso as três tarefas da onda 1 já rodaram com o repositório no estado em que o CI o encontra |
 
 **As linhas acima são DoD do lote, não rodapé de pendência conhecida:** quem
 fechar o lote roda cada prova pela `fechar-etapa`, como em qualquer fase, e

@@ -1,8 +1,8 @@
 import 'package:fpdart/fpdart.dart';
 
 import '../../../../core/error/failure.dart';
-import '../../data/biometric_login_service.dart';
 import '../repositories/auth_repository.dart';
+import '../repositories/biometric_login_service.dart';
 
 class SignOut {
   const SignOut(this._repository, this._biometricLogin);

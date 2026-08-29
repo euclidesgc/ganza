@@ -77,3 +77,70 @@ Quando o plano deixar de ser executável, exija que o executor registre primeiro
 o desvio em `changes.md`: planejamento original, impedimento, alternativas,
 decisão e resumo. Só então reconcilie PRD, specs e plano para o estado final e
 liste nessa mudança os arquivos atualizados.
+
+## As dez armadilhas que já custaram rodada, com nome
+
+Você escreve o bloco DoD. O `auditor-de-criterios` mede cada linha antes do
+despacho e devolve o que não se sustenta — e na feature 002 ele devolveu
+**vinte e três vezes**. Quase tudo era uma destas dez. Escreva já sabendo:
+
+1. **Verde por construção.** O comando devolve hoje, sem a tarefa, o mesmo que
+   devolverá depois. Grep negativo sobre pasta já povoada é o caso clássico:
+   `grep -rn 'catch (' <modulo>/` já devolve só o que a linha quer antes de o
+   arquivo novo existir. Cure exigindo também algo **positivo**: uma linha vinda
+   do arquivo que a tarefa cria, nomeado.
+2. **Vermelho impossível.** Nenhuma implementação correta passa. Exemplos reais:
+   exigir de `pg_policies` a string `user_id = (select auth.uid())`, que o
+   Postgres nunca devolve porque normaliza para `(user_id = ( SELECT auth.uid()
+   AS uid))`; e exigir zero ocorrências de `pluggy` em `app/lib`, onde um
+   comentário anterior à fase já cita o nome.
+3. **Comando sem `cd`.** `flutter analyze` e `flutter test` citados em spans
+   separados não herdam o `cd app` do vizinho: da raiz, o `analyze` completa em
+   2 ms e sai `0` sem analisar nada, e o `test` falha com `Test directory "test"
+   not found`. Cada comando leva o seu próprio `cd app`.
+4. **`dart format` sem `--output=none`.** Prova que reescreve a árvore que
+   deveria medir. Para *medir*, `--output=none`; para *arrumar*, o comando que
+   escreve, fora do DoD.
+5. **Padrão que casa a si mesmo.** `grep -rniE 'PLUGGY_CLIENT_SECRET=[^$]'`
+   escrito num plano casa a própria linha do critério, porque o `[` satisfaz
+   `[^$]`. O critério nunca dá saída vazia, nem num repositório limpo.
+6. **`grep -r` onde cabe `git grep`.** O recursivo alcança arquivo ignorado —
+   inclusive o `.env` que **deve** conter o segredo — e diretório de build.
+   `git grep` só enxerga o versionado, que é o que a linha quase sempre quer.
+7. **Ambiente descrito em vez de construído.** `psql` nu não acha o Postgres do
+   projeto (porta 54322, dentro do compose); `infra/local/.runtime.env` não
+   existe em worktree recém-criado, e sem ele o `curl` sai `000`, não o `503`
+   que a prova esperava. Se a prova depende de um estado, o comando que produz
+   esse estado vai **na própria linha**.
+8. **`git diff` sem base fixa.** Sai vazio hoje e continua vazio depois do
+   commit — aprova por ausência para quem auditar mais tarde. Ancore em
+   `$(git merge-base HEAD origin/develop)`.
+9. **Prova que muta recurso compartilhado.** O projeto Docker `ganza-local` é
+   único para todos os worktrees; derrubar serviço ou apagar volume para medir
+   quebra o ambiente de quem está ao lado. Prefira contêiner efêmero, ou um
+   teste que simule a ausência da configuração dentro do próprio processo.
+10. **Segredo no argv.** `curl -d "{\"clientSecret\":\"$VAR\"}"` expande o
+    valor no argv do processo, visível em `ps aux`. Mande o corpo por stdin, ou
+    prove pelo efeito — um `200` no endpoint só acontece se a credencial for
+    válida.
+
+**Antes de entregar o bloco, rode `bash scripts/lint-dod.sh <plan.md>`**, que
+cobre estaticamente a maior parte desta lista, e
+`bash scripts/lint-dod.sh --run <plan.md> <ID>`, que executa cada comando do
+bloco na árvore atual e mostra o que ele já devolve **hoje**. Linha que hoje já
+dá o resultado esperado é verde por construção e volta para você de qualquer
+forma — mais barato ver isso em segundos do que numa rodada de auditoria.
+
+## O que **não** entra num bloco DoD de tarefa
+
+**Higiene de código não é critério de tarefa.** Não escreva linha de
+`dart format`, `flutter analyze`, `deno fmt`, `deno lint` ou `gates_guard.sh`
+num bloco: desde 21/08/2026 isso é **DoD geral**, vale para toda entrega sem
+estar escrito, e a cancela roda na `fechar-etapa` com o alvo do CI. Cada linha
+que você gasta assim é uma linha a menos para a prova que **só aquela tarefa**
+produz — e é um alvo a mais para divergir do `ci.yml`, que foi como a Fase 5
+chegou ao fechamento com dois arquivos de `test/` desformatados enquanto todos
+os blocos mediam `lib/`.
+
+O bloco de tarefa responde a uma pergunta só: **o que esta tarefa faz existir no
+mundo que não existia antes, e como se observa isso?**

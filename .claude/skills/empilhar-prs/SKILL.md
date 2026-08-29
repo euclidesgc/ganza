@@ -33,7 +33,17 @@ docs e refatorações de base embaixo, o que depende delas em cima.
    prefixo que falta no filtro `on.pull_request.branches` do `.github/workflows/ci.yml` —
    acrescente o prefixo **no commit do fundo da pilha**, e a correção vale para os de cima.
 
-## Merge (é do humano)
+## Merge (é do agente, desde 21/08/2026)
+
+**Com unit, widget e golden verdes, o DoD da fase verificado rodando e a cancela
+de máquina limpa, quem mergeia é o agente** — sem esperar aprovação. Mergeie o
+PR escolhido e a pilha leva junto todos os não-mergeados abaixo dele, numa
+operação só. **Depois do merge, no mesmo movimento:** apague as branches que
+entraram, local e remotamente, e remova os worktrees da fase. Branch órfã e
+worktree sobrevivente viram pendência silenciosa.
+
+O que continua sendo do humano é o **E2E**, que ele roda quando quer revisar de
+fato — não é etapa do fluxo nem pré-requisito de merge.
 
 Vá ao **PR não-mergeado mais baixo**, confirme que ele e os de baixo estão verdes e
 aprovados, e mergeie: os de baixo entram junto, numa operação só. O próximo PR é rebaseado
