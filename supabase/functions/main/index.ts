@@ -10,7 +10,15 @@ const VERIFY_JWT = Deno.env.get('VERIFY_JWT') === 'true';
 // Funções que respondem sem sessão. Tudo que toca dado do usuário fica fora
 // desta lista: a autorização real é a RLS, mas deixar a porta aberta faria o
 // endpoint aceitar chamada anônima antes mesmo de chegar no banco.
-const PUBLICAS = new Set(['health']);
+//
+// `calendar` entra aqui só por causa do callback OAuth do Google
+// (GET /calendar/callback): a navegação volta do consentimento sem sessão do
+// app, então o roteador não tem como exigir Authorization sem quebrar esse
+// fluxo. Toda outra rota de `calendar` (authorize, connection, events,
+// proposals) continua exigindo o header e é `calendar/handler.ts` — não este
+// roteador — quem recusa sem ele; o callback, por sua vez, só aceita o state
+// consumido pelas RPCs da migration 0017 como prova de identidade.
+const PUBLICAS = new Set(['health', 'calendar']);
 
 function erro(code: string, message: string, status: number): Response {
   return new Response(JSON.stringify({ error: { code, message } }), {
@@ -48,6 +56,9 @@ Deno.serve(async (req: Request) => {
         SUPABASE_JWT_SECRET: JWT_SECRET,
         PLUGGY_CLIENT_ID: Deno.env.get('PLUGGY_CLIENT_ID'),
         PLUGGY_CLIENT_SECRET: Deno.env.get('PLUGGY_CLIENT_SECRET'),
+        GOOGLE_OAUTH_CLIENT_ID: Deno.env.get('GOOGLE_OAUTH_CLIENT_ID'),
+        GOOGLE_OAUTH_CLIENT_SECRET: Deno.env.get('GOOGLE_OAUTH_CLIENT_SECRET'),
+        GOOGLE_OAUTH_REDIRECT_URI: Deno.env.get('GOOGLE_OAUTH_REDIRECT_URI'),
       }),
     });
 

@@ -6,10 +6,16 @@ export interface EnvFonte {
   SUPABASE_JWT_SECRET?: string;
   PLUGGY_CLIENT_ID?: string;
   PLUGGY_CLIENT_SECRET?: string;
+  GOOGLE_OAUTH_CLIENT_ID?: string;
+  GOOGLE_OAUTH_CLIENT_SECRET?: string;
+  GOOGLE_OAUTH_REDIRECT_URI?: string;
 }
 
-const FUNCOES_COM_SERVICE_ROLE = new Set(['ai-credentials', 'ingest', 'transcribe']);
+const FUNCOES_COM_SERVICE_ROLE = new Set(['ai-credentials', 'ingest', 'transcribe', 'calendar']);
 const FUNCOES_COM_PLUGGY = new Set(['bank-connections']);
+// Só `calendar` fala com o Google: as demais funções nem recebem client_id,
+// client_secret ou redirect_uri no worker.
+const FUNCOES_COM_GOOGLE_OAUTH = new Set(['calendar']);
 
 export function envVarsFor(nome: string, fonte: EnvFonte): [string, string][] {
   const vars: [string, string][] = [
@@ -26,6 +32,12 @@ export function envVarsFor(nome: string, fonte: EnvFonte): [string, string][] {
   if (FUNCOES_COM_PLUGGY.has(nome)) {
     vars.push(['PLUGGY_CLIENT_ID', fonte.PLUGGY_CLIENT_ID ?? '']);
     vars.push(['PLUGGY_CLIENT_SECRET', fonte.PLUGGY_CLIENT_SECRET ?? '']);
+  }
+
+  if (FUNCOES_COM_GOOGLE_OAUTH.has(nome)) {
+    vars.push(['GOOGLE_OAUTH_CLIENT_ID', fonte.GOOGLE_OAUTH_CLIENT_ID ?? '']);
+    vars.push(['GOOGLE_OAUTH_CLIENT_SECRET', fonte.GOOGLE_OAUTH_CLIENT_SECRET ?? '']);
+    vars.push(['GOOGLE_OAUTH_REDIRECT_URI', fonte.GOOGLE_OAUTH_REDIRECT_URI ?? '']);
   }
 
   return vars;

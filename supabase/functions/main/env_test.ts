@@ -9,6 +9,9 @@ const fonte = {
   SUPABASE_JWT_SECRET: 'jwt-fake',
   PLUGGY_CLIENT_ID: 'pluggy-client-id-fake',
   PLUGGY_CLIENT_SECRET: 'pluggy-client-secret-fake',
+  GOOGLE_OAUTH_CLIENT_ID: 'google-client-id-fake',
+  GOOGLE_OAUTH_CLIENT_SECRET: 'google-client-secret-fake',
+  GOOGLE_OAUTH_REDIRECT_URI: 'https://ganza.app/oauth/google/callback',
 };
 
 function chaves(nome: string): string[] {
@@ -45,4 +48,22 @@ Deno.test('transactions não recebe credenciais da Pluggy', () => {
   const chavesDaFuncao = chaves('transactions');
   assertEquals(chavesDaFuncao.includes('PLUGGY_CLIENT_ID'), false);
   assertEquals(chavesDaFuncao.includes('PLUGGY_CLIENT_SECRET'), false);
+});
+
+Deno.test('calendar recebe SUPABASE_SERVICE_ROLE_KEY', () => {
+  assertEquals(chaves('calendar').includes('SUPABASE_SERVICE_ROLE_KEY'), true);
+});
+
+Deno.test('calendar recebe as três variáveis do OAuth do Google', () => {
+  const chavesDaFuncao = chaves('calendar');
+  assertEquals(chavesDaFuncao.includes('GOOGLE_OAUTH_CLIENT_ID'), true);
+  assertEquals(chavesDaFuncao.includes('GOOGLE_OAUTH_CLIENT_SECRET'), true);
+  assertEquals(chavesDaFuncao.includes('GOOGLE_OAUTH_REDIRECT_URI'), true);
+});
+
+Deno.test('bank-connections não recebe as variáveis do OAuth do Google', () => {
+  const chavesDaFuncao = chaves('bank-connections');
+  assertEquals(chavesDaFuncao.includes('GOOGLE_OAUTH_CLIENT_ID'), false);
+  assertEquals(chavesDaFuncao.includes('GOOGLE_OAUTH_CLIENT_SECRET'), false);
+  assertEquals(chavesDaFuncao.includes('GOOGLE_OAUTH_REDIRECT_URI'), false);
 });
