@@ -1,0 +1,114 @@
+name: Release
+
+# Todo push em `develop` que pode mudar o binário publica uma versão nova.
+# `workflow_dispatch` com `dry_run: true` builda e assina do mesmo jeito, mas
+# só sobe o APK como artefato do run — é como a tarefa se prova sem esperar
+# merge nenhum.
+on:
+  push:
+    branches: [develop]
+    # `docs/**`/`.claude/**` produziriam o mesmo APK: gastar o runner nesse
+    # caso é a mesma perda que o `ci.yml` evita com o job `changes`.
+    paths:
+      - 'app/**'
+      - 'supabase/**'
+      - '.github/workflows/release.yml'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Builda e assina, mas não publica release (só sobe o artefato do run)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  build-e-publicar:
+    name: Build APK prod assinado + release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.44.9
+          channel: stable
+          cache: true
+
+      - name: Dependências
+        working-directory: app
+        run: flutter pub get
+
+      - name: Config de produção (secret, nunca versionada)
+        working-directory: app
+        run: |
+          cat > config/prod.json <<JSON
+          {
+            "FLAVOR": "prod",
+            "SUPABASE_URL": "${{ secrets.SUPABASE_URL }}",
+            "SUPABASE_ANON_KEY": "${{ secrets.SUPABASE_ANON_KEY }}"
+          }
+          JSON
+
+      # `signingConfigs` no build.gradle.kts só existe quando este arquivo
+      # existe no runner — é o mesmo par condicional dos dois lados.
+      - name: Keystore de upload
+        working-directory: app
+        run: |
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/app/upload-keystore.p12
+          cat > android/key.properties <<PROPS
+          storePassword=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}
+          keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}
+          storeFile=upload-keystore.p12
+          PROPS
+
+      - name: Build APK prod
+        working-directory: app
+        run: flutter build apk --release --flavor prod -t lib/main_prod.dart --dart-define-from-file=config/prod.json --build-number=${{ github.run_number }}
+
+      - name: Nome do artefato e tag
+        id: versao
+        working-directory: app
+        run: |
+          versao_app=$(grep '^version:' pubspec.yaml | awk '{print $2}' | cut -d'+' -f1)
+          tag="app-v${versao_app}+${{ github.run_number }}"
+          arquivo="ganza-prod-release-v${versao_app}+${{ github.run_number }}.apk"
+          cp build/app/outputs/flutter-apk/app-prod-release.apk "$arquivo"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "arquivo=$arquivo" >> "$GITHUB_OUTPUT"
+
+      - name: Subir APK como artefato do run
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.versao.outputs.arquivo }}
+          path: app/${{ steps.versao.outputs.arquivo }}
+
+      - name: Changelog desde o release anterior
+        if: github.event.inputs.dry_run != 'true'
+        id: changelog
+        run: |
+          tag_anterior=$(git tag --list 'app-v*' --sort=-v:refname | head -n1)
+          if [ -n "$tag_anterior" ]; then
+            corpo=$(git log "${tag_anterior}..HEAD" --pretty='- %s (%h)')
+          else
+            corpo=$(git log --pretty='- %s (%h)' -n 20)
+          fi
+          {
+            echo "corpo<<CORPO_EOF"
+            echo "$corpo"
+            echo "CORPO_EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Publicar release
+        if: github.event.inputs.dry_run != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ steps.versao.outputs.tag }}" \
+            "app/${{ steps.versao.outputs.arquivo }}" \
+            --title "Ganzá ${{ steps.versao.outputs.tag }}" \
+            --notes "${{ steps.changelog.outputs.corpo }}"
