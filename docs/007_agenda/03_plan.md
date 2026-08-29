@@ -88,27 +88,27 @@ Dono: `especialista-dominio`, `especialista-dados`, `especialista-apresentacao` 
 1. T3.1 fecha domínio. 2. T3.2 e T3.3 são paralelas, em data/presentation. 3. T3.4 e T3.5 dependem do contrato e integram rota/chat.
 
 - [ ] **T3.1** — Criar entidades, repositório e use cases em `app/lib/modules/calendar_module/domain/`. · camada **domain** · `especialista-dominio`
-  - `flutter test test/modules/calendar_module/domain -r compact` passa para evento com hora, dia inteiro e estados de conexão.
+  - `cd app && flutter test test/modules/calendar_module/domain -r compact` termina com código `0`, cobrindo evento com hora, dia inteiro e estados de conexão. Hoje termina com `1`, porque `app/test/modules/calendar_module/domain/` ainda não existe.
   - O teste falha se domínio aceita data relativa, token ou recorrência como alvo de remarcação.
   - `rg -n 'package:flutter|Map<' app/lib/modules/calendar_module/domain` não imprime ocorrências.
 
 - [ ] **T3.2** `[paralela · frente data · worktree]` — Criar models zard e `CalendarRepositoryImpl` em `app/lib/modules/calendar_module/data/`. · camada **data** · `especialista-dados`
-  - `flutter test test/modules/calendar_module/data -r compact` passa para resposta normalizada, reconexão e payload inválido.
+  - `cd app && flutter test test/modules/calendar_module/data -r compact` termina com código `0`, cobrindo resposta normalizada, reconexão e payload inválido. Hoje termina com `1`, porque `app/test/modules/calendar_module/data/` ainda não existe.
   - O teste falha se model aceita `secret_ref`/token ou timestamp sem validação UTC.
   - `rg -n 'try \{' app/lib/modules/calendar_module` mostra tratamento de exceção apenas em `data/`.
 
 - [ ] **T3.3** `[paralela · frente UI · worktree]` — Criar Cubit, página e widgets em `app/lib/modules/calendar_module/presentation/`. · camada **presentation** · `especialista-apresentacao`
-  - `flutter test test/modules/calendar_module/presentation -r compact` passa para conectado, reconectar, lista, dia inteiro e data/hora explícitas.
+  - `cd app && flutter test test/modules/calendar_module/presentation -r compact` termina com código `0`, cobrindo conectado, reconectar, lista, dia inteiro e data/hora explícitas. Hoje termina com `1`, porque `app/test/modules/calendar_module/presentation/` ainda não existe.
   - O teste falha se UI mostra hora artificial em dia inteiro ou usa cor como único sinal de reconexão.
   - `rg -n 'Widget _|Widget [a-zA-Z_]+\(' app/lib/modules/calendar_module/presentation` não imprime helper que retorna Widget.
 
 - [ ] **T3.4** — Registrar rota, barrel e DI em `app/lib/modules/calendar_module/` e `app/lib/app_router.dart`. · camada **infra** · `especialista-infra`
-  - `flutter test test/app_router_test.dart -r compact` passa navegando à Agenda autenticada.
+  - `cd app && flutter test test/app_router_test.dart --plain-name 'agenda autenticada' -r compact` termina com código `0`: o caso novo, cujo nome contém `agenda autenticada`, mora em `app/test/app_router_test.dart` e navega até a Agenda com sessão válida. Hoje termina com `79` (`No tests ran.`) — o arquivo já existe e já passa inteiro, então rodá-lo sem o filtro seria verde por construção.
   - O teste falha se `CalendarRoutes` não está registrado ou rota chama cliente Google fora do Supabase.
   - `cd app && flutter analyze` termina com código `0`.
 
 - [ ] **T3.5** — Adaptar `app/lib/modules/chat_module/` para card Calendar com confirmar/cancelar e dados explícitos. · camada **presentation** · `especialista-apresentacao`
-  - `flutter test test/modules/chat_module/presentation/chat -r compact` passa mostrando título, calendário e antes/depois com Confirmar/Cancelar.
+  - `cd app && flutter test test/modules/chat_module/presentation/chat --plain-name 'card Calendar' -r compact` termina com código `0`: o caso novo, cujo nome contém `card Calendar`, mostra título, calendário e antes/depois com Confirmar e Cancelar. Hoje termina com `79` (`No tests ran.`) — `app/test/modules/chat_module/presentation/chat/` já existe e já passa, então rodá-lo sem o filtro seria verde por construção.
   - O teste falha se Cancelar chama escrita ou Confirmar aceita proposta recorrente ou ambígua.
   - `rg -n 'googleapis|google\.com|refresh_token|client_secret' app/lib` não imprime ocorrências.
 
