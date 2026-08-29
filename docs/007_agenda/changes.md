@@ -115,6 +115,180 @@ estado final, sem preservar neles uma versão obsoleta do planejamento.
   muda: FD-004 já fixa que o trigger elimina o segredo Vault ao remover a
   linha, e o agendamento é execução dessa decisão, não decisão nova.
 
+### CHG-003 - O escopo `calendar.events` não autoriza a leitura da lista de calendários
+
+- **Data:** 2026-08-29
+- **Fase/PR:** Fase 2 · PR 2 · T2.1 (consentimento) e T2.2 (leitura), esta já em `CUMPRIDO`.
+- **Planejado originalmente:** `02_specs.md` §4 fechava o consentimento em um escopo só,
+  `https://www.googleapis.com/auth/calendar.events`, e ao mesmo tempo mandava
+  `GET /calendar/events` ler `calendarList` e depois os eventos de cada calendário
+  acessível, como a FD-001 promete e o DoD da fase cobra ("consulta todos os
+  calendários sem cache").
+- **Por que não foi possível prosseguir:** os dois pedidos são incompatíveis no Google.
+  A referência de `calendarList.list` aceita apenas `calendar`, `calendar.readonly`,
+  `calendar.calendarlist` e `calendar.calendarlist.readonly`
+  (`https://developers.google.com/workspace/calendar/api/v3/reference/calendarList/list`,
+  consultada em 2026-08-29); `calendar.events` não está entre eles, e `calendars.get`
+  não é rota de fuga, porque exige `calendar.calendars[.readonly]` ou `calendar[.readonly]`.
+  Com o escopo planejado, a enumeração devolveria 403 e a leitura ficaria restrita ao
+  calendário primário. A bateria não pega o defeito: o `fetch` é stubado em T2.1 e T2.2,
+  e a prova real depende do projeto Google Cloud, que é a pendência humana P1.
+- **Alternativas consideradas:** (1) acrescentar `calendar.readonly`; autoriza a listagem,
+  mas concede ver e baixar qualquer calendário acessível, privilégio maior que o necessário
+  e redundante com `calendar.events` na leitura de eventos. (2) reduzir a promessa ao
+  calendário primário; dispensa a listagem, mas contraria a FD-001 e o DoD do PRD, e por
+  ser decisão de produto não cabe ao tech-lead. (3) trocar `calendarList.list` por
+  `calendars.get`; não resolve o escopo e ainda perde o nome do calendário.
+  (4) manter como está e descobrir em produção; é o modo de falha que a P1 esconde.
+- **Decisão tomada:** acrescentar `https://www.googleapis.com/auth/calendar.calendarlist.readonly`
+  ao lado de `https://www.googleapis.com/auth/calendar.events`, registrada como FD-009 em
+  `decisions.md`. É decisão técnica e reversível: mantém a escrita restrita a eventos, cumpre
+  a promessa de produto sem alterá-la e é estritamente menos privilegiada que `calendar.readonly`.
+  Nenhuma migration muda.
+- **Resumo da resolução:** **planejada; sem alteração de código nesta entrada.** O código de
+  T2.1 vive na worktree do executor e precisa de uma correção: acrescentar o segundo escopo à
+  URL de autorização em `supabase/functions/calendar/google_oauth.ts` e o caso de teste que
+  falha quando qualquer um dos dois escopos falta. `listAccessibleCalendars` e `listAllEvents`,
+  entregues por T2.2 sobre `calendarList`, permanecem corretos e não mudam.
+- **Reconciliação documental:** `02_specs.md` §4 passa a citar os dois escopos e a razão do
+  segundo; `decisions.md` recebe FD-009; `03_plan.md` reescreve a primeira linha do DoD de T2.1,
+  que citava o escopo literal, e acrescenta os dois escopos ao DoD da Fase 2. `01_prd.md` §7
+  ainda diz que "o escopo necessário para ler todos os eventos e criar/remarcar é
+  `.../calendar.events`": a frase ficou incompleta e cabe ao `product-manager` acrescentar o
+  segundo escopo, porque é declaração de privacidade que alimenta a tela de consentimento.
+
+### CHG-004 - `GET /calendar/events` normalizava evento sem título
+
+- **Data:** 2026-08-29
+- **Fase/PR:** Fase 2 · PR 2 · T2.2 (leitura), já em `CUMPRIDO`.
+- **Planejado originalmente:** `02_specs.md` §4 lista os campos que
+  `GET /calendar/events` devolve por item — `calendar_id`, `calendar_name`,
+  `event_id`, `start`, `end`, `all_day`, `recurring_event_id?`, `time_zone` —
+  e `NormalizedCalendarEvent` em `google_calendar.ts` seguiu essa lista à
+  risca, sem incluir o título do evento.
+- **Por que não foi possível prosseguir:** o gate do CISO da Fase 2 apontou
+  que a lista de campos, embora fiel ao texto de `02_specs.md`, deixa a tela
+  de agenda da Fase 3 sem nenhum jeito de mostrar do que trata cada evento —
+  ela receberia blocos de horário anônimos. Não é falha de segurança (a
+  omissão erra para menos dado exposto, não para mais), mas é lacuna de
+  produto: corrigi-la depois da Fase 3 já ter consumido o contrato exigiria
+  mudar backend e UI juntos, e o `03_plan.md` corta entregas por família de
+  prova (no máximo duas), o que forçaria uma fase extra só para isso.
+- **Alternativas consideradas:** (1) deixar para a Fase 3 registrar como
+  pendência e a tela mostrar um texto fixo tipo "Compromisso"; empurra a
+  lacuna para depois de a UI já estar construída sobre um contrato incompleto.
+  (2) o backend gerar um texto de fallback como "(sem título)" quando o
+  Google omite `summary`; inventar string no backend impede a UI de
+  distinguir depois um título real vazio de um evento realmente sem título,
+  e essa é uma escolha de interface, não de dado.
+- **Decisão tomada:** acrescentar `title: string | null` a
+  `NormalizedCalendarEvent`, preenchido com `event.summary ?? null` — `null`
+  quando o Google omite o campo. O backend só transporta o dado; o texto de
+  fallback para exibição fica com a Fase 3.
+- **Resumo da resolução:** `supabase/functions/calendar/google_calendar.ts`
+  ganhou o campo `title` na interface e na função de normalização;
+  `supabase/functions/calendar/google_calendar_test.ts` ganhou dois casos
+  novos provando `summary` → `title` e ausência de `summary` → `title: null`,
+  falsificados antes do commit (removido o campo, os dois casos saem
+  vermelho por erro de tipo). `handler.ts` não muda: já repassa o array de
+  `listAllEvents` sem remapear campos.
+- **Reconciliação documental:** `02_specs.md` §4 passa a listar `title` entre
+  os campos de `GET /calendar/events`, com a nota de que é `null` quando o
+  Google não informa `summary`.
+
+### CHG-005 - FD-005 recusava só metade da recorrência, e um calendário instável apagava a agenda inteira
+
+- **Data:** 2026-08-29
+- **Fase/PR:** Fase 2 · PR 2 · T2.2 (leitura e confirmação), já em `CUMPRIDO`.
+- **Planejado originalmente:** a FD-005, em `decisions.md:58`, manda "recusar
+  `reschedule` quando o evento tiver `recurringEventId`/regra recorrente".
+  `03_plan.md`, na linha de DoD de T2.2 que cobre remarcação, nomeava só o
+  cenário de `recurringEventId` ao descrever o vermelho esperado
+  (`... ou quando o evento traz recurringEventId (resposta esperada
+  recurring_event_unsupported)`), sem mencionar a segunda metade da FD-005 —
+  o evento-mestre, que carrega `recurrence` e nunca `recurringEventId`.
+  Separadamente, nada em `02_specs.md` §4 ou no plano previa o que acontece
+  quando um calendário dentre vários falha durante `GET /calendar/events`.
+- **Por que não foi possível prosseguir:** o gate do crítico integrador da
+  Fase 2 apontou os dois defeitos depois do `CUMPRIDO` de T2.2. (1)
+  `calendar_proposals.ts` testava só `isNonEmptyString(event.recurringEventId)`;
+  como `listEventsInWindow` sempre chama a API com `singleEvents=true`, todo
+  evento que o app hoje enxerga é ocorrência, nunca mestre, e a bateria da
+  T2.2 nunca exercitou o caminho que a FD-005 também fecha. Um caminho futuro
+  para `event_id` que devolvesse o mestre reabriria em silêncio a remarcação
+  de série inteira que a FD-005 foi escrita para impedir. (2) `listAllEvents`
+  iterava os calendários em série sem `try/catch` por calendário: um único
+  403/404/410 — calendário removido ou perda de acesso entre `calendarList` e
+  a leitura — descartava os eventos já coletados dos calendários anteriores e
+  respondia 502 para a agenda inteira.
+- **Alternativas consideradas:** para a recorrência, (1) deixar como estava e
+  confiar que `singleEvents=true` no único ponto de leitura de hoje sempre
+  evita o mestre; é propriedade emergente do uso atual, não invariante
+  verificada no ponto de escrita, e quebra sem aviso se outro caminho para
+  `event_id` aparecer na Fase 3. Para a listagem tolerante, (1) manter a
+  falha total; simples, mas destrutiva mesmo desconectada de segurança — a
+  pessoa perde a agenda inteira por um calendário secundário. (2) só logar e
+  ignorar silenciosamente qualquer falha, mesmo quando todos os calendários
+  falham; esconderia uma indisponibilidade real atrás de uma agenda vazia,
+  que a UI não consegue distinguir de "sem compromissos".
+- **Decisão tomada:** `toGoogleCalendarEvent` em `google_calendar.ts` passa a
+  mapear `recurrence` (array de RRULE do evento-mestre); `confirmReschedule`
+  recusa com `recurring_event_unsupported` quando `recurringEventId` está
+  presente **ou** `recurrence` não é vazio. `listAllEvents` passa a isolar a
+  falha por calendário: o que responde entra no resultado e o que falha é
+  logado (`calendar_events_partial_failure`, com `calendar_id` e o tipo do
+  erro, sem dado de evento) sem interromper os demais; só propaga
+  `GoogleCalendarUnavailableError` quando **todos** os calendários falham,
+  porque aí não há resultado parcial a preservar e o silêncio esconderia uma
+  indisponibilidade real.
+- **Resumo da resolução:** `supabase/functions/calendar/google_calendar.ts` e
+  `supabase/functions/calendar/calendar_proposals.ts` corrigidos;
+  `supabase/functions/calendar/calendar_proposals_test.ts` ganhou o caso de
+  evento-mestre (`recurrence` presente, `recurringEventId` ausente) e
+  `supabase/functions/calendar/google_calendar_test.ts` ganhou os casos de
+  falha parcial (um calendário cai, o outro aparece no resultado) e falha
+  total (todos caem, erro propaga). Os três casos foram falsificados antes do
+  commit — revertendo cada correção isoladamente, o caso correspondente sai
+  vermelho — e restaurados na sequência.
+- **Reconciliação documental:** a origem do desvio é o próprio DoD de T2.2:
+  `03_plan.md` reduziu a FD-005 a um único campo sem que a redução fosse
+  registrada em lugar nenhum. Cabe à frente de docs desta fase atualizar a
+  linha de DoD de T2.2 para citar `recurringEventId` e `recurrence`
+  explicitamente, e `02_specs.md` §4/§6 para descrever o comportamento
+  tolerante de `GET /calendar/events` diante de falha parcial — nenhuma das
+  duas mudanças é deste registro, que é só código.
+
+#### Adendo (2026-08-29) - o log de falha parcial vazava e-mail em claro
+
+- **Encontrado por:** o crítico integrador da Fase 2, ao revalidar CHG-005
+  falsificando as duas correções por conta própria — achado nasceu depois do
+  gate do CISO, então nenhum outro agente tinha olhado para o log ainda.
+- **Por que `calendar_id` é dado pessoal:** para o calendário `primary`, o
+  `id` que `calendarList.list` devolve **é o próprio e-mail da conta Google**
+  — comportamento documentado da API, não depende da pendência humana P1. O
+  log de `calendar_events_partial_failure` gravava `calendar_id:
+  failure.calendarId` em claro; como `primary` é o calendário mais comum e o
+  mais provável de falhar primeiro, na prática o log gravava o e-mail da
+  pessoa toda vez que o calendário principal caía. O padrão do projeto já
+  proíbe isso — `calendar_credentials.ts:27-29` loga só `{ code }`, nunca
+  identificador — e o log novo de T2.2 tinha ficado fora dele.
+- **Correção:** `google_calendar.ts` ganhou `hashCalendarId`, uma função
+  local (SHA-256 truncado a 12 hex, via `crypto.subtle`) que substitui
+  `calendar_id` por `calendar_id_hash` no log de falha parcial. Não reusa o
+  `hashContent` de `_shared/observability/ai_event.ts` — o crítico já tinha
+  apontado esse módulo, nomeado para telemetria de IA, como cheiro por
+  concentrar utilidades genéricas; duplicar a função localmente evita um
+  segundo import desse caminho sem abrir essa discussão à parte. O hash ainda
+  responde "qual calendário falhou, com que tipo de erro" para correlacionar
+  falhas repetidas, sem carregar identidade.
+- **Prova:** `supabase/functions/calendar/google_calendar_test.ts` ganhou o
+  caso "log de falha parcial não grava o e-mail do calendário primary em
+  claro", que stuba `console.error` e falha se qualquer linha logada contiver
+  o e-mail cru. Falsificado antes do commit (revertendo `calendar_id_hash`
+  para `calendar_id`, o caso sai vermelho) e restaurado.
+- **Não simplifique de volta:** se o hash parecer ruído numa limpeza futura,
+  a razão de ele existir é esta entrada — o valor cru é o e-mail da pessoa.
+
 ## Modelo de registro
 
 ### CHG-NNN - Título objetivo
