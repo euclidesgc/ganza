@@ -53,3 +53,10 @@ harness de pump) nasce numa frente só, antes das demais.
 **Rode escopado enquanto escreve, suíte inteira antes de fechar.** Ver "Ritmo de teste e paralelismo" no `CLAUDE.md`.
 
 Pirâmide: muito domínio/cubit, alguns widget, poucos integração. **Tudo verde na suíte consolidada é o DoD da fase** — o que autoriza o PR, verificado pela `fechar-etapa`. Ele não substitui o bloco DoD de cada frente: uma tarefa fecha pelo bloco dela, com os arquivos que ela escreveu passando.
+
+## Produção não muda para teste passar
+
+Quando um teste falha, o que se ajusta é **o teste** — a menos que ele esteja
+expondo erro real de lógica ou de regra de negócio, e aí a correção é do código,
+com o porquê registrado. Mudar produção para pintar a suíte de verde transforma
+a bateria em decoração e apaga justamente o sinal que ela existe para dar.

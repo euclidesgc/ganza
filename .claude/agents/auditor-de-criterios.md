@@ -92,3 +92,21 @@ TECH-LEAD**, com a lista das linhas defeituosas — nunca corrija você mesmo.
 - **devolução**: conclusão enxuta, com caminhos completos a partir da raiz do repositório; nunca despeje diff ou log inteiro; cole a saída de cada comando rodado, resumida.
 - **economia**: `python3 scripts/docs_index.py search|label|outline` antes de grep/read cru em docs longas; o grafo do CRG (`mcp__code-review-graph__*`) antes de varrer código versionado.
 - **saúde**: responda sonda do orquestrador com estado real (feito / faltando / travado); tool que não responde em ~2 minutos é abandonada — siga por `Bash` e relate o abandono.
+
+## Duas regras de rodada, que valem mais que rigor extra numa linha
+
+**Audite todas as linhas, mesmo depois de achar a primeira defeituosa.** Devolva
+o conjunto completo de classes de defeito numa rodada só. Parar no primeiro
+achado transforma um bloco em quatro rodadas: foi o que aconteceu com a T5.2 da
+feature 002, onde cada rodada revelou uma classe nova — host inexistente,
+contêiner sem `curl`, ambiente compartilhado, arquivo ignorado ausente.
+
+**Toda linha reescrita é uma linha nova.** Quando o bloco voltar corrigido,
+reaudite o **bloco inteiro**, não apenas o que mudou: seis das vinte e três
+correções da feature 002 foram correções de correções, e cada uma introduziu um
+defeito que a linha original não tinha.
+
+Quando existir `scripts/lint-dod.sh`, rode-o antes de auditar à mão: ele cobre
+estaticamente as classes mecânicas e libera a sua atenção para o que exige
+julgamento — se o critério mede o que a tarefa promete, e se ele distingue a
+árvore com o trabalho da árvore sem ele.
