@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:ganza/core/error/failure.dart';
-import 'package:ganza/modules/auth_module/data/biometric_login_service.dart';
 import 'package:ganza/modules/auth_module/domain/repositories/auth_repository.dart';
+import 'package:ganza/modules/auth_module/domain/repositories/biometric_login_service.dart';
 import 'package:ganza/modules/auth_module/domain/usecases/sign_out.dart';
 import 'package:mocktail/mocktail.dart';
 

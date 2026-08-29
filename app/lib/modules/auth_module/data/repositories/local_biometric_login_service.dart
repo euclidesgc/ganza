@@ -3,41 +3,12 @@ import 'package:fpdart/fpdart.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../../../core/error/failure.dart';
-import '../../../core/network/failure_from_exception.dart';
-import '../domain/entities/authenticated_user.dart';
-import 'models/authenticated_user_model.dart';
-
-class BiometricLoginStatus {
-  const BiometricLoginStatus({
-    required this.isSupported,
-    required this.isEnabled,
-  });
-
-  final bool isSupported;
-  final bool isEnabled;
-}
-
-abstract interface class BiometricLoginService {
-  Future<BiometricLoginStatus> status();
-
-  /// Guarda apenas o refresh token, cifrado pelo armazenamento seguro nativo.
-  /// A senha nunca é persistida pelo app.
-  Future<void> enableForCurrentSession();
-
-  /// Atualiza o token salvo somente quando a pessoa já optou pela biometria.
-  Future<void> refreshCurrentSessionIfEnabled();
-
-  /// Descarta a credencial se ela tiver sido criada por outra conta.
-  ///
-  /// Um login por senha não transfere a opção biométrica entre contas no
-  /// mesmo aparelho: a nova conta precisa consentir explicitamente.
-  Future<void> discardIfNotForCurrentSession();
-
-  Future<void> disable();
-
-  Future<Either<Failure, AuthenticatedUser>> signIn();
-}
+import '../../../../core/error/failure.dart';
+import '../../../../core/network/failure_from_exception.dart';
+import '../../domain/entities/authenticated_user.dart';
+import '../../domain/entities/biometric_login_status.dart';
+import '../../domain/repositories/biometric_login_service.dart';
+import '../models/authenticated_user_model.dart';
 
 class LocalBiometricLoginService implements BiometricLoginService {
   LocalBiometricLoginService(
