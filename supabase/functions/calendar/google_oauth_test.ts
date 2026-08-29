@@ -120,8 +120,12 @@ Deno.test(
   },
 );
 
+// `calendar.events` sozinho não autoriza `calendarList.list` (confirmado na
+// referência oficial de escopos por endpoint): sem o segundo escopo, a
+// leitura de todos os calendários acessíveis da FD-001 não teria como
+// funcionar contra o Google de verdade (FD-009).
 Deno.test(
-  'startAuthorization monta a URL de consentimento com state, PKCE, access_type=offline, prompt=consent e o escopo do calendário',
+  'startAuthorization monta a URL de consentimento com state, PKCE, access_type=offline, prompt=consent e os dois escopos calendar.events + calendar.calendarlist.readonly',
   async () => {
     const { resultado } = await comFetchStub(
       () => Response.json(AUTORIZACAO_ID, { status: 200 }),
@@ -141,6 +145,10 @@ Deno.test(
     assertEquals((url.searchParams.get('code_challenge') ?? '').length > 0, true);
     const escopos = (url.searchParams.get('scope') ?? '').split(' ');
     assertEquals(escopos.includes('https://www.googleapis.com/auth/calendar.events'), true);
+    assertEquals(
+      escopos.includes('https://www.googleapis.com/auth/calendar.calendarlist.readonly'),
+      true,
+    );
   },
 );
 

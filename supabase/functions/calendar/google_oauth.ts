@@ -4,6 +4,13 @@ import { hashContent } from '../_shared/observability/ai_event.ts';
 const GOOGLE_AUTH_ENDPOINT = 'https://accounts.google.com/o/oauth2/v2/auth';
 const GOOGLE_TOKEN_ENDPOINT = 'https://oauth2.googleapis.com/token';
 const CALENDAR_SCOPE = 'https://www.googleapis.com/auth/calendar.events';
+// `calendar.events` não autoriza `calendarList.list`/`calendarList.get` nem
+// `calendars.get` (confirmado na referência oficial de escopos por
+// endpoint); `calendarlist.readonly` é o menor escopo adicional que cobre a
+// leitura de todos os calendários acessíveis exigida pela FD-001, sem
+// conceder o privilégio de escrita redundante de `calendar.readonly`/
+// `calendar` (FD-009).
+const CALENDAR_LIST_SCOPE = 'https://www.googleapis.com/auth/calendar.calendarlist.readonly';
 // `calendar.events` não autoriza nenhuma chamada de identidade (confirmado na
 // referência oficial de escopos por endpoint); `openid` é o menor escopo que
 // devolve um `id_token` assinado com `sub`, sem pedir e-mail nem perfil.
@@ -146,7 +153,7 @@ export async function startAuthorization(
   url.searchParams.set('client_id', params.googleClientId);
   url.searchParams.set('redirect_uri', params.redirectUri);
   url.searchParams.set('response_type', 'code');
-  url.searchParams.set('scope', `${IDENTITY_SCOPE} ${CALENDAR_SCOPE}`);
+  url.searchParams.set('scope', `${IDENTITY_SCOPE} ${CALENDAR_SCOPE} ${CALENDAR_LIST_SCOPE}`);
   url.searchParams.set('access_type', 'offline');
   url.searchParams.set('prompt', 'consent');
   url.searchParams.set('state', state);
