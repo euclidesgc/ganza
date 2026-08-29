@@ -22,6 +22,16 @@
 
 set -uo pipefail
 
+# git injeta GIT_DIR/GIT_INDEX_FILE/GIT_WORK_TREE ao invocar o hook, e eles
+# vazam para qualquer subprocesso. O `dart` deste ambiente é um wrapper puro
+# que roda `git show` contra o próprio checkout do SDK — herdando o GIT_DIR
+# do ganza, ele mira o repositório errado, crasha e `dart format` sai != 0
+# por um erro que nada tem a ver com formatação (falso "desformatado"). O
+# git já ancorou o cwd na raiz certa antes de chamar o hook, então os
+# comandos abaixo continuam resolvendo o repositório certo sem essas
+# variáveis.
+unset GIT_DIR GIT_INDEX_FILE GIT_WORK_TREE
+
 [ "${GANZA_ALLOW_SECRET:-0}" = "1" ] && exit 0
 
 arquivos=$(git diff --cached --name-only --diff-filter=ACM)
