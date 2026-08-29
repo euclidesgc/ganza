@@ -83,6 +83,15 @@ valem para esta feature. Decisões transversais pertencem a
 - **Impacto:** `GET /calendar/connection` paga uma tentativa de renovação por leitura, custo aceito. `supabase/functions/calendar/calendar_credentials.ts` e `handler.ts` não escrevem `status`, e o DoD de T2.1 e T2.3 em `03_plan.md` cobra o estado derivado, não a escrita. Introduzir notificação proativa de reconexão reabre esta decisão e exige migration própria.
 
 
+### FD-009 - Escopo de consentimento: eventos mais lista de calendários
+
+- **Data:** 2026-08-29
+- **Contexto:** o escopo `https://www.googleapis.com/auth/calendar.events` não autoriza `calendarList.list`. A referência oficial do método aceita apenas `calendar`, `calendar.readonly`, `calendar.calendarlist` e `calendar.calendarlist.readonly` (`https://developers.google.com/workspace/calendar/api/v3/reference/calendarList/list`, consultada em 2026-08-29). Sem um desses, enumerar os calendários da pessoa devolve 403 e a promessa de ler todos os calendários da FD-001 não se cumpre. O `fetch` stubado dos testes de T2.1 e T2.2 não revela isso: só o Google revelaria, em produção.
+- **Alternativas:** (1) acrescentar `calendar.readonly`, que autoriza a listagem mas também "ver e baixar qualquer calendário a que você tem acesso", incluindo conteúdo que `calendar.events` já cobre — privilégio maior que o necessário. (2) reduzir a promessa ao calendário primário, dispensando `calendarList`; muda o PRD e é decisão do humano, não técnica. (3) usar `calendars.get` em vez de `calendarList.list`; não resolve, pois esse método exige `calendar.calendars[.readonly]` ou `calendar[.readonly]` e continua fora de `calendar.events`.
+- **Decisão:** a URL de consentimento pede `https://www.googleapis.com/auth/calendar.events` ("ver e editar eventos em todos os seus calendários") e `https://www.googleapis.com/auth/calendar.calendarlist.readonly` ("ver a lista de calendários do Google que você assina"), além de `openid` para o `sub` do `id_token`. É a combinação de menor privilégio que cumpre a promessa: a escrita continua restrita a eventos e a leitura ampla se limita a enumerar calendários, sem o acesso geral de `calendar.readonly`.
+- **Impacto:** `supabase/functions/calendar/google_oauth.ts` monta a URL com os dois escopos; `calendarList.list` passa a devolver `summary` e `timeZone` legitimamente, e `calendars.get` continua desnecessário. A tela de consentimento passa a listar duas permissões, o que a descrição de privacidade do produto precisa declarar. Nenhuma migration muda.
+
+
 ## Conflito do PRD reconciliado sem alterar o PRD
 
 Não há conflito material no PRD: a frase sobre guardar "o calendário primário"

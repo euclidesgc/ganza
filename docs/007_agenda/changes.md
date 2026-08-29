@@ -115,6 +115,48 @@ estado final, sem preservar neles uma versão obsoleta do planejamento.
   muda: FD-004 já fixa que o trigger elimina o segredo Vault ao remover a
   linha, e o agendamento é execução dessa decisão, não decisão nova.
 
+### CHG-003 - O escopo `calendar.events` não autoriza a leitura da lista de calendários
+
+- **Data:** 2026-08-29
+- **Fase/PR:** Fase 2 · PR 2 · T2.1 (consentimento) e T2.2 (leitura), esta já em `CUMPRIDO`.
+- **Planejado originalmente:** `02_specs.md` §4 fechava o consentimento em um escopo só,
+  `https://www.googleapis.com/auth/calendar.events`, e ao mesmo tempo mandava
+  `GET /calendar/events` ler `calendarList` e depois os eventos de cada calendário
+  acessível, como a FD-001 promete e o DoD da fase cobra ("consulta todos os
+  calendários sem cache").
+- **Por que não foi possível prosseguir:** os dois pedidos são incompatíveis no Google.
+  A referência de `calendarList.list` aceita apenas `calendar`, `calendar.readonly`,
+  `calendar.calendarlist` e `calendar.calendarlist.readonly`
+  (`https://developers.google.com/workspace/calendar/api/v3/reference/calendarList/list`,
+  consultada em 2026-08-29); `calendar.events` não está entre eles, e `calendars.get`
+  não é rota de fuga, porque exige `calendar.calendars[.readonly]` ou `calendar[.readonly]`.
+  Com o escopo planejado, a enumeração devolveria 403 e a leitura ficaria restrita ao
+  calendário primário. A bateria não pega o defeito: o `fetch` é stubado em T2.1 e T2.2,
+  e a prova real depende do projeto Google Cloud, que é a pendência humana P1.
+- **Alternativas consideradas:** (1) acrescentar `calendar.readonly`; autoriza a listagem,
+  mas concede ver e baixar qualquer calendário acessível, privilégio maior que o necessário
+  e redundante com `calendar.events` na leitura de eventos. (2) reduzir a promessa ao
+  calendário primário; dispensa a listagem, mas contraria a FD-001 e o DoD do PRD, e por
+  ser decisão de produto não cabe ao tech-lead. (3) trocar `calendarList.list` por
+  `calendars.get`; não resolve o escopo e ainda perde o nome do calendário.
+  (4) manter como está e descobrir em produção; é o modo de falha que a P1 esconde.
+- **Decisão tomada:** acrescentar `https://www.googleapis.com/auth/calendar.calendarlist.readonly`
+  ao lado de `https://www.googleapis.com/auth/calendar.events`, registrada como FD-009 em
+  `decisions.md`. É decisão técnica e reversível: mantém a escrita restrita a eventos, cumpre
+  a promessa de produto sem alterá-la e é estritamente menos privilegiada que `calendar.readonly`.
+  Nenhuma migration muda.
+- **Resumo da resolução:** **planejada; sem alteração de código nesta entrada.** O código de
+  T2.1 vive na worktree do executor e precisa de uma correção: acrescentar o segundo escopo à
+  URL de autorização em `supabase/functions/calendar/google_oauth.ts` e o caso de teste que
+  falha quando qualquer um dos dois escopos falta. `listAccessibleCalendars` e `listAllEvents`,
+  entregues por T2.2 sobre `calendarList`, permanecem corretos e não mudam.
+- **Reconciliação documental:** `02_specs.md` §4 passa a citar os dois escopos e a razão do
+  segundo; `decisions.md` recebe FD-009; `03_plan.md` reescreve a primeira linha do DoD de T2.1,
+  que citava o escopo literal, e acrescenta os dois escopos ao DoD da Fase 2. `01_prd.md` §7
+  ainda diz que "o escopo necessário para ler todos os eventos e criar/remarcar é
+  `.../calendar.events`": a frase ficou incompleta e cabe ao `product-manager` acrescentar o
+  segundo escopo, porque é declaração de privacidade que alimenta a tela de consentimento.
+
 ## Modelo de registro
 
 ### CHG-NNN - Título objetivo
