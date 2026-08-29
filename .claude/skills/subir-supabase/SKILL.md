@@ -38,14 +38,14 @@ O template oficial de Supabase do Coolify sobe **15 serviços**. Nós não quere
 | `storage` | **sim** | áudio, foto, PDF |
 | `kong` | **sim** | porta de entrada única |
 | `meta` + `studio` | **sim** | UI de banco; barato e evita SSH para olhar dado |
-| `edge-functions` | **não** | a lógica é NestJS — esta é a decisão de arquitetura do projeto |
+| `edge-functions` | **sim** | é onde mora toda a lógica de servidor (interpretação, IA, Pluggy, Google Calendar, cálculo financeiro) — decisão D10 do `docs/decisions.md`, que revogou o backend separado |
 | `minio` | **não** | o Garage S3 do servidor já existe |
 | `supavisor` (pooler) | **não** | pooler para um usuário é peso morto |
 | `imgproxy` | **não** | não há transformação de imagem no escopo |
 | `analytics` (Logflare) + `vector` | **não, se der** | dois processos BEAM para observabilidade que não vamos ler. **Atenção:** no compose oficial vários serviços têm `depends_on: analytics` — remover exige editar essas dependências, não só apagar o bloco. Se travar, mantenha e siga; não vale queimar a Fase 0 nisso. |
 | `realtime` | **avalie** | nada no escopo da v1 usa. Deixe fora; entra quando um caso concreto pedir. |
 
-Serviço novo entra com justificativa de RAM **e** CPU, escrita no PR.
+Serviço novo entra com justificativa de RAM **e** CPU, escrita no PR. `edge-functions` não é serviço novo nessa conta — já é um dos oito da lista enxuta acima. Medido em produção (`docs/deploy/coolify.md`): ~60 MB, dentro da folga confortável dos ~12 GB da VPS.
 
 ## 3. Passos
 
