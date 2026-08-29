@@ -3,7 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../../core/theme/theme.dart';
 import '../../../../../core/widgets/forms/password_field.dart';
-import '../../../data/biometric_login_service.dart';
+import '../../../domain/entities/biometric_login_status.dart';
 import '../login_cubit.dart';
 import 'ganza_wordmark.dart';
 import 'login_auth_links.dart';

@@ -3,8 +3,9 @@ import 'package:equatable/equatable.dart';
 
 import '../../../../core/error/failure.dart';
 import '../../../../core/session/session.dart';
-import '../../data/biometric_login_service.dart';
 import '../../domain/entities/authenticated_user.dart';
+import '../../domain/entities/biometric_login_status.dart';
+import '../../domain/repositories/biometric_login_service.dart';
 import '../../domain/usecases/sign_in.dart';
 
 part 'login_state.dart';

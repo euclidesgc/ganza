@@ -1,5 +1,7 @@
 export 'entities/authenticated_user.dart';
+export 'entities/biometric_login_status.dart';
 export 'repositories/auth_repository.dart';
+export 'repositories/biometric_login_service.dart';
 export 'usecases/change_password.dart';
 export 'usecases/get_current_user.dart';
 export 'usecases/observe_current_user.dart';

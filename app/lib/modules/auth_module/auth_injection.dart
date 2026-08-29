@@ -2,9 +2,10 @@ import 'package:get_it/get_it.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/session/session.dart';
-import 'data/biometric_login_service.dart';
 import 'data/repositories/auth_repository_impl.dart';
+import 'data/repositories/local_biometric_login_service.dart';
 import 'domain/repositories/auth_repository.dart';
+import 'domain/repositories/biometric_login_service.dart';
 import 'domain/usecases/change_password.dart';
 import 'domain/usecases/get_current_user.dart';
 import 'domain/usecases/observe_current_user.dart';
