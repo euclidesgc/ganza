@@ -17,20 +17,20 @@ O nome vem do chocalho cilíndrico cheio de sementes do forró e do maracatu: el
 | [`CLAUDE.md`](CLAUDE.md) | As regras de como se constrói aqui (arquitetura, gates, time de IA) |
 | [`docs/GITFLOW.md`](docs/GITFLOW.md) | Branches, PRs, releases |
 | `app/` | Flutter — Android e Web, mesmo `lib/` |
-| `backend/` | NestJS — toda a lógica de servidor e as chaves de terceiro |
+| `supabase/functions/` | Edge Functions em Deno — toda a lógica de servidor e as chaves de terceiro |
 | `supabase/migrations/` | SQL versionado: schema, RLS, pg_cron |
 | `infra/coolify/` | A stack self-hosted |
 
 ## Arquitetura em uma frase
 
-O app Flutter **não fala com nenhuma API externa**. Lê do Supabase (PostgREST + RLS) e manda para o backend NestJS tudo que exige lógica — interpretar, categorizar, calcular, conciliar, sincronizar. Gemini, Pluggy, Google Calendar e FCM só existem do lado do servidor.
+O app Flutter **não fala com nenhuma API externa**. Lê do Supabase (PostgREST + RLS) e manda para as Edge Functions tudo que exige lógica — interpretar, categorizar, calcular, conciliar, sincronizar. Gemini, Pluggy, Google Calendar e FCM só existem do lado do servidor.
 
 ```
 Flutter (Android/Web)
    ├── leitura ────────────→ Supabase (Postgres + RLS, Auth, Storage)
-   └── escrita com lógica ─→ NestJS ──→ Gemini · Pluggy · Google Calendar · FCM
-                                 ↑
-                           pg_cron (pg_net)
+   └── escrita com lógica ─→ Edge Functions ──→ Gemini · Pluggy · Google Calendar · FCM
+                                    ↑
+                                pg_cron (pg_net)
 ```
 
 ## Primeiro clone

@@ -45,7 +45,7 @@ O plano trata isso como risco de nível alto (R3), e com razão: **alarme exato 
 A stack roda numa **VPS Oracle Ampere — `aarch64`, 2 vCPU, 12 GB RAM**, orquestrada por Coolify, **compartilhada com outros projetos**. Consequências práticas:
 
 - **Toda imagem precisa ter tag `arm64`.** Confira antes de adicionar serviço (`docker manifest inspect`). RAM sobra; **CPU é o recurso escasso** — 2 vCPU servem também os builds dos outros projetos.
-- **A stack Supabase é enxuta por decisão**: Postgres, GoTrue, PostgREST, Storage, Kong, Studio e `pg_cron`. **Ficam de fora** o `edge-runtime` (a lógica é NestJS), o MinIO (o Garage S3 do servidor já existe), o Supavisor (pooler é desnecessário para um usuário) e, se possível, `analytics`/`vector`/`imgproxy`. Serviço novo entra com justificativa de RAM e CPU.
+- **A stack Supabase é enxuta por decisão**: Postgres, GoTrue, PostgREST, Storage, Kong, Studio, `pg_cron` e o `edge-runtime` — é onde mora toda a lógica de servidor (decisão D10 do `docs/decisions.md`). **Ficam de fora** o MinIO (o Garage S3 do servidor já existe), o Supavisor (pooler é desnecessário para um usuário) e, se possível, `analytics`/`vector`/`imgproxy`. Serviço novo entra com justificativa de RAM e CPU.
 - **Backup não é escopo** (decisão D4 do `docs/decisions.md`, que sobrepõe o R9 do plano). Não proponha rotina de `pg_dump` nem trate backup como item de DoD.
 - Segredo/URL/origem nunca no repo — só env/Build Variable no Coolify.
 
