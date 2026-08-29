@@ -32,7 +32,6 @@ dist/
 .claude/worktrees-preservados.txt
 .claude/RESUME.md
 .claude/settings.local.json
-.claude/RESUME.md
 .idea/
 *.iml
 infra/local/.runtime.env
