@@ -74,15 +74,49 @@ operação interna de Vault e nunca é passado ao app.
 | `POST /calendar/authorize` | JWT do usuário | `{}` | Executa purge de states vencidos, cria state de uso único cujo dono vem de `auth.uid()` e devolve `{ authorization_url }`; URL contém `state`, PKCE challenge, `access_type=offline`, `prompt=consent` e os escopos mínimos `https://www.googleapis.com/auth/calendar.events`, para ler e escrever eventos, e `https://www.googleapis.com/auth/calendar.calendarlist.readonly`, sem o qual `calendarList.list` devolve 403 (FD-009). |
 | `GET /calendar/callback` | State, não JWT | query `code`, `state`, `error` | Endpoint público por necessidade OAuth. Seu único insumo de identidade é state válido; a ponte interna resolve o dono, troca code no servidor, grava refresh no Vault e consome/remove fisicamente a autorização e PKCE de modo atômico. Retorna página sem token que redireciona ao deep link configurado. |
 | `GET /calendar/connection` | JWT do usuário | — | `{ status: 'connected'|'disconnected'|'reconnect_required', primary_calendar_id?: string }`; não devolve subject, tokens, secret refs ou URL de autorização. |
-| `GET /calendar/events?time_min=<UTC>&time_max=<UTC>` | JWT do usuário | ISO UTC dentro do horizonte permitido | Lê `calendarList`, depois eventos de cada calendário acessível; devolve itens normalizados e `calendar_id`, `calendar_name`, `event_id`, `title` (o `summary` do Google, `null` quando omitido), `start`, `end`, `all_day`, `recurring_event_id?`, `time_zone`; sem persistir eventos. |
+| `GET /calendar/events?time_min=<UTC>&time_max=<UTC>` | JWT do usuário | ISO UTC dentro do horizonte permitido | Lê `calendarList`, depois eventos de cada calendário acessível; devolve itens normalizados e `calendar_id`, `calendar_name`, `event_id`, `title` (o `summary` do Google, `null` quando omitido), `start`, `end`, `all_day`, `recurring_event_id?`, `time_zone`; sem persistir eventos. **A resposta tolera falha por calendário** e pode vir parcial, sem sinalização — ver logo abaixo. |
 | `POST /calendar/proposals` | JWT do usuário | `{ proposal_id, action: 'confirm'|'cancel' }` | Cancela sem chamada externa; confirma uma proposta Calendar pendente e faz create/patch idempotente; devolve `{ status, proposal_id }` ou erro tipado. |
 
-Erros públicos fechados, por origem. Borda: `unauthenticated`, `unauthorized`,
-`invalid_json`, `invalid_payload`, `invalid_action`, `invalid_proposal_id`,
-`method_not_allowed`, `not_found`, `internal_error`. OAuth: `invalid_state`,
-`authorization_denied`. Conexão: `connection_required`, `connection_not_found`,
-`reconnect_required`. Confirmação: `proposal_not_pending`, `event_not_found`,
-`event_ambiguous`, `recurring_event_unsupported`, `google_unavailable`.
+`GET /calendar/events` é tolerante a falha parcial, e isso muda o que a
+ausência de eventos significa. A leitura percorre os calendários de
+`calendarList` um a um: o que responde entra no resultado, e o calendário que
+falhar no meio do caminho — 403, 404 ou 410 por remoção ou perda de acesso
+entre a listagem e a leitura — é **omitido**, com uma linha de log
+`calendar_events_partial_failure` contendo só o `calendar_id` e o nome da
+classe do erro. Só quando **todos** os calendários falham a rota devolve
+`502 google_unavailable`, porque aí não há resultado parcial a preservar.
+
+**Não há sinalização ao cliente de que a lista veio parcial**: nem campo na
+resposta, nem cabeçalho, nem código. A consequência para quem constrói a tela
+é direta e precisa ser dita: "nenhum evento naquele calendário" e "aquele
+calendário falhou" chegam ao app com a mesma aparência. A tela da Fase 3 não
+deve, portanto, afirmar vazio como fato do calendário da pessoa — e uma
+sinalização explícita de parcialidade, se um dia for desejada, é mudança de
+contrato desta rota, não detalhe de implementação.
+
+Erros fechados, separados **pela forma da resposta**, porque as duas rotas de
+saída não são intercambiáveis.
+
+Como JSON `{ error: { code, message } }`, nas rotas sob JWT: `unauthorized`,
+`method_not_allowed`, `not_found`, `invalid_json`, `invalid_payload`,
+`invalid_action`, `invalid_proposal_id`, `connection_required`,
+`reconnect_required`, `google_unavailable`, `internal_error` e, na confirmação,
+`proposal_not_found`, `proposal_not_pending`, `event_not_found`,
+`event_ambiguous`, `recurring_event_unsupported`, `write_failed`.
+
+Como **página HTML em pt-BR**, e só em `GET /calendar/callback`: sucesso,
+`authorization_denied` (200), `invalid_state` (400), `invalid_payload` (400) e
+qualquer outra falha (502). O callback termina numa aba do navegador, não num
+cliente HTTP, então `invalid_state` e `authorization_denied` **nunca chegam ao
+app como `{ error: { code } }`** — quem for tratá-los no cliente não os
+encontrará.
+
+Dois nomes são razão interna e não código público: `unauthenticated`, que em
+`POST /calendar/authorize` sai como `unauthorized`, e `connection_not_found`,
+que em `GET /calendar/connection` vira `{ status: 'disconnected' }` e em
+`GET /calendar/events` vira `connection_required`. Já `reconnect_required`
+aparece nas duas formas: corpo de sucesso 200 em `/connection` e erro 409 em
+`/events`.
 
 Não existe `state_expired`, e a ausência é deliberada: state inexistente,
 vencido e já consumido devolvem o mesmo `invalid_state`. O callback é público
