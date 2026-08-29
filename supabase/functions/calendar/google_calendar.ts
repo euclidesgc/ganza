@@ -18,6 +18,7 @@ export interface GoogleCalendarEvent {
   start: GoogleCalendarEventTime;
   end: GoogleCalendarEventTime;
   recurringEventId?: string;
+  recurrence?: string[];
   extendedProperties?: { private?: Record<string, string> };
 }
 
@@ -119,6 +120,12 @@ function toEventTime(value: Record<string, unknown> | undefined): GoogleCalendar
   };
 }
 
+function toStringArray(value: unknown): string[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const strings = value.filter((entry): entry is string => typeof entry === 'string');
+  return strings.length > 0 ? strings : undefined;
+}
+
 function toGoogleCalendarEvent(item: Record<string, unknown>): GoogleCalendarEvent {
   return {
     id: typeof item.id === 'string' ? item.id : '',
@@ -126,6 +133,10 @@ function toGoogleCalendarEvent(item: Record<string, unknown>): GoogleCalendarEve
     start: toEventTime(item.start as Record<string, unknown> | undefined),
     end: toEventTime(item.end as Record<string, unknown> | undefined),
     recurringEventId: typeof item.recurringEventId === 'string' ? item.recurringEventId : undefined,
+    // `recurrence` só existe no evento-mestre de uma série; `recurringEventId`
+    // só existe na ocorrência. FD-005 recusa remarcação em qualquer um dos
+    // dois, porque um `event_id` de mestre nunca carrega `recurringEventId`.
+    recurrence: toStringArray(item.recurrence),
     extendedProperties: isRecord(item.extendedProperties)
       ? (item.extendedProperties as GoogleCalendarEvent['extendedProperties'])
       : undefined,
@@ -190,12 +201,37 @@ export async function listAllEvents(
 ): Promise<NormalizedCalendarEvent[]> {
   const calendars = await listAccessibleCalendars(accessToken);
   const results: NormalizedCalendarEvent[] = [];
+  const failures: { calendarId: string; error: unknown }[] = [];
+
   for (const calendar of calendars) {
-    const events = await listEventsInWindow(accessToken, calendar.id, timeMinIso, timeMaxIso);
-    for (const event of events) {
-      results.push(normalizeEvent(calendar.id, calendar.summary, event));
+    try {
+      const events = await listEventsInWindow(accessToken, calendar.id, timeMinIso, timeMaxIso);
+      for (const event of events) {
+        results.push(normalizeEvent(calendar.id, calendar.summary, event));
+      }
+    } catch (error) {
+      failures.push({ calendarId: calendar.id, error });
     }
   }
+
+  // Um calendário instável entre `calendarList` e a leitura de eventos (403,
+  // 404, 410 por remoção/perda de acesso) não pode apagar o que os outros já
+  // devolveram: só propaga erro quando nenhum respondeu, porque aí não há
+  // resultado parcial a preservar.
+  if (calendars.length > 0 && failures.length === calendars.length) {
+    throw failures[0].error;
+  }
+
+  for (const failure of failures) {
+    console.error(
+      JSON.stringify({
+        type: 'calendar_events_partial_failure',
+        calendar_id: failure.calendarId,
+        error: failure.error instanceof Error ? failure.error.constructor.name : 'unknown',
+      }),
+    );
+  }
+
   return results;
 }
 

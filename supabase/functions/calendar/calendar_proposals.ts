@@ -142,7 +142,10 @@ async function confirmReschedule(
   if (event === null) {
     return { ok: false, code: 'event_not_found' };
   }
-  if (isNonEmptyString(event.recurringEventId)) {
+  // FD-005: recusa tanto a ocorrência de uma série (`recurringEventId`)
+  // quanto o evento-mestre (`recurrence` preenchido) — os dois nunca
+  // coexistem no mesmo evento, e o mestre não carrega `recurringEventId`.
+  if (isNonEmptyString(event.recurringEventId) || (event.recurrence?.length ?? 0) > 0) {
     return { ok: false, code: 'recurring_event_unsupported' };
   }
   if (

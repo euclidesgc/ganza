@@ -236,6 +236,26 @@ Deno.test('remarcação não faz PATCH quando o evento tem recurringEventId e re
   assertEquals(calls.some((call) => call.method === 'PATCH'), false);
 });
 
+Deno.test('remarcação não faz PATCH quando o evento é o mestre de uma série (recurrence presente, recurringEventId ausente) e responde recurring_event_unsupported', async () => {
+  const { supabase } = fakeSupabase(rescheduleProposalRow());
+
+  const { result, calls } = await withFetchStub(
+    () =>
+      eventResponse({
+        id: 'ev-9',
+        start: { dateTime: '2026-08-28T14:00:00-03:00' },
+        end: { dateTime: '2026-08-28T15:00:00-03:00' },
+        recurrence: ['RRULE:FREQ=WEEKLY;COUNT=5'],
+      }),
+    () => confirmCalendarProposal(supabase, ACCESS_TOKEN, 'prop-2'),
+  );
+
+  assertEquals(result.ok, false);
+  if (!result.ok) assertEquals(result.code, 'recurring_event_unsupported');
+  assertEquals(calls.length, 1);
+  assertEquals(calls.some((call) => call.method === 'PATCH'), false);
+});
+
 Deno.test('cancelar uma proposta pendente não chama fetch do Google', async () => {
   const { supabase, updates } = fakeSupabase(createProposalRow());
 

@@ -196,6 +196,68 @@ estado final, sem preservar neles uma versão obsoleta do planejamento.
   os campos de `GET /calendar/events`, com a nota de que é `null` quando o
   Google não informa `summary`.
 
+### CHG-005 - FD-005 recusava só metade da recorrência, e um calendário instável apagava a agenda inteira
+
+- **Data:** 2026-08-29
+- **Fase/PR:** Fase 2 · PR 2 · T2.2 (leitura e confirmação), já em `CUMPRIDO`.
+- **Planejado originalmente:** a FD-005, em `decisions.md:58`, manda "recusar
+  `reschedule` quando o evento tiver `recurringEventId`/regra recorrente".
+  `03_plan.md`, na linha de DoD de T2.2 que cobre remarcação, nomeava só o
+  cenário de `recurringEventId` ao descrever o vermelho esperado
+  (`... ou quando o evento traz recurringEventId (resposta esperada
+  recurring_event_unsupported)`), sem mencionar a segunda metade da FD-005 —
+  o evento-mestre, que carrega `recurrence` e nunca `recurringEventId`.
+  Separadamente, nada em `02_specs.md` §4 ou no plano previa o que acontece
+  quando um calendário dentre vários falha durante `GET /calendar/events`.
+- **Por que não foi possível prosseguir:** o gate do crítico integrador da
+  Fase 2 apontou os dois defeitos depois do `CUMPRIDO` de T2.2. (1)
+  `calendar_proposals.ts` testava só `isNonEmptyString(event.recurringEventId)`;
+  como `listEventsInWindow` sempre chama a API com `singleEvents=true`, todo
+  evento que o app hoje enxerga é ocorrência, nunca mestre, e a bateria da
+  T2.2 nunca exercitou o caminho que a FD-005 também fecha. Um caminho futuro
+  para `event_id` que devolvesse o mestre reabriria em silêncio a remarcação
+  de série inteira que a FD-005 foi escrita para impedir. (2) `listAllEvents`
+  iterava os calendários em série sem `try/catch` por calendário: um único
+  403/404/410 — calendário removido ou perda de acesso entre `calendarList` e
+  a leitura — descartava os eventos já coletados dos calendários anteriores e
+  respondia 502 para a agenda inteira.
+- **Alternativas consideradas:** para a recorrência, (1) deixar como estava e
+  confiar que `singleEvents=true` no único ponto de leitura de hoje sempre
+  evita o mestre; é propriedade emergente do uso atual, não invariante
+  verificada no ponto de escrita, e quebra sem aviso se outro caminho para
+  `event_id` aparecer na Fase 3. Para a listagem tolerante, (1) manter a
+  falha total; simples, mas destrutiva mesmo desconectada de segurança — a
+  pessoa perde a agenda inteira por um calendário secundário. (2) só logar e
+  ignorar silenciosamente qualquer falha, mesmo quando todos os calendários
+  falham; esconderia uma indisponibilidade real atrás de uma agenda vazia,
+  que a UI não consegue distinguir de "sem compromissos".
+- **Decisão tomada:** `toGoogleCalendarEvent` em `google_calendar.ts` passa a
+  mapear `recurrence` (array de RRULE do evento-mestre); `confirmReschedule`
+  recusa com `recurring_event_unsupported` quando `recurringEventId` está
+  presente **ou** `recurrence` não é vazio. `listAllEvents` passa a isolar a
+  falha por calendário: o que responde entra no resultado e o que falha é
+  logado (`calendar_events_partial_failure`, com `calendar_id` e o tipo do
+  erro, sem dado de evento) sem interromper os demais; só propaga
+  `GoogleCalendarUnavailableError` quando **todos** os calendários falham,
+  porque aí não há resultado parcial a preservar e o silêncio esconderia uma
+  indisponibilidade real.
+- **Resumo da resolução:** `supabase/functions/calendar/google_calendar.ts` e
+  `supabase/functions/calendar/calendar_proposals.ts` corrigidos;
+  `supabase/functions/calendar/calendar_proposals_test.ts` ganhou o caso de
+  evento-mestre (`recurrence` presente, `recurringEventId` ausente) e
+  `supabase/functions/calendar/google_calendar_test.ts` ganhou os casos de
+  falha parcial (um calendário cai, o outro aparece no resultado) e falha
+  total (todos caem, erro propaga). Os três casos foram falsificados antes do
+  commit — revertendo cada correção isoladamente, o caso correspondente sai
+  vermelho — e restaurados na sequência.
+- **Reconciliação documental:** a origem do desvio é o próprio DoD de T2.2:
+  `03_plan.md` reduziu a FD-005 a um único campo sem que a redução fosse
+  registrada em lugar nenhum. Cabe à frente de docs desta fase atualizar a
+  linha de DoD de T2.2 para citar `recurringEventId` e `recurrence`
+  explicitamente, e `02_specs.md` §4/§6 para descrever o comportamento
+  tolerante de `GET /calendar/events` diante de falha parcial — nenhuma das
+  duas mudanças é deste registro, que é só código.
+
 ## Modelo de registro
 
 ### CHG-NNN - Título objetivo

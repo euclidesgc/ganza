@@ -185,6 +185,51 @@ Deno.test('duas falhas consecutivas declaram Google indisponível', async () => 
   );
 });
 
+Deno.test(
+  'um calendário indisponível (403) não apaga os eventos do calendário que respondeu',
+  async () => {
+    const { result } = await withFetchStub(
+      (call) => {
+        if (call.url.includes('/users/me/calendarList')) {
+          return calendarListPage([
+            { id: 'primary', summary: 'Principal' },
+            { id: 'removido', summary: 'Calendário removido' },
+          ]);
+        }
+        if (call.url.includes('/calendars/removido/events')) {
+          return Response.json({ error: 'gone' }, { status: 403 });
+        }
+        return eventsPage([{
+          id: 'ev-1',
+          summary: 'Dentista',
+          start: { dateTime: '2026-08-28T14:00:00-03:00', timeZone: 'America/Sao_Paulo' },
+          end: { dateTime: '2026-08-28T15:00:00-03:00', timeZone: 'America/Sao_Paulo' },
+        }]);
+      },
+      () => listAllEvents(ACCESS_TOKEN, '2026-08-01T00:00:00Z', '2026-09-01T00:00:00Z'),
+    );
+
+    assertEquals(result.length, 1);
+    assertEquals(result[0].calendar_id, 'primary');
+  },
+);
+
+Deno.test('todos os calendários indisponíveis ainda propagam o erro', async () => {
+  await assertRejects(
+    () =>
+      withFetchStub(
+        (call) => {
+          if (call.url.includes('/users/me/calendarList')) {
+            return calendarListPage([{ id: 'primary', summary: 'Principal' }]);
+          }
+          return Response.json({ error: 'gone' }, { status: 403 });
+        },
+        () => listAllEvents(ACCESS_TOKEN, '2026-08-01T00:00:00Z', '2026-09-01T00:00:00Z'),
+      ).then(({ result }) => result),
+    GoogleCalendarUnavailableError,
+  );
+});
+
 Deno.test('findEventByProposalId filtra pela propriedade privada ganza_proposal_id', async () => {
   const { result, calls } = await withFetchStub(
     () =>
