@@ -124,10 +124,19 @@ mantendo a regra geral de confirmação obrigatória.
   estado “reconectar”; uso diário exige publicação/consentimento adequado no
   Google, não uma promessa falsa de renovação permanente. [Documentação OAuth
   do Google](https://developers.google.com/identity/protocols/oauth2)
-- **Risco de privacidade:** o escopo necessário para ler todos os eventos e
-  criar/remarcar é `https://www.googleapis.com/auth/calendar.events`; ele dá
-  acesso a eventos de todos os calendários acessíveis. A tela de consentimento
-  e a descrição do produto precisam declarar isso de forma direta.
+- **Risco de privacidade:** o consentimento pede três itens, e nada além deles.
+  `openid` identifica a conta Google — é o que permite ao ganzá saber que
+  aquele vínculo é seu; carrega só o identificador da conta, não abre nenhum
+  calendário e não entrega e-mail nem perfil (e-mail seria o escopo `email`,
+  que não pedimos). `https://www.googleapis.com/auth/calendar.events` deixa o
+  ganzá ver e criar/remarcar eventos em todos os calendários acessíveis.
+  `https://www.googleapis.com/auth/calendar.calendarlist.readonly` deixa ver só
+  **a lista** dos calendários que a pessoa assina, e nada mais. A lista precisa
+  de permissão própria porque `calendar.events` não autoriza descobrir quais
+  calendários existem, e foi preferida a `calendar.readonly`, que concederia
+  acesso amplo e redundante. A tela de consentimento e a descrição do produto
+  precisam declarar os três de forma direta. Razão e alternativas em
+  [`decisions.md`](decisions.md) (**FD-009**).
 - **Pressuposto reversível:** há uma única conta Google conectada e o
   calendário primário é o destino de novas criações. Uma seleção de calendário
   pode ser adicionada depois sem converter o Google em cópia local.
