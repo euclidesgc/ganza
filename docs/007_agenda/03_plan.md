@@ -1,6 +1,6 @@
 # 007 - Agenda e Google Calendar · Plano
 
-O contrato é [`01_prd.md`](01_prd.md), a especificação é [`02_specs.md`](02_specs.md), as decisões são [`decisions.md`](decisions.md), e desvios futuros entram em [`changes.md`](changes.md). Estado: **Fase 1 em execução** · branch `feature/007-agenda-google-calendar` · **próximo passo: DoD da Fase 1 e PR 1 (só a migration e suas provas)**.
+O contrato é [`01_prd.md`](01_prd.md), a especificação é [`02_specs.md`](02_specs.md), as decisões são [`decisions.md`](decisions.md), e desvios futuros entram em [`changes.md`](changes.md). Estado: **Fase 2 em fechamento** · branch `feature/GZ-62-fase2-oauth-calendar` · a Fase 1 foi mergeada em `develop` pelo PR #56 e as três tarefas da Fase 2 estão em `DoD: CUMPRIDO` · **próximo passo: corrigir o bloqueante de código apontado pelo crítico integrador, executar o DoD da Fase 2 pela `fechar-etapa` e abrir o PR 2**.
 
 ## Gauntlet
 
@@ -161,7 +161,7 @@ Projeto Google Cloud, consent screen, redirect HTTPS e conta de teste bloqueiam 
 
 | Fase | PR | Estado | Próximo gate |
 |---|---|---|---|
-| 1 | PR 1 | T1.1 `CUMPRIDO` | DoD da fase e PR 1 |
-| 2 | PR 2 | bloqueada por F1 | auditor em T2.1/T2.2 |
-| 3 | PR 3 | bloqueada por F2 | auditor em T3.1 |
-| 4 | PR 4 | bloqueada por F3 | CISO geral antes de T4.1–T4.3 |
+| 1 | PR #56 | mergeada em `develop`; T1.1 `CUMPRIDO` | encerrada |
+| 2 | PR 2 | T2.1, T2.2 e T2.3 `CUMPRIDO`; crítico integrador devolveu `fail` com bloqueante de código em correção | `fechar-etapa` com o DoD da fase e PR 2 |
+| 3 | PR 3 | não iniciada; libera com o merge do PR 2 | auditor em T3.1 |
+| 4 | PR 4 | não iniciada | CISO geral antes de T4.1–T4.3 |

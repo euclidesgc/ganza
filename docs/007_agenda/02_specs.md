@@ -77,12 +77,26 @@ operação interna de Vault e nunca é passado ao app.
 | `GET /calendar/events?time_min=<UTC>&time_max=<UTC>` | JWT do usuário | ISO UTC dentro do horizonte permitido | Lê `calendarList`, depois eventos de cada calendário acessível; devolve itens normalizados e `calendar_id`, `calendar_name`, `event_id`, `title` (o `summary` do Google, `null` quando omitido), `start`, `end`, `all_day`, `recurring_event_id?`, `time_zone`; sem persistir eventos. |
 | `POST /calendar/proposals` | JWT do usuário | `{ proposal_id, action: 'confirm'|'cancel' }` | Cancela sem chamada externa; confirma uma proposta Calendar pendente e faz create/patch idempotente; devolve `{ status, proposal_id }` ou erro tipado. |
 
-Erros públicos fechados: `connection_required`, `reconnect_required`,
-`invalid_state`, `state_expired`, `authorization_denied`, `invalid_payload`,
-`event_not_found`, `event_ambiguous`, `recurring_event_unsupported`,
-`proposal_not_pending`, `google_unavailable`. Logs contêm somente código,
-operação e identificadores técnicos; nunca título, horário, payload, token ou
-segredo.
+Erros públicos fechados, por origem. Borda: `unauthenticated`, `unauthorized`,
+`invalid_json`, `invalid_payload`, `invalid_action`, `invalid_proposal_id`,
+`method_not_allowed`, `not_found`, `internal_error`. OAuth: `invalid_state`,
+`authorization_denied`. Conexão: `connection_required`, `connection_not_found`,
+`reconnect_required`. Confirmação: `proposal_not_pending`, `event_not_found`,
+`event_ambiguous`, `recurring_event_unsupported`, `google_unavailable`.
+
+Não existe `state_expired`, e a ausência é deliberada: state inexistente,
+vencido e já consumido devolvem o mesmo `invalid_state`. O callback é público
+por necessidade do OAuth, então distinguir os três contaria a quem chama sem
+credencial se aquele state alguma vez existiu e se já foi usado — exatamente a
+informação que a FD-003 nega ao dizer que erro, state vencido ou consumido não
+cria vínculo nem revela a conta associada. O banco também não teria como
+distinguir: o consumo remove a linha fisicamente e a leitura já filtra por
+`expires_at > now()`, de modo que depois disso "vencido" e "nunca existiu" são
+o mesmo estado. Quem for "corrigir" isso no futuro está reintroduzindo um
+oráculo de enumeração, não consertando um bug.
+
+Logs contêm somente código, operação e identificadores técnicos; nunca título,
+horário, payload, token ou segredo.
 
 ## 5. Contrato de proposta Calendar
 
