@@ -157,6 +157,45 @@ estado final, sem preservar neles uma versão obsoleta do planejamento.
   `.../calendar.events`": a frase ficou incompleta e cabe ao `product-manager` acrescentar o
   segundo escopo, porque é declaração de privacidade que alimenta a tela de consentimento.
 
+### CHG-004 - `GET /calendar/events` normalizava evento sem título
+
+- **Data:** 2026-08-29
+- **Fase/PR:** Fase 2 · PR 2 · T2.2 (leitura), já em `CUMPRIDO`.
+- **Planejado originalmente:** `02_specs.md` §4 lista os campos que
+  `GET /calendar/events` devolve por item — `calendar_id`, `calendar_name`,
+  `event_id`, `start`, `end`, `all_day`, `recurring_event_id?`, `time_zone` —
+  e `NormalizedCalendarEvent` em `google_calendar.ts` seguiu essa lista à
+  risca, sem incluir o título do evento.
+- **Por que não foi possível prosseguir:** o gate do CISO da Fase 2 apontou
+  que a lista de campos, embora fiel ao texto de `02_specs.md`, deixa a tela
+  de agenda da Fase 3 sem nenhum jeito de mostrar do que trata cada evento —
+  ela receberia blocos de horário anônimos. Não é falha de segurança (a
+  omissão erra para menos dado exposto, não para mais), mas é lacuna de
+  produto: corrigi-la depois da Fase 3 já ter consumido o contrato exigiria
+  mudar backend e UI juntos, e o `03_plan.md` corta entregas por família de
+  prova (no máximo duas), o que forçaria uma fase extra só para isso.
+- **Alternativas consideradas:** (1) deixar para a Fase 3 registrar como
+  pendência e a tela mostrar um texto fixo tipo "Compromisso"; empurra a
+  lacuna para depois de a UI já estar construída sobre um contrato incompleto.
+  (2) o backend gerar um texto de fallback como "(sem título)" quando o
+  Google omite `summary`; inventar string no backend impede a UI de
+  distinguir depois um título real vazio de um evento realmente sem título,
+  e essa é uma escolha de interface, não de dado.
+- **Decisão tomada:** acrescentar `title: string | null` a
+  `NormalizedCalendarEvent`, preenchido com `event.summary ?? null` — `null`
+  quando o Google omite o campo. O backend só transporta o dado; o texto de
+  fallback para exibição fica com a Fase 3.
+- **Resumo da resolução:** `supabase/functions/calendar/google_calendar.ts`
+  ganhou o campo `title` na interface e na função de normalização;
+  `supabase/functions/calendar/google_calendar_test.ts` ganhou dois casos
+  novos provando `summary` → `title` e ausência de `summary` → `title: null`,
+  falsificados antes do commit (removido o campo, os dois casos saem
+  vermelho por erro de tipo). `handler.ts` não muda: já repassa o array de
+  `listAllEvents` sem remapear campos.
+- **Reconciliação documental:** `02_specs.md` §4 passa a listar `title` entre
+  os campos de `GET /calendar/events`, com a nota de que é `null` quando o
+  Google não informa `summary`.
+
 ## Modelo de registro
 
 ### CHG-NNN - Título objetivo

@@ -84,6 +84,45 @@ Deno.test('listAllEvents combina eventos de dois calendários distintos', async 
   assertEquals(result[1].calendar_id, 'trabalho@group.calendar.google.com');
 });
 
+Deno.test('evento com summary chega normalizado com title igual ao summary do Google', async () => {
+  const { result } = await withFetchStub(
+    (call) => {
+      if (call.url.includes('/users/me/calendarList')) {
+        return calendarListPage([{ id: 'primary', summary: 'Principal' }]);
+      }
+      return eventsPage([{
+        id: 'ev-com-titulo',
+        summary: 'Dentista',
+        start: { dateTime: '2026-08-28T14:00:00-03:00', timeZone: 'America/Sao_Paulo' },
+        end: { dateTime: '2026-08-28T15:00:00-03:00', timeZone: 'America/Sao_Paulo' },
+      }]);
+    },
+    () => listAllEvents(ACCESS_TOKEN, '2026-08-01T00:00:00Z', '2026-09-01T00:00:00Z'),
+  );
+
+  assertEquals(result.length, 1);
+  assertEquals(result[0].title, 'Dentista');
+});
+
+Deno.test('evento sem summary chega normalizado com title igual a null', async () => {
+  const { result } = await withFetchStub(
+    (call) => {
+      if (call.url.includes('/users/me/calendarList')) {
+        return calendarListPage([{ id: 'primary', summary: 'Principal' }]);
+      }
+      return eventsPage([{
+        id: 'ev-sem-titulo',
+        start: { dateTime: '2026-08-28T14:00:00-03:00', timeZone: 'America/Sao_Paulo' },
+        end: { dateTime: '2026-08-28T15:00:00-03:00', timeZone: 'America/Sao_Paulo' },
+      }]);
+    },
+    () => listAllEvents(ACCESS_TOKEN, '2026-08-01T00:00:00Z', '2026-09-01T00:00:00Z'),
+  );
+
+  assertEquals(result.length, 1);
+  assertEquals(result[0].title, null);
+});
+
 Deno.test('listAccessibleCalendars segue nextPageToken até esgotar as páginas', async () => {
   const { result, calls } = await withFetchStub(
     (_call, index) => {

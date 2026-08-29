@@ -30,6 +30,7 @@ export interface NormalizedCalendarEvent {
   calendar_id: string;
   calendar_name: string;
   event_id: string;
+  title: string | null;
   start: string;
   end: string;
   all_day: boolean;
@@ -145,6 +146,7 @@ function normalizeEvent(
     calendar_id: calendarId,
     calendar_name: calendarName,
     event_id: event.id,
+    title: event.summary ?? null,
     start: (allDay ? event.start.date : event.start.dateTime) ?? '',
     end: (allDay ? event.end.date : event.end.dateTime) ?? '',
     all_day: allDay,
