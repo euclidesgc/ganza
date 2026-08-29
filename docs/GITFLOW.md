@@ -79,6 +79,8 @@ O motivo é concreto: cada ambiente remoto é uma stack Supabase inteira numa VP
 
 O remoto atual é a HML. A produção só nasce quando uma release de `main` for publicada.
 
+**Merge em `develop` passa a publicar um APK automaticamente** (`.github/workflows/release.yml`, **D39** em [`docs/decisions.md`](decisions.md)). Esse release é de **homologação** — tag `app-v<versionName>+<run>` — e **não substitui** a skill `publicar-release`, que continua sendo o caminho de produção: `release/*` a partir de `develop`, PR para `main` com tag **SemVer**, conduzido por humano.
+
 ---
 
 ## 5. Regras operacionais para os agentes

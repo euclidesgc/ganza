@@ -6,6 +6,8 @@
 *.jks
 google-services.json
 key.properties
+app/android/key.properties
+app/android/app/upload-keystore.p12
 
 # Config de build: o `.example` é versionado, o real fica local (carrega a
 # anon key, e chave em repositório é hábito que uma hora erra o arquivo).
