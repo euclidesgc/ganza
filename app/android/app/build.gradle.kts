@@ -1,3 +1,6 @@
+import java.io.FileInputStream
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     // Faltava no módulo `:app`, embora o `settings.gradle.kts` já declarasse a
@@ -7,6 +10,16 @@ plugins {
     id("org.jetbrains.kotlin.android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
+}
+
+// `android/key.properties` só existe no runner do release.yml (decodificado do
+// secret); em máquina de dev o arquivo não existe e o release cai no debug, que
+// é o que mantém `flutter run --release` funcionando sem keystore local.
+val keystorePropertiesFile = rootProject.file("key.properties")
+val temKeystoreDeUpload = keystorePropertiesFile.exists()
+val keystoreProperties = Properties()
+if (temKeystoreDeUpload) {
+    keystoreProperties.load(FileInputStream(keystorePropertiesFile))
 }
 
 android {
@@ -56,11 +69,24 @@ android {
         }
     }
 
+    signingConfigs {
+        if (temKeystoreDeUpload) {
+            create("release") {
+                keyAlias = keystoreProperties["keyAlias"] as String
+                keyPassword = keystoreProperties["keyPassword"] as String
+                storeFile = file(keystoreProperties["storeFile"] as String)
+                storePassword = keystoreProperties["storePassword"] as String
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = if (temKeystoreDeUpload) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
         }
     }
 
