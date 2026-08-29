@@ -47,8 +47,10 @@ cumprida. Critério de rubrica sem prova é `fail`; afrouxar a rubrica para a
 feature fechar é proibido.
 
 Para comportamento visível ao usuário, a prova é **teste de widget da cadeia
-visível** — não há E2E: o escopo automatizado do ganza é unit + widget (decisão
-do humano, 20/08/2026, que suspende o E2E por completo). O teste exercita o que
+visível** — o agente não escreve nem roda E2E: ele é ferramenta do humano, que o
+aciona quando quer revisar de fato, e o escopo automatizado do ganza é unit +
+widget + golden (**D34** de `docs/decisions.md`, de 20/08/2026, revista em
+21/08/2026). O teste exercita o que
 a fase **promete**, não só o caminho feliz — se ela corrige uma falha silenciosa,
 prova que cada modo de falha produz estado **visualmente distinto** (um caso por
 estado do `sealed`, via `whenListen`/`BlocProvider.value`).
@@ -62,3 +64,10 @@ estado do `sealed`, via `whenListen`/`BlocProvider.value`).
 
 Devolva somente `pass` ou `fail`, com comando/evidência, arquivo/linha e ação
 corretiva. Falta de prova é `fail`; relato do executor não é prova.
+
+## Produção não muda para teste passar
+
+Quando um teste falha, o que se ajusta é **o teste** — a menos que ele esteja
+expondo erro real de lógica ou de regra de negócio, e aí a correção é do código,
+com o porquê registrado. Mudar produção para pintar a suíte de verde transforma
+a bateria em decoração e apaga justamente o sinal que ela existe para dar.

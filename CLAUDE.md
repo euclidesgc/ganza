@@ -58,7 +58,7 @@ Regras do `docs/plano.md` que viram gate de código:
 - Arquivos `snake_case`, classes `PascalCase`, **uma classe/widget por arquivo**; código em inglês, UI e docs em pt-BR. Única exceção: o estado `sealed` do cubit mora no mesmo arquivo do cubit via `part of`.
 - **Zero comentário — o código se explica por nomes.** Vale para Dart, TypeScript e SQL. **Não escreva** comentário que diga o que a linha faz, que repita o nome do identificador logo abaixo, cabeçalho decorativo de seção, nem nota de autoria/histórico ("antes era X", "adicionado na F2") — para isso existe o git. Legibilidade se conquista **extraindo** variável/função/widget com nome descritivo. **Única exceção:** o **porquê** que o código não tem como mostrar — decisão de arquitetura, workaround de bug externo, restrição de plataforma ou invariante não óbvia; e aí o comentário explica a **razão**, nunca a mecânica. Ao editar arquivo já comentado, limpe o que não passa nesse teste.
 - Cancela de máquina: **`flutter analyze` verde + testes passando é o mínimo, não o "pronto".** O pronto é o DoD — ver "DoD em três níveis". Nunca opinião.
-- **Higiene de código é DoD geral, não item de fase — vale para toda entrega, sem precisar ser escrita em bloco nenhum:** o código vai **formatado** (rode `dart format .` na pasta `app/` e `deno fmt` nas functions — o comando que **escreve**, antes de abrir PR; `--output=none` serve para *medir* num critério, não para deixar a árvore em ordem), e o **console limpo**: zero erro, zero warning, zero apontamento de lint, zero exceção não tratada no log do app rodando. O alvo do format é sempre **o mesmo que o CI usa** — `app/` inteiro, `test/` incluído. DoD de tarefa que formata só `lib/` deixa o gate de fase descobrir o problema tarde.
+- **Higiene de código é DoD geral, não item de fase — vale para toda entrega, sem precisar ser escrita em bloco nenhum:** o código vai **formatado** (rode `dart format .` na pasta `app/` e `deno fmt` nas functions — o comando que **escreve**, antes de abrir PR; `--output=none` serve para *medir* num critério, não para deixar a árvore em ordem), e o **console limpo**: zero erro, zero warning, zero apontamento de lint, zero exceção não tratada no log do app rodando. O alvo do format é sempre **o mesmo que o CI usa** (`.github/workflows/ci.yml`) — `app/` inteiro, `test/` incluído. DoD que formata só `lib/`, de tarefa ou de fase, cega o gate para arquivo de teste: foi assim que a Fase 5 da feature 002 chegou ao fechamento com dois arquivos desformatados.
 - **Produção não muda para teste passar.** Se um teste falha, o que se ajusta é o teste — a menos que ele esteja expondo erro real de lógica ou de regra de negócio, e aí a correção é do código, com o porquê registrado. Inverter isso transforma a suíte em decoração.
 
 ## Design system e organização de widgets (inegociável)
@@ -136,6 +136,27 @@ Toda skill declara `allowed-tools` e **todas são auto-invocáveis pelo modelo**
 
 **Abrir o PR e mergear são do agente, não do humano** (decisão de 21/08/2026). Com unit, widget e golden verdes, o DoD da fase verificado rodando e a cancela de máquina limpa, siga: abra o PR, confira o CI e **mergeie**, sem esperar aprovação. **Depois do merge, apague as branches que já entraram e remova os worktrees da fase** — worktree existe enquanto o trabalho existe, e branch órfã não fica no repositório. O que **continua** sendo do humano é o **teste E2E**: ele não é escopo automatizado do ganza e o humano o roda quando quer revisar de fato. Peça revisão dele só quando a entrega precisar de olho humano — não como etapa de rotina.
 
+**Escreva ao lado de cada linha o que ela devolve HOJE, medido rodando.** Se a
+resposta for igual à que ela dará depois da tarefa, a linha não é critério — é
+decoração, e vai aprovar tarefa não feita. Se for um resultado que **nenhuma**
+implementação correta produz, é vermelho impossível e vai reprovar trabalho bom.
+As duas doenças são a mesma vista de lados opostos: a linha não distingue a
+árvore com o trabalho da árvore sem ele. Rodar o comando enquanto se escreve o
+critério custa segundos; descobrir isso pelo auditor custa uma rodada, e pelo
+supervisor custa o trabalho inteiro do executor.
+
+**A saída literal citada num critério tem de ser a saída daquele comando exato,
+na mesma role, ambiente e diretório em que o critério manda rodar.** Misturar a
+medição de um comando com o texto de outro foi o defeito da CHG-029: o valor
+esperado viera de uma conexão como `postgres`, e o comando escrito conectava
+como `supabase_admin`, que decompila a política sem o prefixo do schema.
+
+**Prova não muta recurso compartilhado.** O projeto Docker `ganza-local` é único
+para todos os worktrees, então derrubar contêiner ou apagar volume para medir
+alguma coisa quebra o ambiente de quem trabalha ao lado. Vale junto com a regra
+de higiene acima, que já fixa o alvo do `dart format` — `app/` inteiro, `test/`
+incluído, o mesmo do `.github/workflows/ci.yml`.
+
 **Toda linha do DoD é uma prova executável, de um destes três tipos:**
 
 | Tipo | Como se prova |
@@ -151,11 +172,30 @@ Toda skill declara `allowed-tools` e **todas são auto-invocáveis pelo modelo**
 
 **O veredito volta sempre ao orquestrador, nunca direto ao executor.** `NÃO CUMPRIDO` ele devolve ao executor. `DOD INVÁLIDO` tem **três saídas**, e a escolha é dele: (1) **corrigir a forma do critério sozinho** — ambíguo, contagem errada, referência que não resolve, caminho não completo a partir da raiz, bloco fora das três a seis linhas; (2) **acionar o `tech-lead`** quando reescrever o critério exige saber o que o plano pretendia — aí a correção não é de forma, é de conteúdo; (3) **levar ao humano** quando muda a **exigência** — sempre. **Afrouxar o DoD para a tarefa passar é proibido.** O veredito é registrado pelo orquestrador na própria linha da tarefa no `03_plan.md` da feature, e a tarefa só é marcada `[x]` com `CUMPRIDO`.
 
-**A fase que entrega comportamento visível ao usuário prova por teste de widget da cadeia visível.** O ganza não roda E2E — escopo suspenso por decisão do humano (20/08/2026); o automatizado é unit + widget. O teste exercita o que a fase **promete**, não o caminho feliz — se ela corrige uma falha silenciosa, prova que cada modo de falha produz estado **visualmente distinto** (um caso por estado do `sealed`, via `whenListen`/`BlocProvider.value`).
+**A fase que entrega comportamento visível ao usuário prova por teste de widget da cadeia visível.** O agente não escreve nem roda E2E — ele é ferramenta do humano, que o aciona quando quer revisar de fato (**D34** de `docs/decisions.md`, de 20/08/2026, revista em 21/08/2026); o escopo automatizado é unit + widget + golden. O teste exercita o que a fase **promete**, não o caminho feliz — se ela corrige uma falha silenciosa, prova que cada modo de falha produz estado **visualmente distinto** (um caso por estado do `sealed`, via `whenListen`/`BlocProvider.value`).
 
 **No PR, o DoD vai no corpo, com o resultado de cada linha.** É o que o revisor lê primeiro.
 
 **Roadmap vivo (`docs/roadmap.md`).** É a lista curta e ordenada de features: `[ ] NNN - descrição`. Cada item aponta para uma pasta `docs/NNN_descricao/`; o estado detalhado fica em `03_plan.md`. Decisões da feature ficam em `decisions.md`; decisões transversais ou pendências humanas ficam em `docs/decisions.md`, que sobrepõe `docs/plano.md` quando houver conflito.
+
+**O corte de uma entrega é por família de prova, não por contagem de tarefas.**
+As famílias são cinco: **migration/SQL**, **Edge Function/Deno**, **camada
+Dart** (domain, data), **tela/widget** e **infra/ambiente**. Uma entrega cobre
+**no máximo duas**. A medição que sustenta a regra: a Fase 5 da feature 002 teve
+**seis tarefas e seis famílias** — uma por tarefa — e custou **2,67 correções de
+critério por tarefa**; a Fase 1, com **16 tarefas** repetindo a mesma forma de
+prova, custou **0,69**. Menos tarefas não é entrega menor: o que encarece é
+trocar de família a cada tarefa, porque nenhum aprendizado de critério
+transfere e cada bloco DoD nasce do zero.
+
+**Tarefa cuja prova exige ambiente que não está no repositório — credencial de
+terceiro, stack no ar, VPS — é fase própria e PR próprio.** A T5.2 sozinha
+gerou quatro das dezesseis correções da Fase 5, todas de ambiente, e ainda
+travou a onda por pendência humana; isolá-la teria tirado as quatro e o
+bloqueio do caminho crítico das outras cinco tarefas.
+
+**Tarefa toca no máximo 6 arquivos.** Acima disso, fatie: a T4.11, com onze
+arquivos, foi a única tarefa da Fase 4 a precisar de mais de uma correção.
 
 **A ordem das fases é uma decisão de produto, não de conveniência:** rotina vem antes de finanças. É a rotina que faz o app ser aberto todo dia e é o domínio mais barato para construir a máquina de ocorrência, estado terminal, log de eventos e notificação em dupla via. **Se a fase N não estiver em uso diário, não comece a N+1.**
 

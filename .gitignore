@@ -40,3 +40,6 @@ infra/local/.runtime.env
 # Evidências pesadas de E2E ficam versionadas (são a prova); logs temporários não
 *.log
 criar-conta.py
+
+# Artefatos de build (APK, AAB) — binário não entra no repositório
+build-artifacts/
